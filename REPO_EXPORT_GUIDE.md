@@ -24,6 +24,8 @@ Describe how to read and extract `ADOP` as a standalone repository even while it
 ├── PUBLICATION_RUNBOOK.md
 ├── PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md
 ├── PRIVATE_RELEASE_HOLD_LINE.md
+├── SUPPORT.md
+├── .github/
 ├── REPO_EXPORT_GUIDE.md
 ├── REPO_EXPORT_CHECKLIST.md
 ├── checklists/
@@ -48,6 +50,8 @@ Describe how to read and extract `ADOP` as a standalone repository even while it
 - `PUBLICATION_RUNBOOK.md`
 - `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
 - `PRIVATE_RELEASE_HOLD_LINE.md`
+- `SUPPORT.md`
+- `.github/`
 - `REPO_EXPORT_GUIDE.md`
 - `REPO_EXPORT_CHECKLIST.md`
 - `checklists/`

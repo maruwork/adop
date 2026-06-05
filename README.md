@@ -49,6 +49,7 @@
 - `PUBLICATION_RUNBOOK.md`: 実公開時の実行順序
 - `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`: private リポジトリ準備の実行順序
 - `PRIVATE_RELEASE_HOLD_LINE.md`: private 準備後に止まる位置
+- `SUPPORT.md`: issue 前の確認と問い合わせ導線
 
 ## 読み順
 
@@ -67,6 +68,7 @@
 13. `PUBLICATION_RUNBOOK.md`
 14. `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
 15. `PRIVATE_RELEASE_HOLD_LINE.md`
+16. `SUPPORT.md`
 
 ## 使い方
 
@@ -108,6 +110,13 @@ The following are execution-grade docs for preparing the repository in a private
 
 - `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
 - `PRIVATE_RELEASE_HOLD_LINE.md`
+
+## Repository Community Files
+
+- `SUPPORT.md`
+- `.github/ISSUE_TEMPLATE/`
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/CODEOWNERS`
 
 ## Common Authority が持つもの
 
