@@ -1,0 +1,24 @@
+# Python cache and local env
+__pycache__/
+.venv/
+*.pyc
+
+# Build and package residue
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Logs and temp
+*.log
+*.tmp
+tmp/
+.cache/
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Git
+.git/

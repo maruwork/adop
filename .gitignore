@@ -1,2 +1,6 @@
+# Python bytecode cache (anywhere in the tree: shared/python/, tests/, ...)
 __pycache__/
 *.pyc
+
+# pytest cache
+.pytest_cache/

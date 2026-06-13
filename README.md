@@ -1,25 +1,34 @@
-﻿# ADOP
+# ADOP
 
-**目的**: 汎用ツール導入管理の共通正本棚。
+**Purpose**: The shared canonical shelf for external tool adoption management.
 
-ここでは、ADOP の共通 code、checklist、template を持つ。
-特定 project の current trial 状態や採用 register は持たない。
+This repository holds the shared code, checklists, and templates for ADOP.
+It does not hold any specific project's current trial state or adoption register.
 
-## これは何か
+## What This Is
 
-- `ADOP` は外部 tool 導入判断と trial lifecycle の共通棚
-- common authority では artifact schema、trial lifecycle、checklist、template を持つ
-- current trial board、operator flow、landing target authority は project-local overlay で持つ
+- `ADOP` is the shared shelf for external tool adoption judgment and trial lifecycle management
+- common authority holds artifact schema, trial lifecycle states, checklists, and templates
+- current trial board, operator flow, and landing target authority belong in project-local overlays
 
-## これは何ではないか
+## Governance Route
 
-- 特定 project の current adoption board ではない
-- 特定 project の operator flow 正本ではない
-- 特定 project の landing target authority ではない
+Project-local AI governance for this standalone repository starts here.
 
-## 棚
+1. `AGENTS.md`
+2. `common/README.md`
+3. `docs/governance/project-template-adoption-packet.md`
+4. `docs/AI_AGENT_RUNTIME_TOKEN_OPTIMIZATION.md`
 
-- `python/`: generic adoption body の共通 code
+## What This Is Not
+
+- not any specific project's current adoption board
+- not any specific project's canonical operator flow
+- not any specific project's landing target authority
+
+## Shelves
+
+- `shared/python/`: shared code for the generic adoption body
   - `adop_cli.py`: command entry
   - `adop_artifacts.py`: artifact IO / atomic write
   - `adop_validation.py`: schema / gate validation
@@ -28,58 +37,47 @@
   - `adop_ids.py`: id mint / parse
   - `adop_state_machine.py`: lifecycle transition helpers
   - `common.py`: bounded runtime helper
-- `checklists/`: 外部 tool 採用前の確認項目
-- `templates/`: 外部 tool 採用記録の雛形
-- `roadmap/`: ADOP 整理 wave の記録
-- `tasks/`: task board
-- `design/`: bounded design notes
-- `ADOP_SHELF_CLASSIFICATION.md`: common authority と project-local overlay の境界
-- `ADOP_GENERIC_QUICKSTART.md`: generic ADOP の読み順と bounded verification path
-- `REPO_EXPORT_GUIDE.md`: standalone repo へ抜く時の形
-- `REPO_EXPORT_CHECKLIST.md`: standalone repo へ抜く前の確認
-- `PRE_PUBLICATION_DECISIONS.md`: まだ未決の owner decision
-- `CONTRIBUTING_DRAFT.md`: 公開前の contribution draft
-- `SECURITY_DRAFT.md`: 公開前の security draft
-- `RELEASE_BOOTSTRAP_NOTES.md`: 公開直前の bootstrap note
-- `OWNER_DECISION_PACKET.md`: publishable hold から公開へ進むための owner decision packet
-- `PUBLISHABLE_HOLD_CHECKLIST.md`: 公開可能保留状態の確認表
-- `PUBLIC_GO_LIVE_SEQUENCE_DRAFT.md`: 実公開時の順序案
-- `PUBLIC_POLICY_PROMOTION_MATRIX.md`: draft 文書を公開面へどう昇格させるか
-- `PUBLIC_VERIFICATION_CONTRACT.md`: 公開前に必須の verification 面
-- `PUBLICATION_RUNBOOK.md`: 実公開時の実行順序
-- `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`: private リポジトリ準備の実行順序
-- `PRIVATE_RELEASE_HOLD_LINE.md`: private 準備後に止まる位置
-- `SUPPORT.md`: issue 前の確認と問い合わせ導線
+- `docs/checklists/`: checklist items to review before adopting an external tool
+- `shared/templates/`: record templates for external tool adoption
+- `docs/design/`: bounded design notes
+- `docs/publication/`: publication planning, runbooks, and pre-release checklists
+- `docs/governance/`: local governance concretization
+- `archive/`: historical shelf for completed wave materials
+- `docs/ADOP_GENERIC_QUICKSTART.md`: generic ADOP reading order and bounded verification path
+- `docs/publication/CONTRIBUTING_DRAFT.md`: pre-publication contribution draft
+- `docs/publication/SECURITY_DRAFT.md`: pre-publication security draft
+- `SUPPORT.md`: pre-issue checklist and support contact routes
 
-## 読み順
+## Reading Order
 
 1. `README.md`
-2. `ADOP_SHELF_CLASSIFICATION.md`
-3. `ADOP_GENERIC_QUICKSTART.md`
-4. `checklists/external-tool-adoption-checklist.md`
-5. `templates/external-tool-adoption-note-template.md`
-6. `python/adop_types.py`
-7. `python/adop_cli.py`
-8. `REPO_EXPORT_GUIDE.md`
-9. `PUBLISHABLE_HOLD_CHECKLIST.md`
-10. `OWNER_DECISION_PACKET.md`
-11. `PUBLIC_POLICY_PROMOTION_MATRIX.md`
-12. `PUBLIC_VERIFICATION_CONTRACT.md`
-13. `PUBLICATION_RUNBOOK.md`
-14. `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
-15. `PRIVATE_RELEASE_HOLD_LINE.md`
-16. `SUPPORT.md`
+2. `docs/design/ADOP_SHELF_CLASSIFICATION.md`
+3. `docs/ADOP_GENERIC_QUICKSTART.md`
+4. `docs/checklists/external-tool-adoption-checklist.md`
+5. `shared/templates/external-tool-adoption-note-template.md`
+6. `shared/python/adop_types.py`
+7. `shared/python/adop_cli.py`
+8. `docs/design/adop-lifecycle-schema-design.md`
+9. `docs/publication/REPO_EXPORT_GUIDE.md`
+10. `docs/publication/PUBLISHABLE_HOLD_CHECKLIST.md`
+11. `docs/publication/OWNER_DECISION_PACKET.md`
+12. `docs/publication/PUBLIC_POLICY_PROMOTION_MATRIX.md`
+13. `docs/publication/PUBLIC_VERIFICATION_CONTRACT.md`
+14. `docs/publication/PUBLICATION_RUNBOOK.md`
+15. `docs/publication/PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
+16. `docs/publication/PRIVATE_RELEASE_HOLD_LINE.md`
+17. `SUPPORT.md`
 
-## 使い方
+## How to Use
 
-1. generic code と lifecycle を基準に project 側の runtime copy または overlay を保つ
-2. `checklists/` を着手前に読む
-3. `templates/` を project 側へ持ち込む
-4. current trial、promote / hold / reject、operator 手順、landing target authority は project 側へ書く
+1. use the generic code and lifecycle as the baseline for a project-side runtime copy or overlay
+2. read `docs/checklists/` before starting any adoption work
+3. bring `shared/templates/` into the project side
+4. write current trial state, promote / hold / reject decisions, operator procedures, and landing target authority on the project side
 
 ## Standalone Repo View
 
-- current physical home in this monorepo is `common/adop/`
+- current physical home is this repository root
 - public-facing commands and file paths in this shelf are written repo-relative
 - if this shelf is lifted into its own first public repo, use `REPO_EXPORT_GUIDE.md` as the carried-file authority
 - extraction notes are in `REPO_EXPORT_GUIDE.md`
@@ -88,28 +86,28 @@
 
 The following are preparation assets only. They do not mean `ADOP` is already public.
 
-- `PRE_PUBLICATION_DECISIONS.md`
-- `CONTRIBUTING_DRAFT.md`
-- `SECURITY_DRAFT.md`
-- `RELEASE_BOOTSTRAP_NOTES.md`
-- `OWNER_DECISION_PACKET.md`
-- `PUBLISHABLE_HOLD_CHECKLIST.md`
-- `PUBLIC_GO_LIVE_SEQUENCE_DRAFT.md`
+- `docs/publication/PRE_PUBLICATION_DECISIONS.md`
+- `docs/publication/CONTRIBUTING_DRAFT.md`
+- `docs/publication/SECURITY_DRAFT.md`
+- `docs/publication/RELEASE_BOOTSTRAP_NOTES.md`
+- `docs/publication/OWNER_DECISION_PACKET.md`
+- `docs/publication/PUBLISHABLE_HOLD_CHECKLIST.md`
+- `docs/publication/PUBLIC_GO_LIVE_SEQUENCE_DRAFT.md`
 
 ## Publication Execution Docs
 
 The following are execution-grade docs for getting from publishable hold to real publication. They are not themselves a claim that `ADOP` is already public.
 
-- `PUBLIC_POLICY_PROMOTION_MATRIX.md`
-- `PUBLIC_VERIFICATION_CONTRACT.md`
-- `PUBLICATION_RUNBOOK.md`
+- `docs/publication/PUBLIC_POLICY_PROMOTION_MATRIX.md`
+- `docs/publication/PUBLIC_VERIFICATION_CONTRACT.md`
+- `docs/publication/PUBLICATION_RUNBOOK.md`
 
 ## Private Bootstrap Docs
 
 The following are execution-grade docs for preparing the repository in a private state while explicitly stopping before public release.
 
-- `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
-- `PRIVATE_RELEASE_HOLD_LINE.md`
+- `docs/publication/PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
+- `docs/publication/PRIVATE_RELEASE_HOLD_LINE.md`
 
 ## Repository Community Files
 
@@ -118,7 +116,7 @@ The following are execution-grade docs for preparing the repository in a private
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/CODEOWNERS`
 
-## Common Authority が持つもの
+## What Common Authority Owns
 
 - artifact schema
 - trial lifecycle states
@@ -126,7 +124,7 @@ The following are execution-grade docs for preparing the repository in a private
 - generic checklist
 - generic adoption note template
 
-## Project-Local Overlay が持つもの
+## What Project-Local Overlay Owns
 
 - current trial board
 - current summary
@@ -135,15 +133,15 @@ The following are execution-grade docs for preparing the repository in a private
 - landing target authority
 - project-local decision log
 
-## 書かないこと
+## Do Not Put Here
 
-- 特定 project の current trial board
-- 特定 project の current summary
-- project 固有の operator flow
-- project 固有の judgment log
-- project 固有の landing target authority
+- any specific project's current trial board
+- any specific project's current summary
+- any project-specific operator flow
+- any project-specific judgment log
+- any project-specific landing target authority
 
-## 戻り先
+## Return Path
 
-- この棚の入口へ戻る: `README.md`
-- standalone repo として読む時も、この `README.md` を起点にする
+- return to the shelf entry: `README.md`
+- when reading this as a standalone repo, start from this `README.md`
