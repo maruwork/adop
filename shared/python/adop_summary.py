@@ -185,6 +185,12 @@ def _scene_is_blocked(scene: str, items: list[dict[str, Any]], of_type) -> bool:
     return not reopened
 
 
+def get_scene_states(root: Path) -> dict[str, str]:
+    """Return current lifecycle state per scene. Public entry for CLI status/next commands."""
+    items = load_all_artifacts(root)
+    return _resolve_scene_states(root, items)
+
+
 def build_summary(root: Path, *, scene: str | None = None, status: str | None = None) -> str:
     items = load_all_artifacts(root)
     # Intake dispositions and trial states are tracked in SEPARATE buckets so a

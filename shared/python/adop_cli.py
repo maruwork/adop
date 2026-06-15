@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import re
+import shutil
 import sys
 from argparse import RawTextHelpFormatter
 from pathlib import Path
@@ -16,7 +18,7 @@ try:
     from . import adop_artifacts as artifacts
     from .adop_ids import next_sequential_id, parse_numeric_id
     from .adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from .adop_summary import build_summary
+    from .adop_summary import build_summary, get_scene_states
     from .adop_types import (
         ARCHIVE_NOTE,
         BLOCKED_NOTE,
@@ -79,7 +81,7 @@ except ImportError:  # pragma: no cover - script import path
     import adop_artifacts as artifacts
     from adop_ids import next_sequential_id, parse_numeric_id
     from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from adop_summary import build_summary
+    from adop_summary import build_summary, get_scene_states
     from adop_types import (
         ARCHIVE_NOTE,
         BLOCKED_NOTE,
@@ -141,6 +143,64 @@ fix_stdout_encoding()
 
 __version__ = "0.1.0"
 
+_DEFAULT_ARTIFACT_ROOT = ".adop"
+
+# Overlay stub written by `adop init` when the template file cannot be located.
+_OVERLAY_INIT_STUB = """\
+# Project-Local ADOP Overlay
+
+**Common authority**: https://github.com/maruwork/adop
+
+## Artifact Root
+
+Adoption artifacts live at: .adop/
+
+## Runtime Copy
+
+adop_*.py and common.py path: [fill in]
+Last verified: [date]
+
+## Active Use Cases
+
+| Use Case | Tool | Current State |
+|---|---|---|
+| (fill in) | (fill in) | (fill in) |
+
+## Operator Flow
+
+| Stage | Who | How |
+|---|---|---|
+| Raise candidate | | |
+| Compare | | |
+| Open trial | | |
+| Close trial | | |
+
+## Return Path
+
+https://github.com/maruwork/adop
+"""
+
+# Next-command templates keyed by lifecycle state.
+_NEXT_FOR_STATE: dict[str, str] = {
+    "watch":       'adop quick-intake --use-case {scene} --candidate <tool> --why-now "<reason>"',
+    "proposed":    'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>',
+    "trial-ready": 'adop quick-trial --use-case {scene} --mode review-assist --executor <who>',
+    "blocked":     'adop unblock --use-case {scene} --why-unblocked "<what changed>"',
+    "deprecated":  'adop migrate --use-case {scene} --migration-target <target> --migration-plan "<plan>"',
+    "migrating":   'adop archive --use-case {scene} --end-date <YYYY-MM-DD>',
+}
+
+_CONFIG_FILE_NAMES: frozenset[str] = frozenset({
+    "pyproject.toml", "setup.cfg", "setup.py", "tox.ini",
+    ".pre-commit-config.yaml", "Makefile", "makefile", ".flake8",
+    "requirements.txt", "requirements-dev.txt", "requirements-test.txt",
+})
+
+_SCAN_SKIP_DIRS: frozenset[str] = frozenset({
+    ".git", ".hg", "__pycache__", ".pytest_cache", ".mypy_cache",
+    ".venv", "venv", "env", "node_modules", ".adop",
+})
+
 
 def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -160,10 +220,41 @@ def _parse_json_arg(raw: str, field_name: str) -> Any:
         raise AdopValidationError(f"{field_name} must be valid JSON: {exc.msg}", 2) from exc
 
 
+def _root_path(args: argparse.Namespace) -> Path:
+    """Resolve artifact root for read-only commands; raise with helpful hint if missing."""
+    root = Path(getattr(args, "artifact_root", _DEFAULT_ARTIFACT_ROOT))
+    if not root.exists():
+        hint = " — run 'adop init' to create it" if str(root) == _DEFAULT_ARTIFACT_ROOT else ""
+        raise AdopValidationError(f"artifact root not found: '{root}'{hint}", 2)
+    return root
+
+
+def _next_step(scene: str, state: str, root: Path, items: list[dict[str, Any]]) -> str:
+    """Return the recommended next CLI command for the given scene/state."""
+    if state == "in-trial":
+        pkts = [
+            i for i in items
+            if i.get("artifact_type") == TRIAL_PACKET
+            and str(i.get("related_scene", "")) == scene
+        ]
+        trial_id = str(pkts[-1]["artifact_id"]) if pkts else "tr-001"
+        return (
+            f"adop quick-close-trial --trial-id {trial_id} "
+            f'--verdict <promote|hold|reject> --observed-effect "<what you saw>"'
+        )
+    template = _NEXT_FOR_STATE.get(state, "")
+    return template.format(scene=scene) if template else ""
+
+
 def _prepare_artifact_root(args: argparse.Namespace) -> Path:
+    root_arg = getattr(args, "artifact_root", _DEFAULT_ARTIFACT_ROOT)
+    if not Path(root_arg).exists() and root_arg == _DEFAULT_ARTIFACT_ROOT:
+        raise AdopValidationError(
+            "artifact root '.adop' not found — run 'adop init' to create it", 2
+        )
     try:
         return artifacts.ensure_artifact_root(
-            Path(args.artifact_root),
+            Path(root_arg),
             target_project_root=Path(args.target_project_root) if getattr(args, "target_project_root", None) else None,
             allow_project_impact=bool(getattr(args, "allow_project_impact", False)),
         )
@@ -312,12 +403,15 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="ADOP JSON-native CLI",
         epilog=(
-            "Simple path (guided, preset-filled — start here):\n"
+            "First time in a project:\n"
+            "  adop init                       # creates .adop/ and adop-overlay.md\n\n"
+            "Simple path (guided, preset-filled):\n"
             "  quick-intake -> quick-compare -> quick-trial -> quick-close-trial\n\n"
             "Advanced path (explicit, full control over every field):\n"
             "  intake / compare / start-trial / close-trial\n\n"
             "Inspect anytime:\n"
-            "  summary (text or --json) / list / show / lint\n\n"
+            "  status / next / summary / list / show / lint\n"
+            "  scan --target . --tool <name>   # detect couplings\n\n"
             "JSON-blob flags also accept a file via @path\n"
             "  e.g. --compatibility-diagnosis-json @diagnosis.json\n\n"
             "Exit codes:\n"
@@ -338,7 +432,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="simple path: create a candidate intake with minimal inputs",
         description="Create a candidate intake artifact from the minimum required inputs.",
     )
-    quick_intake.add_argument("--artifact-root", required=True)
+    quick_intake.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(quick_intake)
     quick_intake.add_argument("--candidate", required=True)
     quick_intake.add_argument("--source", required=True)
@@ -353,7 +447,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="simple path: compare 2-3 candidates for one bounded use case",
         description="Create a comparison artifact with default project profile and filter reasoning.",
     )
-    quick_compare.add_argument("--artifact-root", required=True)
+    quick_compare.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(quick_compare)
     quick_compare.add_argument("--use-case", dest="scene", required=True)
     quick_compare.add_argument("--candidate", dest="candidates", action="append", required=True)
@@ -372,7 +466,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="simple path: open a bounded trial from the latest comparison",
         description="Start a trial with a small preset such as review-assist.",
     )
-    quick_trial.add_argument("--artifact-root", required=True)
+    quick_trial.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(quick_trial)
     quick_trial.add_argument("--use-case", dest="scene", required=True)
     quick_trial.add_argument("--mode", required=True, choices=("review-assist", "read-only-comparison"))
@@ -387,7 +481,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="simple path: close a trial with preset judgment fields",
         description="Close a trial with a verdict and observed effect, using default judgment wording when omitted.",
     )
-    quick_close.add_argument("--artifact-root", required=True)
+    quick_close.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(quick_close)
     quick_close.add_argument("--trial-id", required=True)
     quick_close.add_argument("--verdict", required=True, choices=VERDICTS)
@@ -405,7 +499,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="advanced: explicit candidate intake",
         description="Low-level intake command with explicit intake fields.",
     )
-    intake.add_argument("--artifact-root", required=True)
+    intake.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(intake)
     intake.add_argument("--candidate", required=True)
     intake.add_argument("--candidate-shape", required=True, choices=CANDIDATE_SHAPES)
@@ -420,7 +514,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="advanced: explicit comparison with full filter and compatibility fields",
         description="Low-level comparison command with explicit filters, project profile, and compatibility diagnosis.",
     )
-    compare.add_argument("--artifact-root", required=True)
+    compare.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(compare)
     compare.add_argument("--scene", required=True)
     compare.add_argument("--candidate", dest="candidates", action="append", required=True)
@@ -444,7 +538,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="advanced: explicit trial packet creation",
         description="Low-level trial command with explicit trial type, sandbox, gate, and writeback fields.",
     )
-    start.add_argument("--artifact-root", required=True)
+    start.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(start)
     start.add_argument("--scene", required=True)
     start.add_argument("--derived-from", default=None)
@@ -467,7 +561,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="advanced: explicit trial close with full judgment fields",
         description="Low-level close command with explicit verdict, preventive actions, and recurring control fields.",
     )
-    close.add_argument("--artifact-root", required=True)
+    close.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(close)
     close.add_argument("--trial-id", required=True)
     close.add_argument("--verdict", required=True, choices=VERDICTS)
@@ -487,7 +581,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="show artifact summary",
         description="Render a text summary from the current artifact root.",
     )
-    summary.add_argument("--artifact-root", required=True)
+    summary.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     summary.add_argument("--scene")
     summary.add_argument("--status")
     summary.add_argument(
@@ -501,7 +595,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="list artifacts under the current artifact root",
         description="List artifacts with optional type/scene/status filters.",
     )
-    list_cmd.add_argument("--artifact-root", required=True)
+    list_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     list_cmd.add_argument("--type", dest="artifact_type")
     list_cmd.add_argument("--scene")
     list_cmd.add_argument("--status")
@@ -516,7 +610,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="show artifacts for one artifact id",
         description="Show one artifact id, optionally narrowed by artifact type.",
     )
-    show.add_argument("--artifact-root", required=True)
+    show.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     show.add_argument("--id", dest="artifact_id", required=True)
     show.add_argument("--type", dest="artifact_type")
     show.add_argument(
@@ -530,14 +624,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="lint the artifact root",
         description="Validate artifact files under the current artifact root.",
     )
-    lint.add_argument("--artifact-root", required=True)
+    lint.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
 
     watch_cmd = subparsers.add_parser(
         "watch",
         help="record a tool on the radar before formal evaluation",
         description="Create a watch-note. Use-case is optional at this stage.",
     )
-    watch_cmd.add_argument("--artifact-root", required=True)
+    watch_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(watch_cmd)
     watch_cmd.add_argument("--candidate", required=True)
     watch_cmd.add_argument("--interest-reason", required=True)
@@ -548,7 +642,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="block a proposed adoption on an external constraint",
         description="Create a blocked-note. Requires an existing candidate-intake-note for the scene.",
     )
-    block_cmd.add_argument("--artifact-root", required=True)
+    block_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(block_cmd)
     block_cmd.add_argument("--use-case", dest="scene", required=True)
     block_cmd.add_argument("--block-reason", required=True)
@@ -560,7 +654,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="lift a block and re-enter proposed state",
         description="Create a new candidate-intake-note from blocked state.",
     )
-    unblock_cmd.add_argument("--artifact-root", required=True)
+    unblock_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(unblock_cmd)
     unblock_cmd.add_argument("--use-case", dest="scene", required=True)
     unblock_cmd.add_argument("--why-unblocked", required=True)
@@ -570,7 +664,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="begin retirement of a promoted tool",
         description="Create a deprecation-note. Requires an existing promotion-note for the scene.",
     )
-    deprecate_cmd.add_argument("--artifact-root", required=True)
+    deprecate_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(deprecate_cmd)
     deprecate_cmd.add_argument("--use-case", dest="scene", required=True)
     deprecate_cmd.add_argument("--retirement-reason", required=True)
@@ -582,7 +676,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="start active migration away from a deprecated tool",
         description="Create a migration-note. Requires an existing deprecation-note for the scene.",
     )
-    migrate_cmd.add_argument("--artifact-root", required=True)
+    migrate_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(migrate_cmd)
     migrate_cmd.add_argument("--use-case", dest="scene", required=True)
     migrate_cmd.add_argument("--migration-target", required=True)
@@ -593,7 +687,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="mark a tool as fully archived for this use-case",
         description="Create an archive-note. Requires an existing deprecation-note or migration-note.",
     )
-    archive_cmd.add_argument("--artifact-root", required=True)
+    archive_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(archive_cmd)
     archive_cmd.add_argument("--use-case", dest="scene", required=True)
     archive_cmd.add_argument("--end-date", required=True)
@@ -614,7 +708,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=RawTextHelpFormatter,
     )
-    couple_cmd.add_argument("--artifact-root", required=True)
+    couple_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(couple_cmd)
     couple_cmd.add_argument("--use-case", dest="scene", required=True)
     couple_cmd.add_argument("--tool", required=True)
@@ -630,10 +724,48 @@ def _build_parser() -> argparse.ArgumentParser:
         help="report tool-to-file entanglement (latest coupling-note per tool/use-case)",
         description="Report declared tool-to-file couplings and their detachment cost.",
     )
-    couplings_cmd.add_argument("--artifact-root", required=True)
+    couplings_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(couplings_cmd)
     couplings_cmd.add_argument("--use-case", dest="scene", default=None, help="filter to one use-case")
     couplings_cmd.add_argument("--json", action="store_true")
+
+    # ── Usability commands (no --artifact-root required on first run) ──────────
+    init_cmd = subparsers.add_parser(
+        "init",
+        help="scaffold artifact root and overlay file (run once per project)",
+        description="Create .adop/ artifact root and a project-local overlay stub.",
+    )
+    init_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
+    init_cmd.add_argument(
+        "--overlay",
+        default="adop-overlay.md",
+        metavar="FILE",
+        help="path for overlay file (default: adop-overlay.md)",
+    )
+
+    status_cmd = subparsers.add_parser(
+        "status",
+        help="show current lifecycle state per scene and next steps",
+        description="Print the current lifecycle state for each tracked use case.",
+    )
+    status_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
+
+    scan_cmd = subparsers.add_parser(
+        "scan",
+        help="static-analyse project files to detect tool couplings",
+        description="Scan a directory for references to a tool and report detected couplings.",
+    )
+    scan_cmd.add_argument("--target", required=True, metavar="DIR", help="directory to scan")
+    scan_cmd.add_argument("--tool", required=True, help="tool name to detect (case-insensitive)")
+    scan_cmd.add_argument("--use-case", dest="scene", default=None, metavar="SCENE")
+    scan_cmd.add_argument("--json", action="store_true", help="emit raw JSON coupling list")
+
+    next_cmd = subparsers.add_parser(
+        "next",
+        help="show recommended next action for the most active use case",
+        description="Print the single next recommended CLI command for each pending use case.",
+    )
+    next_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
 
     return parser
 
@@ -1276,6 +1408,182 @@ def _handle_quick_close_trial(args: argparse.Namespace) -> dict[str, Any]:
     return _handle_close_trial(args)
 
 
+def _handle_init(args: argparse.Namespace) -> str:
+    root = Path(args.artifact_root)
+    created_root = not root.exists()
+    root.mkdir(parents=True, exist_ok=True)
+
+    overlay_path = Path(args.overlay)
+    created_overlay = not overlay_path.exists()
+    if created_overlay:
+        # Look for template relative to this script (ADOP canonical layout).
+        candidate = Path(__file__).parent.parent / "templates" / "project-local-adop-overlay-template.md"
+        if candidate.exists():
+            shutil.copy(candidate, overlay_path)
+        else:
+            overlay_path.write_text(_OVERLAY_INIT_STUB, encoding="utf-8")
+
+    lines = ["ADOP initialized.", ""]
+    lines.append(f"  Artifact root : {root}/{'  (created)' if created_root else '  (already exists)'}")
+    lines.append(f"  Overlay file  : {overlay_path}{'  (created)' if created_overlay else '  (already exists)'}")
+    lines += [
+        "",
+        "Next steps:",
+        '  adop watch --candidate <tool> --interest-reason "watching to evaluate"',
+        '  adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"',
+        '  adop status',
+    ]
+    return "\n".join(lines)
+
+
+def _handle_status(args: argparse.Namespace) -> str:
+    root = _root_path(args)
+    scene_states = get_scene_states(root)
+    items = artifacts.load_all_artifacts(root)
+
+    lines = [f"ADOP  ({root}/)", ""]
+
+    if not scene_states:
+        lines += [
+            "No adoption records yet.",
+            "",
+            "Start with:",
+            '  adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"',
+        ]
+        return "\n".join(lines)
+
+    col = max(len(k) for k in scene_states) + 2
+    action_needed: list[tuple[str, str, str]] = []
+    for label, state in sorted(scene_states.items()):
+        lines.append(f"  {label:<{col}} {state}")
+        cmd = _next_step(label, state, root, items)
+        if cmd and state not in ("promote", "archived", "reject"):
+            action_needed.append((label, state, cmd))
+
+    coupling_notes = [i for i in items if i.get("artifact_type") == COUPLING_NOTE]
+    if coupling_notes:
+        lines += ["", "Couplings:"]
+        latest_cp: dict[tuple[str, str], dict[str, Any]] = {}
+        for note in coupling_notes:
+            key = (str(note.get("related_scene", "")), str(note.get("candidate_or_tool", "")))
+            latest_cp[key] = note
+        for (sc, tool), note in sorted(latest_cp.items()):
+            entries = note.get("couplings", [])
+            worst = _worst_removal_cost(entries)
+            lines.append(f"  {tool} @ {sc}: {len(entries)} file(s), max detachment: {worst}")
+    else:
+        tool_hint = next(
+            (str(i.get("candidate_or_tool", "<tool>")) for i in items if i.get("candidate_or_tool")),
+            "<tool>",
+        )
+        scene_hint = next(iter(sorted(scene_states)), "<scene>")
+        lines += [
+            "",
+            "No couplings recorded.",
+            f"  → adop scan --target . --tool {tool_hint} --use-case {scene_hint}",
+        ]
+
+    if action_needed:
+        lines += ["", "Next steps:"]
+        for label, _, cmd in action_needed[:3]:
+            lines.append(f"  [{label}]")
+            lines.append(f"    {cmd}")
+
+    return "\n".join(lines)
+
+
+def _handle_scan(args: argparse.Namespace) -> tuple[int, str]:
+    target = Path(args.target)
+    if not target.is_dir():
+        raise AdopValidationError(f"scan target is not a directory: {target}", 2)
+
+    tool_lower = args.tool.lower()
+    tool_mod = re.sub(r"[-.]", "_", args.tool).lower()
+    scene = getattr(args, "scene", None) or "<scene>"
+    couplings: list[dict[str, Any]] = []
+
+    for path in sorted(target.rglob("*")):
+        if path.is_dir():
+            continue
+        rel_parts = path.parts[len(target.parts):]
+        if any(p in _SCAN_SKIP_DIRS or p.startswith(".") for p in rel_parts):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+
+        rel = "/".join(rel_parts)
+        coupling_type: str | None = None
+        removal_cost: str | None = None
+        note_text: str | None = None
+
+        if path.suffix == ".py":
+            if re.search(rf"(?m)^\s*(?:import|from)\s+{re.escape(tool_mod)}\b", text):
+                coupling_type, removal_cost = "import", "edit"
+        elif path.name in _CONFIG_FILE_NAMES or path.suffix in (".yml", ".yaml", ".toml", ".cfg", ".ini"):
+            if tool_lower in text.lower():
+                if path.name in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
+                    coupling_type, removal_cost, note_text = "config", "clean", "dependency declaration"
+                else:
+                    coupling_type, removal_cost = "config", "edit"
+        elif path.suffix in (".sh", ".bash") or path.name in ("Makefile", "makefile"):
+            if tool_lower in text.lower():
+                coupling_type, removal_cost = "invocation", "edit"
+        elif tool_lower in text.lower() and path.suffix not in (".pyc", ".pyo", ".lock"):
+            coupling_type, removal_cost = "reference", "clean"
+
+        if coupling_type:
+            entry: dict[str, Any] = {"path": rel, "coupling_type": coupling_type, "removal_cost": removal_cost}
+            if note_text:
+                entry["note"] = note_text
+            couplings.append(entry)
+
+    if not couplings:
+        return 0, f"No references to '{args.tool}' found in {target}/"
+
+    if getattr(args, "json", False):
+        return 0, json.dumps(couplings, ensure_ascii=False, indent=2)
+
+    lines = [f"Detected {len(couplings)} coupling(s) for '{args.tool}' in {target}/", ""]
+    for entry in couplings:
+        nt = f"  # {entry['note']}" if entry.get("note") else ""
+        lines.append(f"  {entry['path']} [{entry['coupling_type']}, {entry['removal_cost']}]{nt}")
+    lines += ["", f"Record with:", f"  adop couple --use-case {scene} --tool {args.tool} \\"]
+    for entry in couplings:
+        np = f"|{entry['note']}" if entry.get("note") else ""
+        lines.append(f"    --couple '{entry['path']}|{entry['coupling_type']}|{entry['removal_cost']}{np}' \\")
+    lines += ["", "Or as JSON:", f"  adop scan --target {args.target} --tool {args.tool} --json > couplings.json"]
+    lines.append(f"  adop couple --use-case {scene} --tool {args.tool} --couplings-json @couplings.json")
+    return 0, "\n".join(lines)
+
+
+def _handle_next(args: argparse.Namespace) -> str:
+    root = _root_path(args)
+    scene_states = get_scene_states(root)
+    items = artifacts.load_all_artifacts(root)
+
+    if not scene_states:
+        return 'No records yet — start: adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"'
+
+    terminal = {"promote", "archived", "reject"}
+    priority = {"in-trial": 0, "proposed": 1, "trial-ready": 2, "watch": 3, "blocked": 4, "deprecated": 5, "migrating": 6}
+    active = sorted(
+        [(sc, st) for sc, st in scene_states.items() if st not in terminal],
+        key=lambda x: (priority.get(x[1], 99), x[0]),
+    )
+    if not active:
+        return "All scenes are in a terminal state (promote / archived / reject). Nothing pending."
+
+    lines: list[str] = []
+    for scene_label, state in active[:3]:
+        cmd = _next_step(scene_label, state, root, items)
+        if cmd:
+            lines.append(f"[{scene_label}] ({state})")
+            lines.append(f"  {cmd}")
+    return "\n".join(lines) if lines else "No pending actions."
+
+
 def _handle_lint(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     issues = lint_artifact_root(Path(args.artifact_root))
     if issues:
@@ -1490,6 +1798,19 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 _emit(payload)
             return exit_code
+        if args.command == "init":
+            print(_handle_init(args))
+            return 0
+        if args.command == "status":
+            print(_handle_status(args))
+            return 0
+        if args.command == "scan":
+            exit_code, text = _handle_scan(args)
+            print(text)
+            return exit_code
+        if args.command == "next":
+            print(_handle_next(args))
+            return 0
         raise AdopValidationError(f"unsupported command: {args.command}", 2)
     except AdopValidationError as exc:
         _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))

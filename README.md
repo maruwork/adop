@@ -53,10 +53,27 @@ It does not hold any specific project's current trial state or adoption register
 
 ## How to Use
 
-1. use the generic code and lifecycle as the baseline for a project-side runtime copy or overlay
-2. read `docs/checklists/` before starting any adoption work
-3. bring `shared/templates/` into the project side
-4. write current trial state, promote / hold / reject decisions, operator procedures, and landing target authority on the project side
+```bash
+# 1. In your project directory, scaffold the artifact root and overlay
+adop init
+
+# 2. Record the first candidate
+adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"
+
+# 3. Check progress at any time
+adop status
+
+# 4. See what to do next
+adop next
+
+# 5. Detect how deeply the tool is embedded
+adop scan --target . --tool <tool>
+```
+
+Full flow: `quick-intake → quick-compare → quick-trial → quick-close-trial`
+
+See `docs/checklists/` before starting adoption work.
+Bring `shared/templates/` into the project side for operator procedures.
 
 ## Repository Community Files
 
