@@ -9,11 +9,10 @@ Start from the top if unfamiliar. Jump to the relevant section if returning to a
 
 ### 1. Context
 
-- `STANDALONE_CANDIDATE_NOTE.md` — confirms this directory is the standalone ADOP project root
+- `README.md` §"Standalone Repo View" — confirms this directory is the standalone ADOP project root
 
 ### 2. Open Decisions (resolve before any release action)
 
-- `PRE_PUBLICATION_DECISIONS.md` — outstanding decisions that block publication
 - `OWNER_DECISION_PACKET.md` — full owner decision checklist: license, host, contribution policy, security intake
 
 ### 3. Readiness Verification
@@ -33,7 +32,6 @@ Start from the top if unfamiliar. Jump to the relevant section if returning to a
 ### 6. Public Release Track
 
 - `PUBLIC_VERIFICATION_CONTRACT.md` — required verification before publication
-- `PUBLIC_GO_LIVE_SEQUENCE_DRAFT.md` — ordered sequence for actual public release
 - `PUBLICATION_RUNBOOK.md` — executable runbook from publishable hold to public release
 
 ### 7. Private Bootstrap Track (alternative: prepare private repo first)

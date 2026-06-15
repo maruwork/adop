@@ -32,13 +32,8 @@ This file is a pre-publication draft. It exists so the contribution surface can 
 - issue/PR policy has a chosen default and must be reflected in the public repo
 - public CI expectations have a chosen default and must be reflected in the public repo
 
-## Owner Answers Required Before Promotion
+## Owner Answers
 
-- issue policy:
-  - issues may be opened from day one for bugs, docs, and bounded enhancement requests
-- pull request policy:
-  - pull requests are accepted from day one and require maintainer review before merge
-- accept public community contributions from day one:
-  - `yes`
+Resolved values: `OWNER_DECISION_PACKET.md` §3.
 
-This file may be promoted after the above fields are reflected in the public repository wording.
+This file may be promoted after the chosen wording from the owner packet is reflected here.

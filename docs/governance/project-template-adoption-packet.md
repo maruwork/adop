@@ -8,14 +8,7 @@ Fix the local rules for applying `pj-template` to `adop`.
 
 ## 2. Reading Route
 
-1. `AGENTS.md`
-2. `common/README.md`
-3. `docs/governance/project-template-adoption-packet.md`
-4. `README.md`
-5. `docs/ADOP_GENERIC_QUICKSTART.md`
-6. `docs/checklists/external-tool-adoption-checklist.md`
-7. `shared/templates/external-tool-adoption-note-template.md`
-8. `shared/python/`
+See `README.md` for the full reading order.
 
 ### 2.1 Entry Split
 
@@ -123,34 +116,7 @@ Fix the local rules for applying `pj-template` to `adop`.
 
 Authoritative shelf authority and class definitions: `docs/governance/project-boundary-register.md`.
 
-- current canonical:
-  - `README.md`
-  - `shared/python/`
-  - `docs/checklists/`
-  - `shared/templates/`
-- no-local-current:
-  - `no`
-- no-current-canonical:
-  - `yes`
-  - this project does not currently keep a daily current board as its canonical route
-- restart aid / handoff only:
-  - `none`
-- support:
-  - `common/`
-  - `docs/governance/`
-  - `docs/AI_AGENT_RUNTIME_TOKEN_OPTIMIZATION.md`
-  - `docs/design/`
-  - `docs/publication/`
-- historical:
-  - `archive/`
-- generated / workspace:
-  - `workspace/`
-  - `__pycache__/` (any code shelf, e.g. `shared/python/`, `tests/`)
-  - `.pytest_cache/`
-- historical / archive:
-  - `archive/`
-- hidden active or ignored assets:
-  - `.github/`
+- no-current-canonical: `yes` — this project does not currently keep a daily current board as its canonical route
 
 ## 6. Runtime And Caller-Sensitive Paths
 

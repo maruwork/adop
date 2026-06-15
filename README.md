@@ -86,13 +86,11 @@ Project-local AI governance for this standalone repository starts here.
 
 The following are preparation assets only. They do not mean `ADOP` is already public.
 
-- `docs/publication/PRE_PUBLICATION_DECISIONS.md`
 - `docs/publication/CONTRIBUTING_DRAFT.md`
 - `docs/publication/SECURITY_DRAFT.md`
 - `docs/publication/RELEASE_BOOTSTRAP_NOTES.md`
 - `docs/publication/OWNER_DECISION_PACKET.md`
 - `docs/publication/PUBLISHABLE_HOLD_CHECKLIST.md`
-- `docs/publication/PUBLIC_GO_LIVE_SEQUENCE_DRAFT.md`
 
 ## Publication Execution Docs
 

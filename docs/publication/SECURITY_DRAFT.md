@@ -16,16 +16,11 @@ This is a pre-publication placeholder. `ADOP` is not public yet, so this file on
 - whether private disclosure is supported from day one
 - what response expectations can be promised
 
-## Owner Answers Required Before Promotion
+## Owner Answers
 
-- security-report intake posture:
-  - use GitHub private vulnerability reporting if enabled
-- private disclosure from day one:
-  - `yes`
-- promised response posture:
-  - best effort, no fixed SLA at first publication
+Resolved values: `OWNER_DECISION_PACKET.md` §4.
 
-This file may be promoted after the above fields are reflected in the public repository wording.
+This file may be promoted after the chosen wording from the owner packet is reflected here.
 
 ## Scope Reminder
 

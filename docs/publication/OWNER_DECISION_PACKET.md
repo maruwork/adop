@@ -31,7 +31,6 @@ Every blocking decision must be recorded with the following fields:
 - downstream action target:
   - `LICENSE` file in the standalone repo
   - contribution/publication wording that depends on the chosen license
-- source note: `PRE_PUBLICATION_DECISIONS.md`
 - owner must decide:
   - chosen license
   - confirmation that ADOP reuse posture matches that license
@@ -52,7 +51,6 @@ Every blocking decision must be recorded with the following fields:
 - downstream action target:
   - standalone repository creation target
   - publication runbook host/visibility steps
-- source note: `PRE_PUBLICATION_DECISIONS.md`
 - owner must decide:
   - GitHub owner/org
   - repository name
