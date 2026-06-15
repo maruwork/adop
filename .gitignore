@@ -9,3 +9,11 @@ __pycache__/
 AGENTS.md
 CLAUDE.md
 .claudeignore
+
+# Internal management — work history, developer tooling, monorepo governance
+archive/
+common/
+docs/governance/
+docs/publication/
+docs/AI_AGENT_RUNTIME_TOKEN_OPTIMIZATION.md
+workspace/
