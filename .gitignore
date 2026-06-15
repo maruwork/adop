@@ -4,3 +4,8 @@ __pycache__/
 
 # pytest cache
 .pytest_cache/
+
+# Developer-only AI control files (not for public repos per github-optimization)
+AGENTS.md
+CLAUDE.md
+.claudeignore

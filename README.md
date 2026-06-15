@@ -11,15 +11,6 @@ It does not hold any specific project's current trial state or adoption register
 - common authority holds artifact schema, trial lifecycle states, checklists, and templates
 - current trial board, operator flow, and landing target authority belong in project-local overlays
 
-## Governance Route
-
-Project-local AI governance for this standalone repository starts here.
-
-1. `AGENTS.md`
-2. `common/README.md`
-3. `docs/governance/project-template-adoption-packet.md`
-4. `docs/AI_AGENT_RUNTIME_TOKEN_OPTIMIZATION.md`
-
 ## What This Is Not
 
 - not any specific project's current adoption board
