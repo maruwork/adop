@@ -1,0 +1,15 @@
+{
+  "name": "adop",
+  "version": "0.1.0",
+  "canonical_repo": "https://github.com/maruwork/adop",
+  "runtime_files": [
+    "shared/python/adop_artifacts.py",
+    "shared/python/adop_cli.py",
+    "shared/python/adop_ids.py",
+    "shared/python/adop_state_machine.py",
+    "shared/python/adop_summary.py",
+    "shared/python/adop_types.py",
+    "shared/python/adop_validation.py",
+    "shared/python/common.py"
+  ]
+}
