@@ -17,7 +17,7 @@ Adoption artifacts for this project live at:
 [path/to/artifact-root/]
 ```
 
-Validate: `python adop_cli.py lint --artifact-root [path]`
+Validate: `python shared/python/adop_cli.py lint --artifact-root [path]`
 
 ---
 
@@ -30,7 +30,7 @@ ADOP runtime files (`adop_*.py`, `common.py`) are at:
 ```
 
 Last verified against canonical: [date]
-Check drift: `python adop_sync.py check --target [path/to/runtime-copy/]`
+Check drift: `python shared/python/adop_sync.py check --target [path/to/project-root/]`
 
 ---
 
@@ -40,7 +40,7 @@ Check drift: `python adop_sync.py check --target [path/to/runtime-copy/]`
 |---|---|---|---|
 | [use-case] | [tool] | [state] | [date] |
 
-Live view: `python adop_cli.py summary --artifact-root [path]`
+Live view: `python shared/python/adop_cli.py summary --artifact-root [path]`
 
 ---
 

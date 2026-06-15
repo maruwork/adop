@@ -196,6 +196,11 @@ _CONFIG_FILE_NAMES: frozenset[str] = frozenset({
     "requirements.txt", "requirements-dev.txt", "requirements-test.txt",
 })
 
+# Node ecosystem: package.json declares deps + scripts; lock files are generated artifacts.
+_NODE_DEP_FILES: frozenset[str] = frozenset({
+    "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+})
+
 _SCAN_SKIP_DIRS: frozenset[str] = frozenset({
     ".git", ".hg", "__pycache__", ".pytest_cache", ".mypy_cache",
     ".venv", "venv", "env", "node_modules", ".adop",
@@ -1521,13 +1526,19 @@ def _handle_scan(args: argparse.Namespace) -> tuple[int, str]:
         if path.suffix == ".py":
             if re.search(rf"(?m)^\s*(?:import|from)\s+{re.escape(tool_mod)}\b", text):
                 coupling_type, removal_cost = "import", "edit"
+        elif path.name in _NODE_DEP_FILES:
+            if tool_lower in text.lower():
+                if path.name in ("package-lock.json", "pnpm-lock.yaml", "yarn.lock"):
+                    coupling_type, removal_cost, note_text = "config", "clean", "generated lock file"
+                else:
+                    coupling_type, removal_cost = "config", "edit"
         elif path.name in _CONFIG_FILE_NAMES or path.suffix in (".yml", ".yaml", ".toml", ".cfg", ".ini"):
             if tool_lower in text.lower():
                 if path.name in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
                     coupling_type, removal_cost, note_text = "config", "clean", "dependency declaration"
                 else:
                     coupling_type, removal_cost = "config", "edit"
-        elif path.suffix in (".sh", ".bash") or path.name in ("Makefile", "makefile"):
+        elif path.suffix in (".sh", ".bash", ".ps1", ".bat", ".cmd") or path.name in ("Makefile", "makefile"):
             if tool_lower in text.lower():
                 coupling_type, removal_cost = "invocation", "edit"
         elif tool_lower in text.lower() and path.suffix not in (".pyc", ".pyo", ".lock"):

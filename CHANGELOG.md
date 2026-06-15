@@ -22,8 +22,14 @@ All notable changes to this project are documented in this file.
 
 - `adop_summary.py`: added public `get_scene_states()` function for CLI status/next commands
 - CLI epilog updated to guide first-time users to `adop init`
+- `adop_sync.py`: `--target` now points to the project root; runtime files preserved at `<target>/shared/python/` (Option B — full relative path, not basename-only flat layout)
+- `docs/ADOP_GENERIC_QUICKSTART.md`: unified entry point to `python shared/python/adop_cli.py`, OS-agnostic examples (no `/tmp`, bash glob, or `cp`), `adop init` shortcut documented
+- `shared/templates/project-local-adop-overlay-template.md`: unified command examples to `python shared/python/adop_cli.py` / `adop_sync.py`
 
 ### Fixed
+
+- `adop scan`: Node ecosystem files (`package.json`, lock files) and Windows scripts (`.ps1`, `.bat`, `.cmd`) now classified correctly instead of falling through to `reference/clean`
+- `adop_sync`: structured layout (`shared/python/` mirroring canonical) now works; `apply` creates parent directories automatically
 
 ## 0.1.0 - 2026-06-15
 

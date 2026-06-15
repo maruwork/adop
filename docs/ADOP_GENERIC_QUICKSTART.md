@@ -18,19 +18,25 @@ Provide the shortest bounded path to understand and verify generic ADOP.
 ## Fastest Verification
 
 Use a bounded artifact root outside any target project.
+All commands use `python shared/python/adop_cli.py` (works on any OS).
 
-```bash
-CLI=shared/python/adop_cli.py
-SRC=shared/python
-ARTIFACT_ROOT=/tmp/adop-smoke
+```
+python shared/python/adop_cli.py --version
 
-python "$CLI" --version
-python -m py_compile "$SRC"/*.py
-python "$CLI" quick-intake  --artifact-root $ARTIFACT_ROOT --candidate ToolA --source doc --use-case review-lane --why-now "need bounded trial"
-python "$CLI" quick-compare --artifact-root $ARTIFACT_ROOT --use-case review-lane --candidate ToolA --candidate ToolB --selected ToolA
-python "$CLI" quick-trial   --artifact-root $ARTIFACT_ROOT --use-case review-lane --mode review-assist --executor self
-python "$CLI" quick-close-trial --artifact-root $ARTIFACT_ROOT --trial-id tr-001 --verdict hold --observed-effect "useful but needs narrowing"
-python "$CLI" lint --artifact-root $ARTIFACT_ROOT
+python shared/python/adop_cli.py quick-intake  --artifact-root adop-smoke --candidate ToolA --source doc --use-case review-lane --why-now "need bounded trial"
+python shared/python/adop_cli.py quick-compare --artifact-root adop-smoke --use-case review-lane --candidate ToolA --candidate ToolB --selected ToolA
+python shared/python/adop_cli.py quick-trial   --artifact-root adop-smoke --use-case review-lane --mode review-assist --executor self
+python shared/python/adop_cli.py quick-close-trial --artifact-root adop-smoke --trial-id tr-001 --verdict hold --observed-effect "useful but needs narrowing"
+python shared/python/adop_cli.py lint --artifact-root adop-smoke
+```
+
+Or use `adop init` if you have ADOP installed as a command:
+
+```
+adop init
+adop quick-intake --candidate ToolA --source doc --use-case review-lane --why-now "need bounded trial"
+adop status
+adop next
 ```
 
 ## What This Proves
@@ -48,10 +54,21 @@ python "$CLI" lint --artifact-root $ARTIFACT_ROOT
 
 ## Setting Up a Project-Local Overlay
 
-Copy the overlay template into the project and fill in project specifics:
+Copy the overlay template into the project and fill in project specifics.
 
-```bash
-cp shared/templates/project-local-adop-overlay-template.md <project>/path/to/adop-overlay.md
+**Linux/macOS:**
+```
+cp shared/templates/project-local-adop-overlay-template.md <project>/adop-overlay.md
+```
+
+**Windows (PowerShell):**
+```
+Copy-Item shared\templates\project-local-adop-overlay-template.md <project>\adop-overlay.md
+```
+
+Or use `adop init` which creates both the artifact root and overlay in one step:
+```
+adop init
 ```
 
 The template defines the minimum structure: artifact root, runtime copy path and sync date,
@@ -65,19 +82,22 @@ Authority boundary: `docs/design/ADOP_SHELF_CLASSIFICATION.md`
 Projects that maintain a local copy of the ADOP Python runtime (`adop_*.py`, `common.py`)
 must track drift against the canonical. ADOP provides `shared/python/adop_sync.py` for this.
 
-```bash
+`--target` points to the **project root**; runtime files are placed under
+`<target>/shared/python/` (preserving the canonical relative path).
+
+```
 # from the ADOP canonical root:
 
 # check drift in a project's copy
-python shared/python/adop_sync.py check --target /path/to/project/copy/
+python shared/python/adop_sync.py check --target path/to/project/
 
-# register a project copy (stored in sync-registry.json, gitignored)
-python shared/python/adop_sync.py register --target /path/to/project/copy/
+# register a project (stored in sync-registry.json, gitignored)
+python shared/python/adop_sync.py register --target path/to/project/
 
-# apply updates to all registered copies
+# apply updates to all registered projects
 python shared/python/adop_sync.py push
 
-# show registered copies and their status
+# show registered projects and their status
 python shared/python/adop_sync.py list
 ```
 

@@ -3,13 +3,17 @@
 
 Run from the ADOP canonical root (the directory that contains adop.json).
 
+Target layout: --target points to the project root; runtime files are
+copied preserving their canonical relative path (e.g. shared/python/adop_cli.py
+→ <target>/shared/python/adop_cli.py).
+
 Commands:
-  check     --source <adop-root> --target <copy-dir>
+  check     --source <adop-root> --target <project-root>
             Compare file hashes. Exit 0 = all OK, 1 = drift found.
-  apply     --source <adop-root> --target <copy-dir>
+  apply     --source <adop-root> --target <project-root>
             Copy differing/missing files from source to target.
-  register  --target <copy-dir> [--source <adop-root>]
-            Add a project runtime copy directory to the local registry.
+  register  --target <project-root> [--source <adop-root>]
+            Add a project root to the local registry.
   push      [--source <adop-root>]
             Run apply against every registered target.
   list      [--source <adop-root>]
@@ -53,18 +57,19 @@ def _save_registry(source: Path, targets: list[str]) -> None:
 
 
 def _check_one(source: Path, target: Path, manifest: dict) -> list[dict]:
+    """Check each runtime file; dst preserves the canonical relative path."""
     results = []
     for rel in manifest["runtime_files"]:
         src = source / rel
-        dst = target / Path(rel).name
+        dst = target / rel   # preserve full relative path (e.g. shared/python/adop_cli.py)
         if not src.exists():
-            results.append({"file": Path(rel).name, "status": "MISSING_IN_SOURCE"})
+            results.append({"file": rel, "status": "MISSING_IN_SOURCE"})
         elif not dst.exists():
-            results.append({"file": Path(rel).name, "status": "MISSING", "src": str(src), "dst": str(dst)})
+            results.append({"file": rel, "status": "MISSING", "src": str(src), "dst": str(dst)})
         else:
             ok = _file_hash(src) == _file_hash(dst)
             results.append({
-                "file": Path(rel).name,
+                "file": rel,
                 "status": "OK" if ok else "DIFF",
                 "src": str(src),
                 "dst": str(dst),
@@ -94,7 +99,9 @@ def cmd_apply(source: Path, target: Path) -> int:
     copied = 0
     for r in results:
         if r["status"] in ("DIFF", "MISSING"):
-            shutil.copy2(r["src"], r["dst"])
+            dst = Path(r["dst"])
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(r["src"], dst)
             print(f"  copied: {r['file']}")
             copied += 1
     print("  all files up to date" if copied == 0 else f"  {copied} file(s) updated")
@@ -129,7 +136,9 @@ def cmd_push(source: Path) -> int:
         copied = 0
         for r in results:
             if r["status"] in ("DIFF", "MISSING"):
-                shutil.copy2(r["src"], r["dst"])
+                dst = Path(r["dst"])
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(r["src"], dst)
                 print(f"  copied: {r['file']}")
                 copied += 1
         print("  all files up to date" if copied == 0 else f"  {copied} file(s) updated")
@@ -168,7 +177,7 @@ def main() -> int:
 
     def _tgt(p: argparse.ArgumentParser) -> None:
         p.add_argument("--target", required=True, metavar="DIR",
-                       help="Project runtime copy directory")
+                       help="Project root (runtime files placed at <target>/shared/python/)")
 
     p = sub.add_parser("check", help="compare hashes, report DIFF")
     _src(p); _tgt(p)

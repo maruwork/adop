@@ -1,7 +1,12 @@
-"""Tests for adop_sync drift detection, apply, register, push, and list."""
+"""Tests for adop_sync drift detection, apply, register, push, and list.
+
+Since Option B, --target is the project root and runtime files live at
+<target>/shared/python/<name> (preserving the canonical relative path).
+"""
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -9,6 +14,7 @@ import adop_sync
 
 
 RUNTIME_NAMES = ["adop_types.py", "adop_cli.py"]
+RUNTIME_RELS = [f"shared/python/{n}" for n in RUNTIME_NAMES]
 
 
 @pytest.fixture
@@ -22,73 +28,91 @@ def canon(tmp_path):
     manifest = {
         "name": "adop", "version": "0.1.0",
         "canonical_repo": "https://github.com/maruwork/adop",
-        "runtime_files": [f"shared/python/{n}" for n in RUNTIME_NAMES],
+        "runtime_files": RUNTIME_RELS,
     }
     (root / "adop.json").write_text(json.dumps(manifest), encoding="utf-8")
     return root
 
 
 @pytest.fixture
-def copy_dir(tmp_path):
-    d = tmp_path / "project_copy"
+def project_root(tmp_path):
+    """Simulated project root; runtime files live at project_root/shared/python/."""
+    d = tmp_path / "myproject"
     d.mkdir()
     return d
 
 
-def _populate_copy(copy_dir, content_map):
+def _populate(project_root: Path, content_map: dict[str, str]) -> None:
+    """Write files under project_root/shared/python/ (structured layout)."""
+    py = project_root / "shared" / "python"
+    py.mkdir(parents=True, exist_ok=True)
     for name, content in content_map.items():
-        (copy_dir / name).write_text(content, encoding="utf-8")
+        (py / name).write_text(content, encoding="utf-8")
 
 
 # --- check ---
 
-def test_check_all_ok(canon, copy_dir):
-    _populate_copy(copy_dir, {n: f"# {n} v2" for n in RUNTIME_NAMES})
-    assert adop_sync.cmd_check(canon, copy_dir) == 0
+def test_check_all_ok(canon, project_root):
+    _populate(project_root, {n: f"# {n} v2" for n in RUNTIME_NAMES})
+    assert adop_sync.cmd_check(canon, project_root) == 0
 
 
-def test_check_detects_diff(canon, copy_dir):
-    _populate_copy(copy_dir, {"adop_types.py": "# old", "adop_cli.py": "# adop_cli.py v2"})
-    assert adop_sync.cmd_check(canon, copy_dir) == 1
+def test_check_detects_diff(canon, project_root):
+    _populate(project_root, {"adop_types.py": "# old", "adop_cli.py": "# adop_cli.py v2"})
+    assert adop_sync.cmd_check(canon, project_root) == 1
 
 
-def test_check_detects_missing_file(canon, copy_dir):
-    _populate_copy(copy_dir, {"adop_types.py": "# adop_types.py v2"})
+def test_check_detects_missing_file(canon, project_root):
+    _populate(project_root, {"adop_types.py": "# adop_types.py v2"})
     # adop_cli.py absent
-    assert adop_sync.cmd_check(canon, copy_dir) == 1
+    assert adop_sync.cmd_check(canon, project_root) == 1
+
+
+def test_check_structured_path_in_result(canon, project_root, capsys):
+    """Result 'file' field uses the full relative path, not just the basename."""
+    _populate(project_root, {"adop_types.py": "# old", "adop_cli.py": "# adop_cli.py v2"})
+    adop_sync.cmd_check(canon, project_root)
+    out = capsys.readouterr().out
+    assert "shared/python/adop_types.py" in out
 
 
 # --- apply ---
 
-def test_apply_copies_diff(canon, copy_dir):
-    _populate_copy(copy_dir, {n: "# old" for n in RUNTIME_NAMES})
-    assert adop_sync.cmd_apply(canon, copy_dir) == 0
-    assert (copy_dir / "adop_types.py").read_text() == "# adop_types.py v2"
-    assert (copy_dir / "adop_cli.py").read_text() == "# adop_cli.py v2"
+def test_apply_copies_diff(canon, project_root):
+    _populate(project_root, {n: "# old" for n in RUNTIME_NAMES})
+    assert adop_sync.cmd_apply(canon, project_root) == 0
+    assert (project_root / "shared/python/adop_types.py").read_text() == "# adop_types.py v2"
+    assert (project_root / "shared/python/adop_cli.py").read_text() == "# adop_cli.py v2"
 
 
-def test_apply_copies_missing(canon, copy_dir):
-    _populate_copy(copy_dir, {"adop_types.py": "# adop_types.py v2"})
-    assert adop_sync.cmd_apply(canon, copy_dir) == 0
-    assert (copy_dir / "adop_cli.py").read_text() == "# adop_cli.py v2"
+def test_apply_copies_missing(canon, project_root):
+    _populate(project_root, {"adop_types.py": "# adop_types.py v2"})
+    assert adop_sync.cmd_apply(canon, project_root) == 0
+    assert (project_root / "shared/python/adop_cli.py").read_text() == "# adop_cli.py v2"
 
 
-def test_apply_noop_when_ok(canon, copy_dir):
-    _populate_copy(copy_dir, {n: f"# {n} v2" for n in RUNTIME_NAMES})
-    assert adop_sync.cmd_apply(canon, copy_dir) == 0
+def test_apply_creates_parent_dirs(canon, project_root):
+    """apply must create shared/python/ if it does not exist."""
+    assert adop_sync.cmd_apply(canon, project_root) == 0
+    assert (project_root / "shared/python/adop_types.py").exists()
+
+
+def test_apply_noop_when_ok(canon, project_root):
+    _populate(project_root, {n: f"# {n} v2" for n in RUNTIME_NAMES})
+    assert adop_sync.cmd_apply(canon, project_root) == 0
 
 
 # --- register + list ---
 
-def test_register_adds_target(canon, copy_dir):
-    adop_sync.cmd_register(canon, copy_dir)
-    assert str(copy_dir.resolve()) in adop_sync._load_registry(canon)
+def test_register_adds_target(canon, project_root):
+    adop_sync.cmd_register(canon, project_root)
+    assert str(project_root.resolve()) in adop_sync._load_registry(canon)
 
 
-def test_register_idempotent(canon, copy_dir):
-    adop_sync.cmd_register(canon, copy_dir)
-    adop_sync.cmd_register(canon, copy_dir)
-    assert adop_sync._load_registry(canon).count(str(copy_dir.resolve())) == 1
+def test_register_idempotent(canon, project_root):
+    adop_sync.cmd_register(canon, project_root)
+    adop_sync.cmd_register(canon, project_root)
+    assert adop_sync._load_registry(canon).count(str(project_root.resolve())) == 1
 
 
 def test_list_empty(canon, capsys):
@@ -96,20 +120,20 @@ def test_list_empty(canon, capsys):
     assert "no registered targets" in capsys.readouterr().out
 
 
-def test_list_shows_drift(canon, copy_dir, capsys):
-    _populate_copy(copy_dir, {"adop_types.py": "# old", "adop_cli.py": "# old"})
-    adop_sync.cmd_register(canon, copy_dir)
+def test_list_shows_drift(canon, project_root, capsys):
+    _populate(project_root, {"adop_types.py": "# old", "adop_cli.py": "# old"})
+    adop_sync.cmd_register(canon, project_root)
     adop_sync.cmd_list(canon)
     assert "DRIFT" in capsys.readouterr().out
 
 
 # --- push ---
 
-def test_push_updates_registered_target(canon, copy_dir):
-    _populate_copy(copy_dir, {n: "# old" for n in RUNTIME_NAMES})
-    adop_sync.cmd_register(canon, copy_dir)
+def test_push_updates_registered_target(canon, project_root):
+    _populate(project_root, {n: "# old" for n in RUNTIME_NAMES})
+    adop_sync.cmd_register(canon, project_root)
     assert adop_sync.cmd_push(canon) == 0
-    assert (copy_dir / "adop_types.py").read_text() == "# adop_types.py v2"
+    assert (project_root / "shared/python/adop_types.py").read_text() == "# adop_types.py v2"
 
 
 def test_push_empty_registry(canon):
