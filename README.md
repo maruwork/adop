@@ -32,6 +32,8 @@ It does not hold any specific project's current trial state or adoption register
   - `common.py`: bounded runtime helper
 - `docs/checklists/`: checklist items to review before adopting an external tool
 - `shared/templates/`: record templates for external tool adoption
+  - `external-tool-adoption-note-template.md`: adoption note record template
+  - `project-local-adop-overlay-template.md`: project-local overlay minimum structure
 - `docs/design/`: bounded design notes
 - `docs/ADOP_GENERIC_QUICKSTART.md`: generic ADOP reading order and bounded verification path
 - `SUPPORT.md`: pre-issue checklist and support contact routes
@@ -43,10 +45,11 @@ It does not hold any specific project's current trial state or adoption register
 3. `docs/ADOP_GENERIC_QUICKSTART.md`
 4. `docs/checklists/external-tool-adoption-checklist.md`
 5. `shared/templates/external-tool-adoption-note-template.md`
-6. `shared/python/adop_types.py`
-7. `shared/python/adop_cli.py`
-8. `docs/design/adop-lifecycle-schema-design.md`
-9. `SUPPORT.md`
+6. `shared/templates/project-local-adop-overlay-template.md`
+7. `shared/python/adop_types.py`
+8. `shared/python/adop_cli.py`
+9. `docs/design/adop-lifecycle-schema-design.md`
+10. `SUPPORT.md`
 
 ## How to Use
 

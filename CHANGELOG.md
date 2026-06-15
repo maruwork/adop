@@ -9,6 +9,8 @@ All notable changes to this project are documented in this file.
 - `adop.json`: machine-readable canonical identity and runtime file manifest
 - `adop_sync.py`: drift detection and sync for project-local runtime copies (`check`, `apply`, `register`, `push`, `list`)
 - `tests/test_sync.py`: 12 tests covering sync check/apply/register/push/list
+- `shared/templates/project-local-adop-overlay-template.md`: minimum structure template for project-local overlays
+- `ADOP_SHELF_CLASSIFICATION.md`: authority contract — formal table of what ADOP common owns vs. project-local overlay
 
 ### Changed
 

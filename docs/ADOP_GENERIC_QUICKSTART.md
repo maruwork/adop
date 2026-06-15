@@ -46,6 +46,20 @@ python "$CLI" lint --artifact-root $ARTIFACT_ROOT
 - project-local operator workflow
 - project-local hook / runbook / queue integration
 
+## Setting Up a Project-Local Overlay
+
+Copy the overlay template into the project and fill in project specifics:
+
+```bash
+cp shared/templates/project-local-adop-overlay-template.md <project>/path/to/adop-overlay.md
+```
+
+The template defines the minimum structure: artifact root, runtime copy path and sync date,
+active use cases, operator flow, landing target authority.
+
+Common ADOP authority stays in this repo. The overlay holds only project-specific truth.
+Authority boundary: `docs/design/ADOP_SHELF_CLASSIFICATION.md`
+
 ## Using ADOP as a Runtime Copy in Another Project
 
 Projects that maintain a local copy of the ADOP Python runtime (`adop_*.py`, `common.py`)
