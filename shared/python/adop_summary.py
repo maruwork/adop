@@ -23,10 +23,12 @@ try:
         DEPRECATION_NOTE,
         IN_TRIAL,
         JUDGMENT_REPORT,
+        COUPLING_NOTE,
         MIGRATING,
         MIGRATION_NOTE,
         PROMOTION_NOTE,
         PROPOSED,
+        REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         STRUCTURAL_GAP,
         SUMMARY_STATES,
@@ -51,10 +53,12 @@ except ImportError:  # pragma: no cover - script import path
         DEPRECATION_NOTE,
         IN_TRIAL,
         JUDGMENT_REPORT,
+        COUPLING_NOTE,
         MIGRATING,
         MIGRATION_NOTE,
         PROMOTION_NOTE,
         PROPOSED,
+        REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         STRUCTURAL_GAP,
         SUMMARY_STATES,
@@ -264,6 +268,29 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
     _render_section("Intake Dispositions", INTAKE_STATES, intake_counts)
     _render_section("Trial States", TRIAL_STATES, trial_counts)
     _render_section("Lifecycle Notes", tuple(state for state, _ in EXTENDED_STATE_NOTES), lifecycle_counts)
+
+    # Tool entanglement: latest coupling-note per (scene, tool), headline = worst
+    # detachment cost. status filter does not apply (coupling is not a state).
+    cost_rank = {cost: rank for rank, cost in enumerate(REMOVAL_COSTS)}
+    coupling_notes = [item for item in items if item.get("artifact_type") == COUPLING_NOTE]
+    coupling_notes.sort(key=_id_sort_key)
+    latest_couplings: dict[tuple[str, str], dict[str, Any]] = {}
+    for note in coupling_notes:
+        note_scene = str(note.get("related_scene", ""))
+        if scene and note_scene != scene:
+            continue
+        latest_couplings[(note_scene, str(note.get("candidate_or_tool", "")))] = note
+    if latest_couplings:
+        lines.append("Tool Entanglement")
+        for (note_scene, tool) in sorted(latest_couplings):
+            entries = latest_couplings[(note_scene, tool)].get("couplings", [])
+            worst = max(
+                (str(e.get("removal_cost", REMOVAL_COSTS[0])) for e in entries),
+                key=lambda c: cost_rank.get(c, 0),
+                default=REMOVAL_COSTS[0],
+            )
+            lines.append(f"- {tool} @ {note_scene}: {len(entries)} file(s), detachment: {worst}")
+
     if other_trial_states and not status:
         lines.append("Unrecognized Trial States")
         for state in sorted(other_trial_states):

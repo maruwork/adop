@@ -11,9 +11,19 @@ import adop_types as t
 
 
 def test_artifact_types_count_and_new_members():
-    assert len(t.ARTIFACT_TYPES) == 12
-    for name in ("watch-note", "blocked-note", "deprecation-note", "migration-note", "archive-note"):
+    assert len(t.ARTIFACT_TYPES) == 13
+    for name in (
+        "watch-note", "blocked-note", "deprecation-note", "migration-note",
+        "archive-note", "coupling-note",
+    ):
         assert name in t.ARTIFACT_TYPES
+
+
+def test_coupling_note_is_not_a_lifecycle_state():
+    """coupling-note is orthogonal metadata; it must not appear in SUMMARY_STATES."""
+    assert t.COUPLING_NOTE == "coupling-note"
+    assert t.COUPLING_NOTE not in t.SUMMARY_STATES
+    assert t.ARTIFACT_ID_PREFIX["coupling-note"] == "cp"
 
 
 def test_artifact_id_prefixes():

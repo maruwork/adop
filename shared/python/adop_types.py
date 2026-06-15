@@ -20,6 +20,7 @@ ARTIFACT_TYPES: Final[tuple[str, ...]] = (
     "deprecation-note",       # [9]
     "migration-note",         # [10]
     "archive-note",           # [11]
+    "coupling-note",          # [12] — orthogonal metadata, NOT a lifecycle state
 )
 
 ARTIFACT_ID_PREFIX: Final[dict[str, str]] = {
@@ -35,7 +36,25 @@ ARTIFACT_ID_PREFIX: Final[dict[str, str]] = {
     "deprecation-note": "dp",
     "migration-note": "mg",
     "archive-note": "ar",
+    "coupling-note": "cp",
 }
+
+# Tool-to-file coupling vocabulary (declared entanglement; see coupling-note).
+# COUPLING_TYPES = HOW the tool is entangled with a file.
+COUPLING_TYPES: Final[tuple[str, ...]] = (
+    "config",        # tool configuration lives in the file
+    "import",        # source imports the tool as a dependency
+    "invocation",    # file calls/runs the tool (CI step, script, hook)
+    "generated",     # file is generated/owned by the tool
+    "data-write",    # tool writes runtime data into the file
+    "reference",     # file hardcodes a path/name reference to the tool
+)
+# REMOVAL_COSTS = the "癒着度": how hard it is to detach the tool from the file.
+REMOVAL_COSTS: Final[tuple[str, ...]] = (
+    "clean",         # remove/disable with no edits to other content
+    "edit",          # requires targeted edits to the file
+    "entangled",     # pervasive; removal is risky or large
+)
 
 FILTER_NAMES: Final[tuple[str, ...]] = ("scene_fit", "authority_safe", "controlability")
 FILTER_STATUSES: Final[tuple[str, ...]] = ("pass", "conditional", "fail")
@@ -95,6 +114,7 @@ BLOCKED_NOTE: Final[str] = ARTIFACT_TYPES[8]
 DEPRECATION_NOTE: Final[str] = ARTIFACT_TYPES[9]
 MIGRATION_NOTE: Final[str] = ARTIFACT_TYPES[10]
 ARCHIVE_NOTE: Final[str] = ARTIFACT_TYPES[11]
+COUPLING_NOTE: Final[str] = ARTIFACT_TYPES[12]
 
 # Named filter name constants — index-bound to FILTER_NAMES (keep in sync with tuple order)
 SCENE_FIT: Final[str] = FILTER_NAMES[0]

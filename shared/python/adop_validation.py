@@ -19,6 +19,8 @@ try:
         CANDIDATE_SHAPES,
         COMPARISON_NOTE,
         CONTROLABILITY,
+        COUPLING_NOTE,
+        COUPLING_TYPES,
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
@@ -35,6 +37,7 @@ try:
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         RECURRING_CONTROL_DECISIONS,
+        REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         SANDBOX_TYPES,
         SCHEMA_VERSION,
@@ -57,6 +60,8 @@ except ImportError:  # pragma: no cover - script import path
         CANDIDATE_SHAPES,
         COMPARISON_NOTE,
         CONTROLABILITY,
+        COUPLING_NOTE,
+        COUPLING_TYPES,
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
@@ -73,6 +78,7 @@ except ImportError:  # pragma: no cover - script import path
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         RECURRING_CONTROL_DECISIONS,
+        REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         SANDBOX_TYPES,
         SCHEMA_VERSION,
@@ -332,6 +338,30 @@ def validate_archive_note_payload(payload: dict[str, Any]) -> None:
     # successor_tool is optional
 
 
+def validate_coupling_entries(value: Any, field_name: str = "couplings") -> None:
+    """Validate the declared tool-to-file coupling list.
+
+    Each entry records one file the tool is entangled with, HOW (coupling_type)
+    and how hard it is to detach (removal_cost). The list must be non-empty: a
+    coupling-note with no couplings carries no information.
+    """
+    if not isinstance(value, list) or not value:
+        raise AdopValidationError(f"{field_name} must contain at least one coupling", 2)
+    for index, entry in enumerate(value):
+        where = f"{field_name}[{index}]"
+        if not isinstance(entry, dict):
+            raise AdopValidationError(f"{where} must be an object", 2)
+        require_non_empty(entry.get("path"), f"{where}.path")
+        validate_choice(str(entry.get("coupling_type", "")), f"{where}.coupling_type", COUPLING_TYPES)
+        validate_choice(str(entry.get("removal_cost", "")), f"{where}.removal_cost", REMOVAL_COSTS)
+
+
+def validate_coupling_note_payload(payload: dict[str, Any]) -> None:
+    require_non_empty(payload.get("related_scene"), "related_scene")
+    require_non_empty(payload.get("candidate_or_tool"), "candidate_or_tool")
+    validate_coupling_entries(payload.get("couplings"), "couplings")
+
+
 def validate_artifact_schema(item: dict[str, Any]) -> None:
     if item.get("schema_version") != SCHEMA_VERSION:
         raise AdopValidationError("schema_version invalid", 11)
@@ -397,6 +427,11 @@ def lint_artifact_root(root: Path) -> list[str]:
         if artifact_type == ARCHIVE_NOTE:
             try:
                 validate_archive_note_payload(item)
+            except AdopValidationError as exc:
+                issues.append(str(exc))
+        if artifact_type == COUPLING_NOTE:
+            try:
+                validate_coupling_note_payload(item)
             except AdopValidationError as exc:
                 issues.append(str(exc))
         if artifact_type == JUDGMENT_REPORT:

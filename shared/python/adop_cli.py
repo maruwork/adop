@@ -23,6 +23,8 @@ try:
         CANDIDATE_INTAKE_NOTE,
         CANDIDATE_SHAPES,
         COMPARISON_NOTE,
+        COUPLING_NOTE,
+        COUPLING_TYPES,
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
@@ -43,6 +45,7 @@ try:
         PROPOSED,
         RECURRING_CONTROL_DECISIONS,
         REJECT_NOTE,
+        REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         SANDBOX_TYPES,
         SCHEMA_VERSION,
@@ -61,6 +64,7 @@ try:
         validate_blocked_note_payload,
         validate_close_payload,
         validate_comparison_payload,
+        validate_coupling_note_payload,
         validate_deprecation_note_payload,
         validate_filter_assessment,
         validate_intake_payload,
@@ -82,6 +86,8 @@ except ImportError:  # pragma: no cover - script import path
         CANDIDATE_INTAKE_NOTE,
         CANDIDATE_SHAPES,
         COMPARISON_NOTE,
+        COUPLING_NOTE,
+        COUPLING_TYPES,
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
@@ -102,6 +108,7 @@ except ImportError:  # pragma: no cover - script import path
         PROPOSED,
         RECURRING_CONTROL_DECISIONS,
         REJECT_NOTE,
+        REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         SANDBOX_TYPES,
         SCHEMA_VERSION,
@@ -120,6 +127,7 @@ except ImportError:  # pragma: no cover - script import path
         validate_blocked_note_payload,
         validate_close_payload,
         validate_comparison_payload,
+        validate_coupling_note_payload,
         validate_deprecation_note_payload,
         validate_filter_assessment,
         validate_intake_payload,
@@ -591,6 +599,42 @@ def _build_parser() -> argparse.ArgumentParser:
     archive_cmd.add_argument("--end-date", required=True)
     archive_cmd.add_argument("--successor-tool", default="")
 
+    couple_cmd = subparsers.add_parser(
+        "couple",
+        help="record how an external tool is entangled with project files",
+        description=(
+            "Create a coupling-note: a complete snapshot of which files the tool is\n"
+            "entangled with, how (coupling_type), and how hard each is to detach\n"
+            "(removal_cost). Each call records the CURRENT full coupling set; the report\n"
+            "uses the latest coupling-note per (tool, use-case).\n\n"
+            "Provide couplings either as repeated --couple 'PATH|TYPE|COST[|NOTE]'\n"
+            "or as --couplings-json (a JSON list; @path reads a file).\n"
+            f"  TYPE one of: {', '.join(COUPLING_TYPES)}\n"
+            f"  COST one of: {', '.join(REMOVAL_COSTS)}"
+        ),
+        formatter_class=RawTextHelpFormatter,
+    )
+    couple_cmd.add_argument("--artifact-root", required=True)
+    _project_boundary_args(couple_cmd)
+    couple_cmd.add_argument("--use-case", dest="scene", required=True)
+    couple_cmd.add_argument("--tool", required=True)
+    couple_cmd.add_argument(
+        "--couple", dest="couples", action="append", default=[],
+        metavar="PATH|TYPE|COST[|NOTE]",
+        help="one coupling entry, pipe-delimited; repeatable",
+    )
+    couple_cmd.add_argument("--couplings-json", default="")
+
+    couplings_cmd = subparsers.add_parser(
+        "couplings",
+        help="report tool-to-file entanglement (latest coupling-note per tool/use-case)",
+        description="Report declared tool-to-file couplings and their detachment cost.",
+    )
+    couplings_cmd.add_argument("--artifact-root", required=True)
+    _project_boundary_args(couplings_cmd)
+    couplings_cmd.add_argument("--use-case", dest="scene", default=None, help="filter to one use-case")
+    couplings_cmd.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -1042,6 +1086,112 @@ def _handle_archive(args: argparse.Namespace) -> dict[str, Any]:
     return artifacts.json_response("archive", "ok", [path.name], [])
 
 
+def _parse_couple_entry(raw: str) -> dict[str, Any]:
+    parts = raw.split("|", 3)  # PATH|TYPE|COST[|NOTE]
+    if len(parts) < 3:
+        raise AdopValidationError(f"--couple must be 'PATH|TYPE|COST[|NOTE]': {raw}", 2)
+    entry: dict[str, Any] = {
+        "path": parts[0].strip(),
+        "coupling_type": parts[1].strip(),
+        "removal_cost": parts[2].strip(),
+    }
+    if len(parts) == 4 and parts[3].strip():
+        entry["note"] = parts[3].strip()
+    return entry
+
+
+def _handle_couple(args: argparse.Namespace) -> dict[str, Any]:
+    root = _prepare_artifact_root(args)
+    couplings: list[dict[str, Any]] = []
+    if args.couplings_json:
+        parsed = _parse_json_arg(args.couplings_json, "couplings-json")
+        if not isinstance(parsed, list):
+            raise AdopValidationError("couplings-json must be a JSON list", 2)
+        couplings.extend(parsed)
+    couplings.extend(_parse_couple_entry(raw) for raw in args.couples)
+    artifact_id = next_sequential_id(root, "cp")
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "artifact_type": COUPLING_NOTE,
+        "artifact_id": artifact_id,
+        "status": "active",
+        "created_at": today_iso(),
+        "related_scene": args.scene,
+        "candidate_or_tool": args.tool,
+        "couplings": couplings,
+    }
+    validate_coupling_note_payload(payload)
+    path = artifacts.write_artifact(root, COUPLING_NOTE, artifact_id, payload)
+    return artifacts.json_response("couple", "ok", [path.name], [])
+
+
+# Detachment severity: clean < edit < entangled (index in REMOVAL_COSTS is the rank).
+_COST_SEVERITY = {cost: rank for rank, cost in enumerate(REMOVAL_COSTS)}
+
+
+def _worst_removal_cost(couplings: list[dict[str, Any]]) -> str:
+    return max(
+        (str(c.get("removal_cost", REMOVAL_COSTS[0])) for c in couplings),
+        key=lambda cost: _COST_SEVERITY.get(cost, 0),
+        default=REMOVAL_COSTS[0],
+    )
+
+
+def _latest_coupling_notes(root: Path, scene: str | None) -> list[dict[str, Any]]:
+    """Latest coupling-note per (tool, scene) — each note is a full snapshot."""
+    notes = [
+        item for item in artifacts.load_all_artifacts(root)
+        if item.get("artifact_type") == COUPLING_NOTE
+        and (scene is None or str(item.get("related_scene", "")) == scene)
+    ]
+    notes.sort(key=lambda n: parse_numeric_id(str(n.get("artifact_id", "")), "cp") or 0)
+    latest: dict[tuple[str, str], dict[str, Any]] = {}
+    for note in notes:
+        key = (str(note.get("related_scene", "")), str(note.get("candidate_or_tool", "")))
+        latest[key] = note  # higher id wins
+    return [latest[key] for key in sorted(latest)]
+
+
+def _handle_couplings(args: argparse.Namespace) -> tuple[int, dict[str, Any] | str]:
+    notes = _latest_coupling_notes(Path(args.artifact_root), args.scene)
+
+    if getattr(args, "json", False):
+        report = [
+            {
+                "tool": note.get("candidate_or_tool"),
+                "scene": note.get("related_scene"),
+                "file_count": len(note.get("couplings", [])),
+                "max_removal_cost": _worst_removal_cost(note.get("couplings", [])),
+                "couplings": note.get("couplings", []),
+            }
+            for note in notes
+        ]
+        return 0, {
+            "schema_version": SCHEMA_VERSION,
+            "command": "couplings",
+            "status": "ok",
+            "count": len(report),
+            "report": report,
+        }
+
+    if not notes:
+        return 0, "ADOP Coupling Report\n(no couplings recorded)"
+    lines = ["ADOP Coupling Report"]
+    for note in notes:
+        couplings = note.get("couplings", [])
+        lines.append(
+            f"{note.get('candidate_or_tool', '-')} @ {note.get('related_scene', '-')} "
+            f"— {len(couplings)} file(s), detachment: {_worst_removal_cost(couplings)}"
+        )
+        for entry in couplings:
+            note_text = f" {entry['note']}" if entry.get("note") else ""
+            lines.append(
+                f"- {entry.get('path', '-')} "
+                f"[{entry.get('coupling_type', '-')}, {entry.get('removal_cost', '-')}]{note_text}"
+            )
+    return 0, "\n".join(lines)
+
+
 def _handle_summary(args: argparse.Namespace) -> str:
     return build_summary(Path(args.artifact_root), scene=args.scene, status=args.status)
 
@@ -1330,6 +1480,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "archive":
             _emit(_handle_archive(args))
             return 0
+        if args.command == "couple":
+            _emit(_handle_couple(args))
+            return 0
+        if args.command == "couplings":
+            exit_code, payload = _handle_couplings(args)
+            if isinstance(payload, str):
+                print(payload)
+            else:
+                _emit(payload)
+            return exit_code
         raise AdopValidationError(f"unsupported command: {args.command}", 2)
     except AdopValidationError as exc:
         _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))

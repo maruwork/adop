@@ -161,6 +161,50 @@ If an attribute changes significantly (e.g., free → paid, local → cloud sync
 
 ---
 
+## 4b. Tool-to-File Coupling (Entanglement)
+
+External tools must be recorded as external, AND their entanglement with project
+files must be reportable — this is the core input for judging whether a tool can
+be cleanly detached at `deprecated` / `migrating` / `archived`.
+
+### coupling-note
+
+`coupling-note` is an artifact type but **not a lifecycle state**: a tool can have
+couplings in any state. It is therefore added to `ARTIFACT_TYPES` (prefix `cp`) but
+NOT to `SUMMARY_STATES`.
+
+Capture is **declared** (operator records it), consistent with ADOP's append-only,
+declared-disposition model. Each `coupling-note` is a complete **snapshot** of the
+current coupling set for one `(tool, use-case)`; the report uses the latest note per
+pair (latest-wins). Detaching a file = record a new snapshot without it.
+
+| Field | Required | Notes |
+|---|---|---|
+| `related_scene` | yes | the use-case |
+| `candidate_or_tool` | yes | the external tool |
+| `couplings` | yes | non-empty list of coupling entries |
+
+Each coupling entry:
+
+| Field | Required | Values |
+|---|---|---|
+| `path` | yes | project-relative file path |
+| `coupling_type` | yes | `config`, `import`, `invocation`, `generated`, `data-write`, `reference` |
+| `removal_cost` | yes | `clean`, `edit`, `entangled` |
+| `note` | no | free text |
+
+`coupling_type` answers *how* the tool is entangled; `removal_cost` is the
+**癒着度** — how hard it is to detach. The report headline per tool is the worst
+`removal_cost` across its files (`clean` < `edit` < `entangled`): one `entangled`
+file means migration is heavy.
+
+### Commands
+
+- `couple` — record a coupling-note (snapshot). Couplings given as repeated
+  `--couple 'PATH|TYPE|COST[|NOTE]'` or `--couplings-json` (`@path` reads a file).
+- `couplings` — report latest coupling per `(tool, use-case)`, text or `--json`.
+- `summary` — "Tool Entanglement" section shows file count + worst detachment cost.
+
 ## 5. Artifact ID Prefixes
 
 Prefixes for new artifact types to be added to `ARTIFACT_ID_PREFIX` in `adop_types.py`.
@@ -172,6 +216,7 @@ Prefixes for new artifact types to be added to `ARTIFACT_ID_PREFIX` in `adop_typ
 | `deprecation-note` | `dp` |
 | `migration-note` | `mg` |
 | `archive-note` | `ar` |
+| `coupling-note` | `cp` |
 
 ---
 
@@ -181,3 +226,4 @@ Prefixes for new artifact types to be added to `ARTIFACT_ID_PREFIX` in `adop_typ
 |---|---|
 | Usage tracking | Declared (manual record) vs. observed (hook/log integration); what fields to carry |
 | `reject` recyclability | Terminal state, or allow re-entry to `watch` or `proposed` under conditions |
+| Coupling auto-scan | Coupling capture is currently declared-only (see §4b). A future layer could scan the target project to detect couplings and report declared-vs-observed drift; requires target-project read access and boundary-policy relaxation. |

@@ -166,7 +166,6 @@ Authoritative shelf authority and class definitions: `docs/governance/project-bo
 ## 7. Expected Local Deliverables
 
 - `common/README.md`
-- `common/frameworks/project-progression-rule.md`
 - `docs/governance/project-template-adoption-packet.md`
 - `docs/governance/project-file-taxonomy.md`
 - `docs/governance/project-boundary-register.md`
