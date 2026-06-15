@@ -10,12 +10,12 @@ Separate generic `ADOP` authority from project-local adoption execution and curr
 
 These shelves/files define reusable common ADOP behavior.
 
+- `adop.json`
 - `shared/python/`
 - `docs/checklists/`
 - `shared/templates/`
 - `docs/design/`
 - `README.md`
-- `docs/design/ADOP_SHELF_CLASSIFICATION.md`
 - `docs/ADOP_GENERIC_QUICKSTART.md`
 
 ## Project-Local Overlay

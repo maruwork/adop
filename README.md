@@ -19,6 +19,7 @@ It does not hold any specific project's current trial state or adoption register
 
 ## Shelves
 
+- `adop.json`: machine-readable canonical identity and runtime file manifest
 - `shared/python/`: shared code for the generic adoption body
   - `adop_cli.py`: command entry
   - `adop_artifacts.py`: artifact IO / atomic write
@@ -27,6 +28,7 @@ It does not hold any specific project's current trial state or adoption register
   - `adop_types.py`: SSOT constants / field names
   - `adop_ids.py`: id mint / parse
   - `adop_state_machine.py`: lifecycle transition helpers
+  - `adop_sync.py`: drift detection and sync for project-local runtime copies
   - `common.py`: bounded runtime helper
 - `docs/checklists/`: checklist items to review before adopting an external tool
 - `shared/templates/`: record templates for external tool adoption
