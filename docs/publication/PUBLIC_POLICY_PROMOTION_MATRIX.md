@@ -13,10 +13,8 @@ Define the fate of each draft/pre-public policy document before publication.
 | `docs/publication/CONTRIBUTING_DRAFT.md` | draft-only | promote with edits | issue/PR policy | must stop saying "draft" before publication |
 | `docs/publication/SECURITY_DRAFT.md` | draft-only | promote with edits | security intake posture | must not imply a contact channel until owner chooses one |
 | `RELEASE_BOOTSTRAP_NOTES.md` | internal prep | keep internal | none beyond go-live operator use | operational note, not public policy |
-| `PRE_PUBLICATION_DECISIONS.md` | internal decision note | keep internal | none beyond owner packet | replaced by final owner decisions |
 | `OWNER_DECISION_PACKET.md` | internal execution authority | keep internal | all blocking owner decisions | used to drive publication, not to publish directly |
 | `PUBLISHABLE_HOLD_CHECKLIST.md` | internal gate | keep internal | none | proves readiness before go-live |
-| `PUBLIC_GO_LIVE_SEQUENCE_DRAFT.md` | internal sequence draft | fold into runbook or keep internal | host/owner decision and CI scope | do not publish as-is |
 
 ## Promotion Rule
 
