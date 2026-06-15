@@ -17,9 +17,21 @@ Provide the shortest bounded path to understand and verify generic ADOP.
 
 ## Fastest Verification
 
-The authoritative command set is in `docs/publication/PUBLIC_VERIFICATION_CONTRACT.md`.
+Use a bounded artifact root outside any target project.
 
-Set `CLI=shared/python/adop_cli.py; SRC=shared/python` and run the Mandatory Checks there.
+```bash
+CLI=shared/python/adop_cli.py
+SRC=shared/python
+ARTIFACT_ROOT=/tmp/adop-smoke
+
+python "$CLI" --version
+python -m py_compile "$SRC"/*.py
+python "$CLI" quick-intake  --artifact-root $ARTIFACT_ROOT --candidate ToolA --source doc --use-case review-lane --why-now "need bounded trial"
+python "$CLI" quick-compare --artifact-root $ARTIFACT_ROOT --use-case review-lane --candidate ToolA --candidate ToolB --selected ToolA
+python "$CLI" quick-trial   --artifact-root $ARTIFACT_ROOT --use-case review-lane --mode review-assist --executor self
+python "$CLI" quick-close-trial --artifact-root $ARTIFACT_ROOT --trial-id tr-001 --verdict hold --observed-effect "useful but needs narrowing"
+python "$CLI" lint --artifact-root $ARTIFACT_ROOT
+```
 
 ## What This Proves
 

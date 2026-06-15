@@ -31,12 +31,7 @@ It does not hold any specific project's current trial state or adoption register
 - `docs/checklists/`: checklist items to review before adopting an external tool
 - `shared/templates/`: record templates for external tool adoption
 - `docs/design/`: bounded design notes
-- `docs/publication/`: publication planning, runbooks, and pre-release checklists
-- `docs/governance/`: local governance concretization
-- `archive/`: historical shelf for completed wave materials
 - `docs/ADOP_GENERIC_QUICKSTART.md`: generic ADOP reading order and bounded verification path
-- `docs/publication/CONTRIBUTING_DRAFT.md`: pre-publication contribution draft
-- `docs/publication/SECURITY_DRAFT.md`: pre-publication security draft
 - `SUPPORT.md`: pre-issue checklist and support contact routes
 
 ## Reading Order
@@ -49,15 +44,7 @@ It does not hold any specific project's current trial state or adoption register
 6. `shared/python/adop_types.py`
 7. `shared/python/adop_cli.py`
 8. `docs/design/adop-lifecycle-schema-design.md`
-9. `docs/publication/REPO_EXPORT_GUIDE.md`
-10. `docs/publication/PUBLISHABLE_HOLD_CHECKLIST.md`
-11. `docs/publication/OWNER_DECISION_PACKET.md`
-12. `docs/publication/PUBLIC_POLICY_PROMOTION_MATRIX.md`
-13. `docs/publication/PUBLIC_VERIFICATION_CONTRACT.md`
-14. `docs/publication/PUBLICATION_RUNBOOK.md`
-15. `docs/publication/PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
-16. `docs/publication/PRIVATE_RELEASE_HOLD_LINE.md`
-17. `SUPPORT.md`
+9. `SUPPORT.md`
 
 ## How to Use
 
@@ -66,44 +53,18 @@ It does not hold any specific project's current trial state or adoption register
 3. bring `shared/templates/` into the project side
 4. write current trial state, promote / hold / reject decisions, operator procedures, and landing target authority on the project side
 
-## Standalone Repo View
-
-- current physical home is this repository root
-- public-facing commands and file paths in this shelf are written repo-relative
-- if this shelf is lifted into its own first public repo, use `REPO_EXPORT_GUIDE.md` as the carried-file authority
-- extraction notes are in `REPO_EXPORT_GUIDE.md`
-
-## Pre-Publication Drafts
-
-The following are preparation assets only. They do not mean `ADOP` is already public.
-
-- `docs/publication/CONTRIBUTING_DRAFT.md`
-- `docs/publication/SECURITY_DRAFT.md`
-- `docs/publication/RELEASE_BOOTSTRAP_NOTES.md`
-- `docs/publication/OWNER_DECISION_PACKET.md`
-- `docs/publication/PUBLISHABLE_HOLD_CHECKLIST.md`
-
-## Publication Execution Docs
-
-The following are execution-grade docs for getting from publishable hold to real publication. They are not themselves a claim that `ADOP` is already public.
-
-- `docs/publication/PUBLIC_POLICY_PROMOTION_MATRIX.md`
-- `docs/publication/PUBLIC_VERIFICATION_CONTRACT.md`
-- `docs/publication/PUBLICATION_RUNBOOK.md`
-
-## Private Bootstrap Docs
-
-The following are execution-grade docs for preparing the repository in a private state while explicitly stopping before public release.
-
-- `docs/publication/PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
-- `docs/publication/PRIVATE_RELEASE_HOLD_LINE.md`
-
 ## Repository Community Files
 
+- `LICENSE`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `CODE_OF_CONDUCT.md`
+- `CHANGELOG.md`
 - `SUPPORT.md`
 - `.github/ISSUE_TEMPLATE/`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/CODEOWNERS`
+- `.github/workflows/ci.yml`
 
 ## What Common Authority Owns
 
