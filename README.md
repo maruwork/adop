@@ -51,6 +51,18 @@ It does not hold any specific project's current trial state or adoption register
 9. `docs/design/adop-lifecycle-schema-design.md`
 10. `SUPPORT.md`
 
+## Setup
+
+```bash
+# Clone and verify
+git clone https://github.com/maruwork/adop.git
+cd adop
+python shared/python/adop_cli.py --version   # adop 0.1.0
+```
+
+No pip install required. All commands run as `python shared/python/adop_cli.py <command>`.
+The examples below use `adop` as a shorthand — substitute the full path if you have not aliased it.
+
 ## How to Use
 
 ```bash

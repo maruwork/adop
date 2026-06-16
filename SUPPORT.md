@@ -13,7 +13,6 @@ Status: Active
 
 - reproducible defects: open a bug report
 - lifecycle or schema proposals: open a feature request
-- private repository preparation questions: include the exact step from `PRIVATE_HOST_BOOTSTRAP_RUNBOOK.md`
 
 ## What To Include
 

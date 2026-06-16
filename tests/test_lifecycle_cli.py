@@ -15,6 +15,8 @@ CANDIDATE_INTAKE_NOTE = "candidate-intake-note"
 DEPRECATION_NOTE = "deprecation-note"
 MIGRATION_NOTE = "migration-note"
 ARCHIVE_NOTE = "archive-note"
+HOLD_NOTE = "hold-note"
+REJECT_NOTE = "reject-note"
 
 
 # --- watch -----------------------------------------------------------------
@@ -147,3 +149,70 @@ def test_lint_passes_on_full_chain(run, root):
         "--migration-target", "ruff", "--migration-plan", "p")
     run("archive", "--artifact-root", root, "--use-case", "lint", "--end-date", "2026-09-30")
     assert run("lint", "--artifact-root", root) == 0
+
+
+# --- close-trial: hold / reject --------------------------------------------
+
+def _run_to_open_trial(run, root, *, scene: str = "ci-format", tool: str = "ruff") -> str:
+    """Drive a scene through intake → compare → trial; return the trial id."""
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", tool, "--source", "doc",
+        "--use-case", scene, "--why-now", "evaluate",
+    ) == 0
+    assert run(
+        "quick-compare", "--artifact-root", root, "--use-case", scene,
+        "--candidate", tool, "--candidate", "pylint", "--selected", tool,
+    ) == 0
+    assert run(
+        "quick-trial", "--artifact-root", root, "--use-case", scene,
+        "--mode", "read-only-comparison", "--executor", "ci",
+    ) == 0
+    return "tr-001"
+
+
+def test_close_trial_hold_generates_hold_note(run, root, latest):
+    trial_id = _run_to_open_trial(run, root)
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id,
+        "--verdict", "hold",
+        "--observed-effect", "inconclusive — needs more data",
+    ) == 0
+    note = latest(root, HOLD_NOTE)
+    assert note is not None
+    assert note["artifact_id"].startswith("hl-")
+    assert note["artifact_type"] == HOLD_NOTE
+    assert note["derived_from"] == [trial_id]
+    assert note.get("hold_reason")
+
+
+def test_close_trial_reject_generates_reject_note(run, root, latest):
+    trial_id = _run_to_open_trial(run, root, scene="ci-lint", tool="pylint")
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id,
+        "--verdict", "reject",
+        "--observed-effect", "too slow for our use case",
+    ) == 0
+    note = latest(root, REJECT_NOTE)
+    assert note is not None
+    assert note["artifact_id"].startswith("rj-")
+    assert note["artifact_type"] == REJECT_NOTE
+    assert note["derived_from"] == [trial_id]
+    assert note.get("reject_reason")
+
+
+def test_close_trial_double_close_is_rejected(run, root):
+    trial_id = _run_to_open_trial(run, root, scene="ci-double", tool="black")
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id, "--verdict", "promote",
+        "--observed-effect", "great",
+    ) == 0
+    # Second close of the same trial must fail with exit 5.
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id, "--verdict", "reject",
+        "--observed-effect", "retroactive",
+    ) == 5

@@ -22,3 +22,12 @@ jobs:
         run: pip install pytest
       - name: Run tests
         run: python -m pytest tests/ -q
+      - name: Smoke test (quick-intake → compare → trial → close → lint)
+        run: |
+          ADOP="python shared/python/adop_cli.py"
+          ROOT=$(mktemp -d)
+          $ADOP quick-intake --artifact-root "$ROOT" --candidate ruff --source doc --use-case lint-ci --why-now "smoke"
+          $ADOP quick-compare --artifact-root "$ROOT" --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
+          $ADOP quick-trial   --artifact-root "$ROOT" --use-case lint-ci --mode read-only-comparison --executor ci
+          $ADOP quick-close-trial --artifact-root "$ROOT" --trial-id tr-001 --verdict hold --observed-effect "needs more data"
+          $ADOP lint --artifact-root "$ROOT"
