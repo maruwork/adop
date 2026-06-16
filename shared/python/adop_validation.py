@@ -31,18 +31,22 @@ try:
         FILTER_NAMES,
         FILTER_STATUSES,
         FIT_LANES,
+        HOLD_NOTE,
         JUDGMENT_REPORT,
         LANES,
         MIGRATION_NOTE,
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
+        PROMOTION_NOTE,
         RECURRING_CONTROL_DECISIONS,
+        REJECT_NOTE,
         REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         SANDBOX_TYPES,
         SCHEMA_VERSION,
         STRUCTURAL_GAP,
         TRIAL_PACKET,
+        TRIAL_RESULT,
         TRIAL_TYPES,
         VERDICTS,
         WATCH_NOTE,
@@ -72,18 +76,22 @@ except ImportError:  # pragma: no cover - script import path
         FILTER_NAMES,
         FILTER_STATUSES,
         FIT_LANES,
+        HOLD_NOTE,
         JUDGMENT_REPORT,
         LANES,
         MIGRATION_NOTE,
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
+        PROMOTION_NOTE,
         RECURRING_CONTROL_DECISIONS,
+        REJECT_NOTE,
         REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         SANDBOX_TYPES,
         SCHEMA_VERSION,
         STRUCTURAL_GAP,
         TRIAL_PACKET,
+        TRIAL_RESULT,
         TRIAL_TYPES,
         VERDICTS,
         WATCH_NOTE,
@@ -467,6 +475,40 @@ def lint_artifact_root(root: Path) -> list[str]:
             if not isinstance(item.get("no_impact_envelope"), dict):
                 issues.append("judgment-report missing no_impact_envelope")
 
+        if artifact_type == TRIAL_RESULT:
+            if not item.get("closed_at"):
+                issues.append(f"trial-result {item.get('artifact_id')} missing closed_at")
+            if not item.get("related_scene"):
+                issues.append(f"trial-result {item.get('artifact_id')} missing related_scene")
+            if not item.get("derived_from"):
+                issues.append(f"trial-result {item.get('artifact_id')} missing derived_from")
+            if not item.get(OBSERVED_EFFECT):
+                issues.append(f"trial-result {item.get('artifact_id')} missing {OBSERVED_EFFECT}")
+
+        if artifact_type == PROMOTION_NOTE:
+            if not item.get("related_scene"):
+                issues.append(f"promotion-note {item.get('artifact_id')} missing related_scene")
+            if not item.get("derived_from"):
+                issues.append(f"promotion-note {item.get('artifact_id')} missing derived_from")
+            if not item.get("landing_target"):
+                issues.append(f"promotion-note {item.get('artifact_id')} missing landing_target")
+
+        if artifact_type == REJECT_NOTE:
+            if not item.get("related_scene"):
+                issues.append(f"reject-note {item.get('artifact_id')} missing related_scene")
+            if not item.get("derived_from"):
+                issues.append(f"reject-note {item.get('artifact_id')} missing derived_from")
+            if not item.get("reject_reason"):
+                issues.append(f"reject-note {item.get('artifact_id')} missing reject_reason")
+
+        if artifact_type == HOLD_NOTE:
+            if not item.get("related_scene"):
+                issues.append(f"hold-note {item.get('artifact_id')} missing related_scene")
+            if not item.get("derived_from"):
+                issues.append(f"hold-note {item.get('artifact_id')} missing derived_from")
+            if not item.get("hold_reason"):
+                issues.append(f"hold-note {item.get('artifact_id')} missing hold_reason")
+
         for parent_id in item.get("derived_from", []):
             expected_ok = any(
                 f"{parent_type}::{parent_id}" in by_id
@@ -475,10 +517,15 @@ def lint_artifact_root(root: Path) -> list[str]:
             if not expected_ok:
                 issues.append(f"derived_from missing target: {parent_id}")
 
+    seen_trial_ids = {str(i["artifact_id"]) for i in items if i.get("artifact_type") == TRIAL_PACKET}
     for item in items:
         if item.get("artifact_type") == TRIAL_PACKET:
             trial_id = str(item["artifact_id"])
             if trial_id not in seen_trial_judgments:
                 issues.append(f"judgment-report missing for trial {trial_id}")
+        if item.get("artifact_type") == TRIAL_RESULT:
+            result_id = str(item.get("artifact_id", ""))
+            if result_id not in seen_trial_ids:
+                issues.append(f"trial-result {result_id} has no matching trial-packet")
 
     return issues

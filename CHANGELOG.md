@@ -40,4 +40,4 @@ All notable changes to this project are documented in this file.
 - Artifact schema validation with lint command
 - Tool entanglement (coupling-note) recording and reporting
 - Summary command with Current State by Scene, Lifecycle Notes, and Tool Entanglement sections
-- 64 tests covering lifecycle, validation, coupling, and artifact root error handling
+- 96 tests covering lifecycle, validation, coupling, artifact root error handling, sync, status, and scan

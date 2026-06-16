@@ -8,6 +8,7 @@
     "shared/python/adop_ids.py",
     "shared/python/adop_state_machine.py",
     "shared/python/adop_summary.py",
+    "shared/python/adop_sync.py",
     "shared/python/adop_types.py",
     "shared/python/adop_validation.py",
     "shared/python/common.py"

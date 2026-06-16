@@ -11,10 +11,10 @@ import adop_types as t
 
 
 def test_artifact_types_count_and_new_members():
-    assert len(t.ARTIFACT_TYPES) == 13
+    assert len(t.ARTIFACT_TYPES) == 14
     for name in (
         "watch-note", "blocked-note", "deprecation-note", "migration-note",
-        "archive-note", "coupling-note",
+        "archive-note", "coupling-note", "hold-note",
     ):
         assert name in t.ARTIFACT_TYPES
 

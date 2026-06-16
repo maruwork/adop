@@ -37,11 +37,11 @@ try:
         FILTER_NAMES,
         FILTER_STATUSES,
         FIT_LANES,
+        HOLD_NOTE,
         JUDGMENT_REPORT,
         LANDING_TARGET,
         LANES,
         MIGRATION_NOTE,
-        NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         PROMOTION_NOTE,
         PROPOSED,
@@ -104,7 +104,7 @@ except ImportError:  # pragma: no cover - script import path
         LANDING_TARGET,
         LANES,
         MIGRATION_NOTE,
-        NON_PROMOTE_VERDICTS,
+        HOLD_NOTE,
         OBSERVED_EFFECT,
         PROMOTION_NOTE,
         PROPOSED,
@@ -186,6 +186,8 @@ _NEXT_FOR_STATE: dict[str, str] = {
     "proposed":    'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>',
     "trial-ready": 'adop quick-trial --use-case {scene} --mode review-assist --executor <who>',
     "blocked":     'adop unblock --use-case {scene} --why-unblocked "<what changed>"',
+    "hold":        'adop quick-intake --use-case {scene} --candidate <tool> --source doc --why-now "re-evaluate after hold" # or: adop deprecate if no longer needed',
+    "reject":      'adop deprecate --use-case {scene} --deprecation-reason "rejected at trial" # or: adop archive if fully closed',
     "deprecated":  'adop migrate --use-case {scene} --migration-target <target> --migration-plan "<plan>"',
     "migrating":   'adop archive --use-case {scene} --end-date <YYYY-MM-DD>',
 }
@@ -939,6 +941,9 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
     packet = artifacts.find_trial_packet(root, args.trial_id)
     if not packet:
         raise AdopValidationError("trial-packet not found", 5)
+    # Detect double-close before building any payloads (exit 5 = readiness gate).
+    if any(str(r.get("artifact_id")) == args.trial_id for r in artifacts.find_by_type(root, TRIAL_RESULT)):
+        raise AdopValidationError(f"trial {args.trial_id} already closed", 5)
     close_payload = {
         "verdict": args.verdict,
         OBSERVED_EFFECT: args.observed_effect,
@@ -1035,7 +1040,23 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         (JUDGMENT_REPORT, args.trial_id, judgment_payload),
     ]
 
-    if args.verdict in NON_PROMOTE_VERDICTS:
+    if args.verdict == "hold":
+        hold_id = next_sequential_id(root, "hl")
+        hold_payload = {
+            "schema_version": SCHEMA_VERSION,
+            "artifact_type": HOLD_NOTE,
+            "artifact_id": hold_id,
+            "status": "closed",
+            "created_at": created_at,
+            "related_scene": packet["related_scene"],
+            "derived_from": [args.trial_id],
+            "decision_owner": args.decision_owner or packet.get("decision_owner"),
+            "hold_reason": args.judgment_reason,
+            "reopen_condition": args.reopen_condition,
+            "evidence_refs": args.evidence_refs,
+        }
+        group_specs.append((HOLD_NOTE, hold_id, hold_payload))
+    elif args.verdict == "reject":
         reject_id = next_sequential_id(root, "rj")
         reject_payload = {
             "schema_version": SCHEMA_VERSION,
@@ -1046,8 +1067,7 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
             "related_scene": packet["related_scene"],
             "derived_from": [args.trial_id],
             "decision_owner": args.decision_owner or packet.get("decision_owner"),
-            "reject_or_hold_reason": args.judgment_reason,
-            "reopen_condition": args.reopen_condition,
+            "reject_reason": args.judgment_reason,
             "evidence_refs": args.evidence_refs,
             "drawbacks": [],
         }

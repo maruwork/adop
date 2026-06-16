@@ -202,9 +202,16 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
     other_trial_states: dict[str, list[str]] = defaultdict(list)
 
     intake_dispositions = {PROPOSED, "trial-ready", "hold", "reject"}
+    # Count latest intake per (scene, tool) pair to avoid double-counting when
+    # quick-intake is run multiple times for the same candidate.
+    latest_intake: dict[tuple[str, str], dict] = {}
     for intake in find_by_type(root, CANDIDATE_INTAKE_NOTE):
         if scene and intake.get("related_scene") != scene:
             continue
+        key = (str(intake.get("related_scene", "")), str(intake.get("candidate_or_tool", "")))
+        # find_by_type returns items in id order; later id wins (append-only).
+        latest_intake[key] = intake
+    for intake in latest_intake.values():
         intake_state = str(intake.get("current_disposition", PROPOSED))
         if intake_state in intake_dispositions:
             intake_counts[intake_state].append(str(intake.get("candidate_or_tool", "-")))

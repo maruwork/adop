@@ -21,6 +21,7 @@ ARTIFACT_TYPES: Final[tuple[str, ...]] = (
     "migration-note",         # [10]
     "archive-note",           # [11]
     "coupling-note",          # [12] — orthogonal metadata, NOT a lifecycle state
+    "hold-note",              # [13] — trial closed with hold verdict (distinct from reject-note)
 )
 
 ARTIFACT_ID_PREFIX: Final[dict[str, str]] = {
@@ -37,6 +38,7 @@ ARTIFACT_ID_PREFIX: Final[dict[str, str]] = {
     "migration-note": "mg",
     "archive-note": "ar",
     "coupling-note": "cp",
+    "hold-note": "hl",
 }
 
 # Tool-to-file coupling vocabulary (declared entanglement; see coupling-note).
@@ -115,6 +117,7 @@ DEPRECATION_NOTE: Final[str] = ARTIFACT_TYPES[9]
 MIGRATION_NOTE: Final[str] = ARTIFACT_TYPES[10]
 ARCHIVE_NOTE: Final[str] = ARTIFACT_TYPES[11]
 COUPLING_NOTE: Final[str] = ARTIFACT_TYPES[12]
+HOLD_NOTE: Final[str] = ARTIFACT_TYPES[13]
 
 # Named filter name constants — index-bound to FILTER_NAMES (keep in sync with tuple order)
 SCENE_FIT: Final[str] = FILTER_NAMES[0]
