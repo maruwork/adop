@@ -5,9 +5,7 @@ __pycache__/
 # pytest cache
 .pytest_cache/
 
-# Developer-only AI control files (not for public repos per github-optimization)
-AGENTS.md
-CLAUDE.md
+# Claude Code developer tooling — local machine state, not distributed
 .claudeignore
 
 # Sync registry — local machine state, not canonical
