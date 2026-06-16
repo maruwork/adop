@@ -40,3 +40,22 @@ def test_boundary_violation_returns_14(run, root, capsys):
 
     assert code == 14
     assert "Traceback" not in capsys.readouterr().out
+
+
+def test_lint_on_missing_root_exits_10(run, tmp_path, capsys):
+    """lint on a non-existent artifact root must fail, not silently pass."""
+    missing = str(tmp_path / "does_not_exist")
+    code = run("lint", "--artifact-root", missing)
+    assert code == 10
+    out = capsys.readouterr().out
+    assert "does not exist" in out
+
+
+def test_lint_on_empty_root_exits_10(run, tmp_path, capsys):
+    """lint on an empty artifact root (no artifacts) must fail."""
+    empty = tmp_path / "empty_root"
+    empty.mkdir()
+    code = run("lint", "--artifact-root", str(empty))
+    assert code == 10
+    out = capsys.readouterr().out
+    assert "empty" in out

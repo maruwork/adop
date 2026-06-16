@@ -20,6 +20,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pytest
         run: pip install pytest
+      - name: Syntax check (py_compile)
+        run: python -m py_compile shared/python/adop_cli.py shared/python/adop_artifacts.py shared/python/adop_validation.py shared/python/adop_types.py shared/python/adop_summary.py shared/python/adop_sync.py shared/python/adop_ids.py shared/python/adop_state_machine.py shared/python/common.py
+      - name: Version check
+        run: python shared/python/adop_cli.py --version
       - name: Run tests
         run: python -m pytest tests/ -q
       - name: Smoke test (quick-intake → compare → trial → close → lint)

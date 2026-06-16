@@ -186,7 +186,7 @@ _NEXT_FOR_STATE: dict[str, str] = {
     "proposed":    'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>',
     "trial-ready": 'adop quick-trial --use-case {scene} --mode review-assist --executor <who>',
     "blocked":     'adop unblock --use-case {scene} --why-unblocked "<what changed>"',
-    "hold":        'adop quick-intake --use-case {scene} --candidate <tool> --source doc --why-now "re-evaluate after hold" # or: adop deprecate if no longer needed',
+    "hold":        'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>  # resume trial; or: adop deprecate if no longer needed',
     "reject":      'adop deprecate --use-case {scene} --deprecation-reason "rejected at trial" # or: adop archive if fully closed',
     "deprecated":  'adop migrate --use-case {scene} --migration-target <target> --migration-plan "<plan>"',
     "migrating":   'adop archive --use-case {scene} --end-date <YYYY-MM-DD>',
@@ -425,8 +425,10 @@ def _build_parser() -> argparse.ArgumentParser:
             "  0 ok\n"
             "  2 invalid CLI usage / validation\n"
             "  5 missing artifact or readiness gate not met\n"
+            "  7 trial-ready or promotion gate not met\n"
             "  10 lint found invalid artifacts\n"
             "  11 artifact read/write/schema error\n"
+            "  13 no-impact envelope violated (write trial requires isolated sandbox)\n"
             "  14 artifact-root boundary violation"
         ),
         formatter_class=RawTextHelpFormatter,
@@ -1163,6 +1165,7 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
         ROOT_CAUSE_HYPOTHESIS: args.why_unblocked,
         "derived_from": [blocked["artifact_id"]],
     }
+    validate_intake_payload(payload)
     path = artifacts.write_artifact(root, CANDIDATE_INTAKE_NOTE, artifact_id, payload)
     return artifacts.json_response("unblock", "ok", [path.name], [])
 
@@ -1618,7 +1621,12 @@ def _handle_next(args: argparse.Namespace) -> str:
 
 
 def _handle_lint(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
-    issues = lint_artifact_root(Path(args.artifact_root))
+    root = Path(args.artifact_root)
+    if not root.exists():
+        return 10, artifacts.json_response("lint", "error", [], [f"artifact root does not exist: {root}"])
+    if not any(root.glob("adop_*_*.json")):
+        return 10, artifacts.json_response("lint", "error", [], [f"artifact root is empty: {root}"])
+    issues = lint_artifact_root(root)
     if issues:
         return 10, artifacts.json_response("lint", "error", [], issues)
     return 0, artifacts.json_response("lint", "ok", [], [])

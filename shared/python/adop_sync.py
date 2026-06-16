@@ -96,6 +96,11 @@ def cmd_check(source: Path, target: Path) -> int:
 def cmd_apply(source: Path, target: Path) -> int:
     manifest = _load_manifest(source)
     results = _check_one(source, target, manifest)
+    missing_in_source = [r for r in results if r["status"] == "MISSING_IN_SOURCE"]
+    if missing_in_source:
+        for r in missing_in_source:
+            print(f"  error: {r['file']} is missing in source — apply aborted")
+        return 1
     copied = 0
     for r in results:
         if r["status"] in ("DIFF", "MISSING"):
