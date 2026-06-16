@@ -202,13 +202,26 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
     other_trial_states: dict[str, list[str]] = defaultdict(list)
 
     intake_dispositions = {PROPOSED, "trial-ready", "hold", "reject"}
+    # Scenes with a comparison-note have advanced past the intake stage; their
+    # lifecycle state is captured by "Current State by Scene" instead. Showing
+    # them in "Intake Dispositions" would create a misleading mismatch (the
+    # intake artifact's current_disposition is still "proposed" because artifacts
+    # are append-only and compare does not rewrite the intake).
+    scenes_past_intake = {
+        str(item.get("related_scene", ""))
+        for item in items
+        if item.get("artifact_type") == COMPARISON_NOTE and str(item.get("related_scene", ""))
+    }
     # Count latest intake per (scene, tool) pair to avoid double-counting when
     # quick-intake is run multiple times for the same candidate.
     latest_intake: dict[tuple[str, str], dict] = {}
     for intake in find_by_type(root, CANDIDATE_INTAKE_NOTE):
         if scene and intake.get("related_scene") != scene:
             continue
-        key = (str(intake.get("related_scene", "")), str(intake.get("candidate_or_tool", "")))
+        intake_scene = str(intake.get("related_scene", ""))
+        if intake_scene in scenes_past_intake:
+            continue
+        key = (intake_scene, str(intake.get("candidate_or_tool", "")))
         # find_by_type returns items in id order; later id wins (append-only).
         latest_intake[key] = intake
     for intake in latest_intake.values():

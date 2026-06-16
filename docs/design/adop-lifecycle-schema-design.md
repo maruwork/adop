@@ -29,8 +29,8 @@ All artifacts are append-only. There is no `updated_at`.
 | trial-ready | `comparison-note` | existing |
 | in-trial | `trial-packet` | existing |
 | promote | `promotion-note` | existing |
-| hold | `reject-note` (verdict=hold) | existing |
-| reject | `reject-note` (verdict=reject) | existing |
+| hold | `hold-note` | new |
+| reject | `reject-note` | existing |
 | deprecated | `deprecation-note` | new |
 | migrating | `migration-note` | new |
 | archived | `archive-note` | new |
@@ -72,8 +72,8 @@ watch ──→ proposed ──→ trial-ready ──→ in-trial
 | blocked | reject | constraint is permanent | `reject-note` |
 | trial-ready | in-trial | trial started | `trial-packet` |
 | in-trial | promote | trial succeeded | `promotion-note` |
-| in-trial | hold | trial paused | `reject-note` (verdict=hold) |
-| in-trial | reject | trial failed | `reject-note` (verdict=reject) |
+| in-trial | hold | trial paused | `hold-note` |
+| in-trial | reject | trial failed | `reject-note` |
 | hold | trial-ready | trial resumed | `comparison-note` |
 | hold | reject | tool discarded after pause | `reject-note` |
 | promote | deprecated | retirement decision made | `deprecation-note` |

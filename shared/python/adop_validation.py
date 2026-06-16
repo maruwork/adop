@@ -518,10 +518,18 @@ def lint_artifact_root(root: Path) -> list[str]:
                 issues.append(f"derived_from missing target: {parent_id}")
 
     seen_trial_ids = {str(i["artifact_id"]) for i in items if i.get("artifact_type") == TRIAL_PACKET}
+    # Trials that have been closed: a trial-result exists that derives from the packet.
+    closed_trial_ids: set[str] = set()
+    for item in items:
+        if item.get("artifact_type") == TRIAL_RESULT:
+            for parent_id in (item.get("derived_from") or []):
+                closed_trial_ids.add(str(parent_id))
+
     for item in items:
         if item.get("artifact_type") == TRIAL_PACKET:
             trial_id = str(item["artifact_id"])
-            if trial_id not in seen_trial_judgments:
+            # Only require a judgment-report for closed trials; open trials are in-progress.
+            if trial_id in closed_trial_ids and trial_id not in seen_trial_judgments:
                 issues.append(f"judgment-report missing for trial {trial_id}")
         if item.get("artifact_type") == TRIAL_RESULT:
             result_id = str(item.get("artifact_id", ""))

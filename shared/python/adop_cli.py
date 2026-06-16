@@ -1145,6 +1145,7 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
     if not blocked:
         raise AdopValidationError("blocked-note for scene not found", 5)
     artifact_id = next_sequential_id(root, "ci")
+    prior_intake = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
     payload = {
         "schema_version": SCHEMA_VERSION,
         "artifact_type": CANDIDATE_INTAKE_NOTE,
@@ -1157,6 +1158,7 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
         "intended_lane": LANES[1],
         "intake_reason": args.why_unblocked,
         "current_disposition": PROPOSED,
+        "candidate_shape": str(prior_intake.get("candidate_shape", "unknown")) if prior_intake else "unknown",
         "next_action": "compare candidate set",
         ROOT_CAUSE_HYPOTHESIS: args.why_unblocked,
         "derived_from": [blocked["artifact_id"]],

@@ -216,3 +216,42 @@ def test_close_trial_double_close_is_rejected(run, root):
         "--trial-id", trial_id, "--verdict", "reject",
         "--observed-effect", "retroactive",
     ) == 5
+
+
+def test_lint_passes_on_open_trial(run, root):
+    """lint must not report judgment-report missing while a trial is still in progress."""
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", "ruff", "--source", "doc",
+        "--use-case", "in-flight", "--why-now", "evaluate",
+    ) == 0
+    assert run(
+        "quick-compare", "--artifact-root", root, "--use-case", "in-flight",
+        "--candidate", "ruff", "--candidate", "pylint", "--selected", "ruff",
+    ) == 0
+    assert run(
+        "quick-trial", "--artifact-root", root, "--use-case", "in-flight",
+        "--mode", "read-only-comparison", "--executor", "ci",
+    ) == 0
+    # Trial is open — lint must pass with no issues.
+    assert run("lint", "--artifact-root", root) == 0
+
+
+def test_unblock_generates_lint_clean_intake(run, root):
+    """unblock re-enters proposed via a new intake that passes lint."""
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", "mypy", "--source", "doc",
+        "--use-case", "typing", "--why-now", "strict mode",
+    ) == 0
+    assert run(
+        "block", "--artifact-root", root, "--use-case", "typing",
+        "--block-reason", "no budget", "--unblock-condition", "Q3",
+        "--owner", "lead",
+    ) == 0
+    assert run(
+        "unblock", "--artifact-root", root, "--use-case", "typing",
+        "--why-unblocked", "budget approved",
+    ) == 0
+    # The re-entry intake written by unblock must satisfy lint.
+    assert run("lint", "--artifact-root", root) == 0

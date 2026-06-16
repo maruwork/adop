@@ -36,8 +36,8 @@ All notable changes to this project are documented in this file.
 ### Added
 
 - 11-state tool adoption lifecycle: watch, proposed, blocked, trial-ready, in-trial, promote, hold, reject, deprecated, migrating, archived
-- 20 CLI commands covering the full lifecycle plus tool-to-file coupling recording
+- 24 CLI commands covering the full lifecycle plus tool-to-file coupling recording
 - Artifact schema validation with lint command
 - Tool entanglement (coupling-note) recording and reporting
 - Summary command with Current State by Scene, Lifecycle Notes, and Tool Entanglement sections
-- 96 tests covering lifecycle, validation, coupling, artifact root error handling, sync, status, and scan
+- 99 tests covering lifecycle, validation, coupling, artifact root error handling, sync, status, and scan
