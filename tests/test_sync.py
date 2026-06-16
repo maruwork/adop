@@ -138,3 +138,23 @@ def test_push_updates_registered_target(canon, project_root):
 
 def test_push_empty_registry(canon):
     assert adop_sync.cmd_push(canon) == 0
+
+
+# --- apply safety: MISSING_IN_SOURCE ---
+
+def test_apply_aborts_when_source_file_missing(tmp_path, project_root):
+    """apply must exit 1 when a manifest file is absent from the source."""
+    # Build a canon whose manifest lists a file that does not exist in shared/python/
+    root = tmp_path / "adop"
+    root.mkdir()
+    py = root / "shared" / "python"
+    py.mkdir(parents=True)
+    (py / "adop_types.py").write_text("# v2", encoding="utf-8")
+    # adop_cli.py is declared in manifest but NOT written to disk
+    manifest = {
+        "name": "adop", "version": "0.1.0",
+        "canonical_repo": "https://github.com/maruwork/adop",
+        "runtime_files": ["shared/python/adop_types.py", "shared/python/adop_cli.py"],
+    }
+    (root / "adop.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert adop_sync.cmd_apply(root, project_root) == 1
