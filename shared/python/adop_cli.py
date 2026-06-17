@@ -827,6 +827,10 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
     if not recommended_fit_lane and compatibility_diagnosis and isinstance(compatibility_diagnosis[0], dict):
         recommended_fit_lane = str(compatibility_diagnosis[0].get("recommended_fit_lane", ""))
     artifact_id = next_sequential_id(root, "cmp")
+    derived_from = [parent["artifact_id"]]
+    hold_note = artifacts.latest_by_type(root, HOLD_NOTE, scene=args.scene)
+    if hold_note:
+        derived_from.append(hold_note["artifact_id"])
     payload = {
         "schema_version": SCHEMA_VERSION,
         "artifact_type": COMPARISON_NOTE,
@@ -835,7 +839,7 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
         "created_at": today_iso(),
         "related_scene": args.scene,
         "candidate_shape": args.candidate_shape,
-        "derived_from": [parent["artifact_id"]],
+        "derived_from": derived_from,
         "compared_candidates": args.candidates,
         "filter_assessment": _build_filter_assessment(args),
         "selected_candidate": args.selected,

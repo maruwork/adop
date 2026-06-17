@@ -218,6 +218,26 @@ def test_close_trial_double_close_is_rejected(run, root):
     ) == 5
 
 
+def test_compare_after_hold_links_hold_note(run, root, latest):
+    """comparison-note created after a hold must derive from the hold-note."""
+    trial_id = _run_to_open_trial(run, root, scene="hold-resume", tool="ruff")
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id, "--verdict", "hold",
+        "--observed-effect", "inconclusive",
+    ) == 0
+    hold = latest(root, HOLD_NOTE, scene="hold-resume")
+    assert hold is not None
+
+    assert run(
+        "quick-compare", "--artifact-root", root, "--use-case", "hold-resume",
+        "--candidate", "ruff", "--candidate", "pylint", "--selected", "ruff",
+    ) == 0
+    cmp = latest(root, "comparison-note", scene="hold-resume")
+    assert cmp is not None
+    assert hold["artifact_id"] in cmp["derived_from"]
+
+
 def test_lint_passes_on_open_trial(run, root):
     """lint must not report judgment-report missing while a trial is still in progress."""
     assert run(
