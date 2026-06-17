@@ -141,7 +141,7 @@ except ImportError:  # pragma: no cover - script import path
 
 fix_stdout_encoding()
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 _DEFAULT_ARTIFACT_ROOT = ".adop"
 

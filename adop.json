@@ -1,6 +1,6 @@
 {
   "name": "adop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "canonical_repo": "https://github.com/maruwork/adop",
   "runtime_files": [
     "shared/python/adop_artifacts.py",

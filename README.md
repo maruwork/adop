@@ -51,7 +51,7 @@ Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is 
 
 ```bash
 pip install git+https://github.com/maruwork/adop.git
-adop --version   # adop 0.1.0
+adop --version   # adop 0.1.1
 ```
 
 **Option B — clone and run**

@@ -6,6 +6,20 @@ All notable changes to this project are documented in this file.
 
 _Nothing yet._
 
+## 0.1.1 - 2026-06-17
+
+### Added
+
+- `pyproject.toml`: pip install support — `pip install git+https://github.com/maruwork/adop.git` now works; installs `adop` and `adop-sync` as console commands
+- CI: `pip-install` job verifies the installed package on each push
+- CI: `windows-latest` added to OS matrix; smoke test uses `shell: bash` for cross-platform compatibility
+
+### Fixed
+
+- README Setup section: code fence was not closed on a separate line (markdown rendering broken)
+- README: added Python 3.11/3.12 requirement and alias setup instructions for Linux/macOS and Windows
+- CHANGELOG: artifact type count corrected from 13 to 14
+
 ## 0.1.0 - 2026-06-15
 
 ### Added
