@@ -13,6 +13,12 @@ CLAUDE.md
 # Sync registry — local machine state, not canonical
 sync-registry.json
 
+# pip build artifacts
+*.egg-info/
+
+# Audit tooling output — not part of the repository
+audit.manifest.yml
+
 # Internal management — work history, developer tooling, monorepo governance
 archive/
 common/
