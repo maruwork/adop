@@ -758,7 +758,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Create a coupling-note: a complete snapshot of which files the tool is\n"
             "entangled with, how (coupling_type), and how hard each is to detach\n"
             "(removal_cost). Each call records the CURRENT full coupling set; the report\n"
-            "uses the latest coupling-note per (tool, use-case).\n\n"
+            "uses the latest coupling-note per scene/tool snapshot.\n\n"
             "Provide couplings either as repeated --couple 'PATH|TYPE|COST[|NOTE]'\n"
             "or as --couplings-json (a JSON list; @path reads a file).\n"
             f"  TYPE one of: {', '.join(COUPLING_TYPES)}\n"
@@ -779,7 +779,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     couplings_cmd = subparsers.add_parser(
         "couplings",
-        help="report tool-to-file entanglement (latest coupling-note per tool/use-case)",
+        help="report tool-to-file entanglement (latest coupling-note per scene/tool snapshot)",
         description="Report declared tool-to-file couplings and their detachment cost.",
     )
     couplings_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")

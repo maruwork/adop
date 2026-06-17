@@ -295,8 +295,8 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
     _render_section("Trial States", TRIAL_STATES, trial_counts)
     _render_section("Lifecycle Notes", tuple(state for state, _ in EXTENDED_STATE_NOTES), lifecycle_counts)
 
-    # Tool entanglement: latest coupling-note per (scene, tool), headline = worst
-    # detachment cost. status filter does not apply (coupling is not a state).
+    # Tool entanglement: latest coupling-note per scene/tool snapshot, headline =
+    # worst detachment cost. status filter does not apply (coupling is not a state).
     cost_rank = {cost: rank for rank, cost in enumerate(REMOVAL_COSTS)}
     coupling_notes = [item for item in items if item.get("artifact_type") == COUPLING_NOTE]
     coupling_notes.sort(key=_id_sort_key)

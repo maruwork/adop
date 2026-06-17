@@ -198,8 +198,8 @@ NOT to `SUMMARY_STATES`.
 
 Capture is **declared** (operator records it), consistent with ADOP's append-only,
 declared-disposition model. Each `coupling-note` is a complete **snapshot** of the
-current coupling set for one `(tool, use-case)`; the report uses the latest note per
-pair (latest-wins). Detaching a file = record a new snapshot without it.
+current coupling set for one scene lane and tool; the report uses the latest note per
+scene/tool snapshot (latest-wins). Detaching a file = record a new snapshot without it.
 
 | Field | Required | Notes |
 |---|---|---|
@@ -225,7 +225,7 @@ file means migration is heavy.
 
 - `couple` — record a coupling-note (snapshot). Couplings given as repeated
   `--couple 'PATH|TYPE|COST[|NOTE]'` or `--couplings-json` (`@path` reads a file).
-- `couplings` — report latest coupling per `(tool, use-case)`, text or `--json`.
+- `couplings` — report latest coupling per scene/tool snapshot, text or `--json`.
 - `summary` — "Tool Entanglement" section shows file count + worst detachment cost.
 
 ## 5. Artifact ID Prefixes
