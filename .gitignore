@@ -7,6 +7,8 @@ __pycache__/
 
 # Claude Code developer tooling — local machine state, not distributed
 .claudeignore
+AGENTS.md
+CLAUDE.md
 
 # Sync registry — local machine state, not canonical
 sync-registry.json
