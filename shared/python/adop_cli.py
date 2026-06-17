@@ -151,35 +151,66 @@ _DEFAULT_ARTIFACT_ROOT = ".adop"
 _OVERLAY_INIT_STUB = """\
 # Project-Local ADOP Overlay
 
+**Status**: Active
 **Common authority**: https://github.com/maruwork/adop
+**ADOP version synced**: [fill in from adop.json at sync time]
 
 ## Artifact Root
 
-Adoption artifacts live at: .adop/
+Adoption artifacts for this project live at:
+
+```
+[path/to/artifact-root/]
+```
+
+Validate: `python shared/python/adop_cli.py lint --artifact-root [path]`
 
 ## Runtime Copy
 
-adop_*.py and common.py path: [fill in]
-Last verified: [date]
+ADOP runtime files (`adop_*.py`, `common.py`) are at:
 
-## Active Use Cases
+```
+[path/to/adop-runtime-copy/]
+```
 
-| Use Case | Tool | Current State |
-|---|---|---|
-| (fill in) | (fill in) | (fill in) |
+Last verified against canonical: [date]
+Check drift: `python shared/python/adop_sync.py check --target [path/to/project-root/]`
+
+## Active Scene Lanes
+
+| Scene Lane | Tool | Current State | Last Activity |
+|---|---|---|---|
+| [scene] | [tool] | [state] | [date] |
 
 ## Operator Flow
 
 | Stage | Who | How |
 |---|---|---|
-| Raise candidate | | |
-| Compare | | |
-| Open trial | | |
-| Close trial | | |
+| Raise a candidate | [who] | [how: issue, doc, meeting] |
+| Run comparison | [who] | [time box, decision method] |
+| Open trial | [who] | [executor, mode, scope] |
+| Close trial | [who] | [judgment criteria, sign-off] |
+| Define landing target | [who] | [authority, location] |
+
+## Landing Target Authority
+
+Promoted tools land at:
+
+| Target | Owner | Notes |
+|---|---|---|
+| [target location] | [owner] | [scope] |
+
+## Pending Project Decisions
+
+| Item | Status |
+|---|---|
+| [pending project decision or gap] | [pending / in-progress] |
 
 ## Return Path
 
-https://github.com/maruwork/adop
+Common authority: https://github.com/maruwork/adop
+Lifecycle and schema spec: `docs/design/adop-lifecycle-schema-design.md`
+Adoption checklist: `docs/checklists/external-tool-adoption-checklist.md`
 """
 
 # Next-command templates keyed by lifecycle state.

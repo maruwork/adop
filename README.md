@@ -45,7 +45,7 @@ Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is 
 
 ## Setup
 
-**Requires Python 3.11 or 3.12.**
+**Requires Python 3.11, 3.12, or 3.13.**
 
 **Option A — pip install (recommended)**
 

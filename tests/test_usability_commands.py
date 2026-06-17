@@ -10,6 +10,7 @@ PYTHON_DIR = Path(__file__).resolve().parent.parent / "shared" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
+import adop_cli
 from adop_cli import main
 
 
@@ -34,6 +35,32 @@ def test_init_creates_overlay_file(tmp_path):
     assert Path(overlay).exists()
     text = Path(overlay).read_text(encoding="utf-8")
     assert "ADOP" in text
+
+
+def test_init_overlay_matches_scene_lane_contract(tmp_path):
+    root = str(tmp_path / ".adop")
+    overlay = str(tmp_path / "adop-overlay.md")
+    run("init", "--artifact-root", root, "--overlay", overlay)
+    text = Path(overlay).read_text(encoding="utf-8")
+    assert "## Active Scene Lanes" in text
+    assert "| Scene Lane | Tool | Current State | Last Activity |" in text
+    assert "## Landing Target Authority" in text
+    assert "## Pending Project Decisions" in text
+    assert "## Open Items" not in text
+
+
+def test_init_fallback_overlay_still_matches_contract(tmp_path, monkeypatch):
+    root = str(tmp_path / ".adop")
+    overlay = str(tmp_path / "adop-overlay.md")
+    missing_layout = tmp_path / "missing-layout" / "shared" / "python" / "adop_cli.py"
+    missing_layout.parent.mkdir(parents=True, exist_ok=True)
+    missing_layout.write_text("# placeholder\n", encoding="utf-8")
+    monkeypatch.setattr(adop_cli, "__file__", str(missing_layout))
+    run("init", "--artifact-root", root, "--overlay", overlay)
+    text = Path(overlay).read_text(encoding="utf-8")
+    assert "## Active Scene Lanes" in text
+    assert "## Landing Target Authority" in text
+    assert "## Pending Project Decisions" in text
 
 
 def test_init_idempotent(tmp_path):

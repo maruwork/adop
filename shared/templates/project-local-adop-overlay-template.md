@@ -34,11 +34,11 @@ Check drift: `python shared/python/adop_sync.py check --target [path/to/project-
 
 ---
 
-## Active Use Cases
+## Active Scene Lanes
 
-| Use Case | Tool | Current State | Last Activity |
+| Scene Lane | Tool | Current State | Last Activity |
 |---|---|---|---|
-| [use-case] | [tool] | [state] | [date] |
+| [scene] | [tool] | [state] | [date] |
 
 Live view: `python shared/python/adop_cli.py summary --artifact-root [path]`
 
@@ -66,11 +66,11 @@ Promoted tools land at:
 
 ---
 
-## Open Items
+## Pending Project Decisions
 
 | Item | Status |
 |---|---|
-| [pending decision or gap] | [open / in-progress] |
+| [pending project decision or gap] | [pending / in-progress] |
 
 ---
 
