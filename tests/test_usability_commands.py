@@ -202,6 +202,7 @@ def test_next_in_trial(tmp_path, capsys):
     run(
         "quick-trial", "--artifact-root", root, "--use-case", "lint",
         "--mode", "read-only-comparison", "--executor", "ci",
+        "--decision-owner", "lead", "--landing-target", "ci/lint",
     )
     rc = run("next", "--artifact-root", root)
     assert rc == 0

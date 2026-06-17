@@ -55,6 +55,13 @@ def promote_scene(run, root: str, *, scene: str = "lint", tool: str = "pylint") 
         "quick-intake", "--artifact-root", root,
         "--candidate", tool, "--source", "doc",
         "--use-case", scene, "--why-now", "need bounded trial",
+        "--platform", "any",
+        "--license", "MIT",
+        "--cost", "free",
+        "--version", "1.0.0",
+        "--category", "cli",
+        "--ai-compatibility", "any",
+        "--data-flow-json", '{"destination":"local","data_types":["code"],"opt_in":true}',
     ) == 0
     assert run(
         "quick-compare", "--artifact-root", root, "--use-case", scene,
@@ -63,9 +70,16 @@ def promote_scene(run, root: str, *, scene: str = "lint", tool: str = "pylint") 
     assert run(
         "quick-trial", "--artifact-root", root, "--use-case", scene,
         "--mode", "read-only-comparison", "--executor", "ci",
+        "--decision-owner", "lead", "--landing-target", "ci/lint",
     ) == 0
     assert run(
         "quick-close-trial", "--artifact-root", root,
         "--trial-id", "tr-001", "--verdict", "promote",
         "--observed-effect", "works",
+        "--judgment-reason", "trial produced reusable value",
+        "--next-action", "promote into the lint workflow",
+        "--recurring-control-decision", "yes",
+        "--root-cause-hypothesis", "lint evaluation needed a stable reusable helper",
+        "--preventive-action", "document the approved lint usage scene",
+        "--why-this-problem-recurred", "the team had no explicit adoption record before the trial",
     ) == 0

@@ -14,7 +14,7 @@ Teams that:
 
 ## How It Works
 
-Each evaluation is tracked as a **(tool, use-case)** pair. Evaluating `ruff` as a linter is a separate record from evaluating `ruff` as a formatter. Each pair moves through up to 11 states:
+Each evaluation is tracked as a **scene lane** rooted at `related_scene`, with the chosen tool and adoption unit carried by the artifacts inside that lane. Evaluating `ruff` as a linter is therefore a separate lane from evaluating `ruff` as a formatter. Each lane moves through up to 11 states:
 
 ```
 watch → proposed → blocked → trial-ready → in-trial
@@ -34,11 +34,11 @@ ADOP  (.adop/)
 
 Next steps:
   [lint-pipeline]
-    adop quick-close-trial --trial-id tr-001 --verdict <promote|hold|reject> --observed-effect "<what you saw>"
+    adop quick-close-trial --trial-id tr-001 --verdict <promote|hold|reject> --observed-effect "<what you saw>" # promote also requires explicit judgment fields
 
 $ adop next
 [lint-pipeline] (in-trial)
-  adop quick-close-trial --trial-id tr-001 --verdict <promote|hold|reject> --observed-effect "<what you saw>"
+  adop quick-close-trial --trial-id tr-001 --verdict <promote|hold|reject> --observed-effect "<what you saw>" # promote also requires explicit judgment fields
 ```
 
 Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is deleted or overwritten. `adop lint` validates the full record.
@@ -59,7 +59,7 @@ adop --version   # adop 0.1.1
 ```bash
 git clone https://github.com/maruwork/adop.git
 cd adop
-python shared/python/adop_cli.py --version   # adop 0.1.0
+python shared/python/adop_cli.py --version   # adop 0.1.1
 ```
 
 With Option B, all commands run as `python shared/python/adop_cli.py <command>`.
@@ -86,19 +86,23 @@ adop quick-intake --candidate ruff --source doc --use-case lint-pipeline --why-n
 adop quick-compare --use-case lint-pipeline --candidate ruff --candidate pylint --selected ruff
 
 # 4. Start a bounded trial
-adop quick-trial --use-case lint-pipeline --mode read-only-comparison --executor ci
+adop quick-trial --use-case lint-pipeline --mode read-only-comparison --executor ci --decision-owner eng-lead --landing-target ci/lint
 
 # 5. Check present state at any time
 adop status
 
 # 6. Close the trial with a verdict
-adop quick-close-trial --trial-id tr-001 --verdict promote --observed-effect "30% faster, no regressions"
+adop quick-close-trial --trial-id tr-001 --verdict hold --observed-effect "30% faster, but approval scope still needs narrowing"
 
 # 7. Validate the full record
 adop lint
 ```
 
 Full command reference: `adop --help`
+
+Guided `quick-close-trial --verdict promote` is intentionally stricter: it requires explicit `--judgment-reason`, `--next-action`, `--recurring-control-decision`, `--root-cause-hypothesis`, `--preventive-action`, and `--why-this-problem-recurred` so that promotion evidence is not silently auto-filled.
+Promotion is also blocked if the latest intake still carries `unknown` tool attributes; placeholders are allowed during guided intake, but they must be resolved before a tool is promoted.
+`reject` is terminal for a scene lane. If a materially new evaluation is needed later, open a new scene name instead of reopening the rejected lane.
 
 See `docs/checklists/` before starting adoption work.
 

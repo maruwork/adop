@@ -25,7 +25,7 @@ python shared/python/adop_cli.py --version
 
 python shared/python/adop_cli.py quick-intake  --artifact-root adop-smoke --candidate ToolA --source doc --use-case review-lane --why-now "need bounded trial"
 python shared/python/adop_cli.py quick-compare --artifact-root adop-smoke --use-case review-lane --candidate ToolA --candidate ToolB --selected ToolA
-python shared/python/adop_cli.py quick-trial   --artifact-root adop-smoke --use-case review-lane --mode review-assist --executor self
+python shared/python/adop_cli.py quick-trial   --artifact-root adop-smoke --use-case review-lane --mode review-assist --executor self --decision-owner self --landing-target docs/review-lane
 python shared/python/adop_cli.py quick-close-trial --artifact-root adop-smoke --trial-id tr-001 --verdict hold --observed-effect "useful but needs narrowing"
 python shared/python/adop_cli.py lint --artifact-root adop-smoke
 ```
@@ -44,6 +44,8 @@ adop next
 - CLI can start
 - artifact schema and lifecycle can be exercised
 - bounded no-impact trial flow can be recorded
+- guided intake can make unknown tool attributes explicit instead of omitting them
+- promote remains blocked until every tool attribute is known; `unknown` is only a bounded intake placeholder
 - lint can validate the resulting artifact root
 
 ## What This Does Not Prove

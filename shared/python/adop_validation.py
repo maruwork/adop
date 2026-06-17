@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .adop_artifacts import load_all_artifacts
+    from .adop_artifacts import latest_by_type, load_all_artifacts
     from .adop_types import (
         ARCHIVE_NOTE,
         ARTIFACT_ID_PREFIX,
@@ -21,6 +21,8 @@ try:
         CONTROLABILITY,
         COUPLING_NOTE,
         COUPLING_TYPES,
+        COSTS,
+        DATA_FLOW_DESTINATIONS,
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
@@ -38,6 +40,9 @@ try:
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         PROMOTION_NOTE,
+        PLATFORMS,
+        RECORDING_MODES,
+        RECORDING_SOURCES,
         RECURRING_CONTROL_DECISIONS,
         REJECT_NOTE,
         REMOVAL_COSTS,
@@ -53,7 +58,7 @@ try:
         WRITE_TRIAL_TYPES,
     )
 except ImportError:  # pragma: no cover - script import path
-    from adop_artifacts import load_all_artifacts
+    from adop_artifacts import latest_by_type, load_all_artifacts
     from adop_types import (
         ARCHIVE_NOTE,
         ARTIFACT_ID_PREFIX,
@@ -66,6 +71,8 @@ except ImportError:  # pragma: no cover - script import path
         CONTROLABILITY,
         COUPLING_NOTE,
         COUPLING_TYPES,
+        COSTS,
+        DATA_FLOW_DESTINATIONS,
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
@@ -83,6 +90,9 @@ except ImportError:  # pragma: no cover - script import path
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         PROMOTION_NOTE,
+        PLATFORMS,
+        RECORDING_MODES,
+        RECORDING_SOURCES,
         RECURRING_CONTROL_DECISIONS,
         REJECT_NOTE,
         REMOVAL_COSTS,
@@ -138,6 +148,10 @@ def _require_string_list(value: Any, field_name: str) -> list[str]:
     return [str(item) for item in value]
 
 
+def _is_unknown_scalar(value: Any) -> bool:
+    return str(value or "").strip().lower() == "unknown"
+
+
 def validate_target_project_profile(profile: dict[str, Any]) -> None:
     if not isinstance(profile, dict):
         raise AdopValidationError("target_project_profile must be object", 2)
@@ -186,7 +200,50 @@ def validate_no_impact_envelope(envelope: dict[str, Any]) -> None:
     _require_string_list(envelope.get("forbidden"), "no_impact_envelope.forbidden")
 
 
+def validate_recording_metadata(payload: dict[str, Any]) -> None:
+    require_non_empty(payload.get("recording_mode"), "recording_mode")
+    require_non_empty(payload.get("recording_source"), "recording_source")
+    validate_choice(str(payload.get("recording_mode", "")), "recording_mode", RECORDING_MODES)
+    validate_choice(str(payload.get("recording_source", "")), "recording_source", RECORDING_SOURCES)
+
+
+def validate_tool_attributes(payload: dict[str, Any]) -> None:
+    validate_choice(str(payload.get("platform", "")), "platform", PLATFORMS)
+    require_non_empty(payload.get("license"), "license")
+    validate_choice(str(payload.get("cost", "")), "cost", COSTS)
+    require_non_empty(payload.get("version"), "version")
+    require_non_empty(payload.get("category"), "category")
+    require_non_empty(payload.get("ai_compatibility"), "ai_compatibility")
+    data_flow = payload.get("data_flow")
+    if not isinstance(data_flow, dict):
+        raise AdopValidationError("data_flow must be object", 2)
+    validate_choice(
+        str(data_flow.get("destination", "")),
+        "data_flow.destination",
+        DATA_FLOW_DESTINATIONS,
+    )
+    _require_string_list(data_flow.get("data_types"), "data_flow.data_types")
+    if not isinstance(data_flow.get("opt_in"), bool):
+        raise AdopValidationError("data_flow.opt_in must be boolean", 2)
+
+
+def unknown_tool_attribute_fields(payload: dict[str, Any]) -> list[str]:
+    unknowns: list[str] = []
+    for field in ("platform", "license", "cost", "version", "category", "ai_compatibility"):
+        if _is_unknown_scalar(payload.get(field)):
+            unknowns.append(field)
+    data_flow = payload.get("data_flow")
+    if isinstance(data_flow, dict):
+        if _is_unknown_scalar(data_flow.get("destination")):
+            unknowns.append("data_flow.destination")
+        data_types = data_flow.get("data_types")
+        if isinstance(data_types, list) and any(_is_unknown_scalar(item) for item in data_types):
+            unknowns.append("data_flow.data_types")
+    return unknowns
+
+
 def validate_intake_payload(payload: dict[str, Any]) -> None:
+    validate_recording_metadata(payload)
     for field in (
         "candidate_or_tool",
         "source",
@@ -199,9 +256,11 @@ def validate_intake_payload(payload: dict[str, Any]) -> None:
     validate_choice(payload["intended_lane"], "intended_lane", LANES)
     validate_choice(payload["current_disposition"], "current_disposition", DISPOSITIONS)
     validate_choice(payload.get("candidate_shape", ""), "candidate_shape", CANDIDATE_SHAPES)
+    validate_tool_attributes(payload)
 
 
 def validate_comparison_payload(payload: dict[str, Any]) -> None:
+    validate_recording_metadata(payload)
     compared = payload.get("compared_candidates", [])
     if not isinstance(compared, list) or len(compared) < 2 or len(compared) > 3:
         raise AdopValidationError("compared_candidates must contain 2-3 candidates")
@@ -249,11 +308,23 @@ def validate_no_impact_trial_mode(payload: dict[str, Any], *, no_impact_default:
 
 
 def validate_trial_packet_payload(payload: dict[str, Any]) -> None:
+    validate_recording_metadata(payload)
     validate_choice(payload["trial_type"], "trial_type", TRIAL_TYPES)
     validate_choice(payload["sandbox_type"], "sandbox_type", SANDBOX_TYPES)
     validate_choice(payload["lane"], "lane", LANES)
     validate_choice(payload["fallback"], "fallback", FALLBACKS)
-    for field in ("input_surface", "output_contract", "mutation_boundary", "verification_method", EXECUTOR, "trigger", EVALUATION_GATE, "writeback_target"):
+    for field in (
+        "input_surface",
+        "output_contract",
+        "mutation_boundary",
+        "verification_method",
+        EXECUTOR,
+        "trigger",
+        EVALUATION_GATE,
+        "writeback_target",
+        "decision_owner",
+        "landing_target",
+    ):
         require_non_empty(payload.get(field), field)
     if "write" in payload["trial_type"] and "isolated write sandbox" not in payload["sandbox_type"]:
         raise AdopValidationError("write trial requires isolated write sandbox", 13)
@@ -286,6 +357,8 @@ def validate_close_payload(payload: dict[str, Any]) -> None:
     require_non_empty(payload.get("judgment_reason"), "judgment_reason")
     require_non_empty(payload.get("next_action"), "next_action")
     require_non_empty(payload.get(ROOT_CAUSE_HYPOTHESIS), ROOT_CAUSE_HYPOTHESIS)
+    require_non_empty(payload.get("decision_owner"), "decision_owner")
+    require_non_empty(payload.get("landing_target"), "landing_target")
     why = payload.get("why_this_problem_recurred", "")
     require_non_empty(why, "why_this_problem_recurred")
     preventive = payload.get("preventive_action", [])
@@ -450,6 +523,7 @@ def lint_artifact_root(root: Path) -> list[str]:
             if not item.get("closed_at"):
                 issues.append("judgment-report missing closed_at")
             try:
+                validate_recording_metadata(item)
                 validate_close_payload(item)
             except AdopValidationError as exc:
                 issues.append(str(exc))
@@ -476,6 +550,10 @@ def lint_artifact_root(root: Path) -> list[str]:
                 issues.append("judgment-report missing no_impact_envelope")
 
         if artifact_type == TRIAL_RESULT:
+            try:
+                validate_recording_metadata(item)
+            except AdopValidationError as exc:
+                issues.append(str(exc))
             if not item.get("closed_at"):
                 issues.append(f"trial-result {item.get('artifact_id')} missing closed_at")
             if not item.get("related_scene"):
@@ -486,14 +564,32 @@ def lint_artifact_root(root: Path) -> list[str]:
                 issues.append(f"trial-result {item.get('artifact_id')} missing {OBSERVED_EFFECT}")
 
         if artifact_type == PROMOTION_NOTE:
+            try:
+                validate_recording_metadata(item)
+            except AdopValidationError as exc:
+                issues.append(str(exc))
             if not item.get("related_scene"):
                 issues.append(f"promotion-note {item.get('artifact_id')} missing related_scene")
             if not item.get("derived_from"):
                 issues.append(f"promotion-note {item.get('artifact_id')} missing derived_from")
             if not item.get("landing_target"):
                 issues.append(f"promotion-note {item.get('artifact_id')} missing landing_target")
+            intake = latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=str(item.get("related_scene", "")))
+            if not intake:
+                issues.append(f"promotion-note {item.get('artifact_id')} missing candidate-intake-note history")
+            else:
+                unknowns = unknown_tool_attribute_fields(intake)
+                if unknowns:
+                    issues.append(
+                        f"promotion-note {item.get('artifact_id')} cannot rely on unknown tool attributes "
+                        f"from {intake.get('artifact_id')}: {', '.join(unknowns)}"
+                    )
 
         if artifact_type == REJECT_NOTE:
+            try:
+                validate_recording_metadata(item)
+            except AdopValidationError as exc:
+                issues.append(str(exc))
             if not item.get("related_scene"):
                 issues.append(f"reject-note {item.get('artifact_id')} missing related_scene")
             if not item.get("derived_from"):
@@ -502,6 +598,10 @@ def lint_artifact_root(root: Path) -> list[str]:
                 issues.append(f"reject-note {item.get('artifact_id')} missing reject_reason")
 
         if artifact_type == HOLD_NOTE:
+            try:
+                validate_recording_metadata(item)
+            except AdopValidationError as exc:
+                issues.append(str(exc))
             if not item.get("related_scene"):
                 issues.append(f"hold-note {item.get('artifact_id')} missing related_scene")
             if not item.get("derived_from"):

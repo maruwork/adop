@@ -26,7 +26,7 @@ def canon(tmp_path):
     for name in RUNTIME_NAMES:
         (py / name).write_text(f"# {name} v2", encoding="utf-8")
     manifest = {
-        "name": "adop", "version": "0.1.0",
+        "name": "adop", "version": "0.1.1",
         "canonical_repo": "https://github.com/maruwork/adop",
         "runtime_files": RUNTIME_RELS,
     }
@@ -152,7 +152,7 @@ def test_apply_aborts_when_source_file_missing(tmp_path, project_root):
     (py / "adop_types.py").write_text("# v2", encoding="utf-8")
     # adop_cli.py is declared in manifest but NOT written to disk
     manifest = {
-        "name": "adop", "version": "0.1.0",
+        "name": "adop", "version": "0.1.1",
         "canonical_repo": "https://github.com/maruwork/adop",
         "runtime_files": ["shared/python/adop_types.py", "shared/python/adop_cli.py"],
     }

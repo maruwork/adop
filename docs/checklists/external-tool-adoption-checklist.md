@@ -72,4 +72,5 @@ If no artifact is left, adoption is not considered complete.
 - fixed `landing_target` as machine-readable and decided the writeback destination before starting the trial
 - held executor / trigger / evaluation gate / decision owner / current state as machine-readable
 - fixed the scene and evaluation criteria at trial start
+- resolved every `unknown` tool attribute before promote
 - left artifact / observed effect / next action at trial close

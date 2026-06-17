@@ -57,6 +57,37 @@ REMOVAL_COSTS: Final[tuple[str, ...]] = (
     "edit",          # requires targeted edits to the file
     "entangled",     # pervasive; removal is risky or large
 )
+PLATFORMS: Final[tuple[str, ...]] = (
+    "windows",
+    "mac",
+    "linux",
+    "any",
+    "unknown",
+)
+COSTS: Final[tuple[str, ...]] = (
+    "free",
+    "paid",
+    "freemium",
+    "unknown",
+)
+DATA_FLOW_DESTINATIONS: Final[tuple[str, ...]] = (
+    "local",
+    "vendor-api",
+    "third-party",
+    "unknown",
+)
+RECORDING_MODES: Final[tuple[str, ...]] = (
+    "guided",
+    "explicit",
+)
+RECORDING_SOURCES: Final[tuple[str, ...]] = (
+    "manual-cli",
+    "quick-intake",
+    "quick-compare",
+    "quick-trial",
+    "quick-close-trial",
+    "unblock",
+)
 
 FILTER_NAMES: Final[tuple[str, ...]] = ("scene_fit", "authority_safe", "controlability")
 FILTER_STATUSES: Final[tuple[str, ...]] = ("pass", "conditional", "fail")

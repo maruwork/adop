@@ -61,7 +61,7 @@ A compliant project-local overlay must declare:
 |---|---|
 | Artifact root path | bounded directory where ADOP CLI reads and writes artifacts |
 | Runtime copy path + sync date | local `adop_*.py` copy; must be verified against canonical |
-| Active use cases table | current (tool, use-case) pairs and their lifecycle states |
+| Active use cases table | current scene lanes and their lifecycle states |
 | Operator flow | who drives each stage in this project |
 | Landing target | where a promoted tool goes in this project's architecture |
 

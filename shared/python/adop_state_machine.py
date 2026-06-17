@@ -34,6 +34,10 @@ def promote_gate_errors(packet: dict[str, Any], close_payload: dict[str, Any]) -
         return errors
     if not close_payload.get("next_action"):
         errors.append("promote requires next_action")
+    if not close_payload.get("decision_owner"):
+        errors.append("promote requires decision_owner")
+    if not close_payload.get("landing_target"):
+        errors.append("promote requires landing_target")
     if not packet.get("writeback_target"):
         errors.append("promote requires writeback_target")
     if not packet.get("verification_method"):

@@ -61,6 +61,7 @@ try:
     from .adop_validation import (
         AdopValidationError,
         lint_artifact_root,
+        unknown_tool_attribute_fields,
         today_iso,
         validate_archive_note_payload,
         validate_blocked_note_payload,
@@ -124,6 +125,7 @@ except ImportError:  # pragma: no cover - script import path
     from adop_validation import (
         AdopValidationError,
         lint_artifact_root,
+        unknown_tool_attribute_fields,
         today_iso,
         validate_archive_note_payload,
         validate_blocked_note_payload,
@@ -184,7 +186,7 @@ https://github.com/maruwork/adop
 _NEXT_FOR_STATE: dict[str, str] = {
     "watch":       'adop quick-intake --use-case {scene} --candidate <tool> --source doc --why-now "<reason>"',
     "proposed":    'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>',
-    "trial-ready": 'adop quick-trial --use-case {scene} --mode review-assist --executor <who>',
+    "trial-ready": 'adop quick-trial --use-case {scene} --mode review-assist --executor <who> --decision-owner <owner> --landing-target <target>',
     "blocked":     'adop unblock --use-case {scene} --why-unblocked "<what changed>"',
     "hold":        'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>  # resume trial; or: adop deprecate if no longer needed',
     "reject":      'adop deprecate --use-case {scene} --deprecation-reason "rejected at trial" # or: adop archive if fully closed',
@@ -247,7 +249,8 @@ def _next_step(scene: str, state: str, root: Path, items: list[dict[str, Any]]) 
         trial_id = str(pkts[-1]["artifact_id"]) if pkts else "tr-001"
         return (
             f"adop quick-close-trial --trial-id {trial_id} "
-            f'--verdict <promote|hold|reject> --observed-effect "<what you saw>"'
+            f'--verdict <promote|hold|reject> --observed-effect "<what you saw>" '
+            f"# promote also requires explicit judgment fields"
         )
     template = _NEXT_FOR_STATE.get(state, "")
     return template.format(scene=scene) if template else ""
@@ -271,6 +274,16 @@ def _prepare_artifact_root(args: argparse.Namespace) -> Path:
         raise AdopValidationError(str(exc), 14) from exc
 
 
+def _ensure_scene_not_rejected(root: Path, scene: str, *, command: str) -> None:
+    state = get_scene_states(root).get(scene)
+    if state == "reject":
+        raise AdopValidationError(
+            f"scene '{scene}' is terminal reject; {command} cannot reopen it. "
+            "Use a new scene name for a materially new evaluation.",
+            7,
+        )
+
+
 def _no_impact_envelope_default() -> dict[str, list[str]]:
     return {
         "allowed": [
@@ -286,6 +299,22 @@ def _no_impact_envelope_default() -> dict[str, list[str]]:
             "tracked file write inside target project",
             "generated artifact write inside target project",
         ],
+    }
+
+
+def _default_tool_attributes() -> dict[str, Any]:
+    return {
+        "platform": "unknown",
+        "license": "unknown",
+        "cost": "unknown",
+        "version": "unknown",
+        "category": "unknown",
+        "ai_compatibility": "unknown",
+        "data_flow": {
+            "destination": "unknown",
+            "data_types": ["unknown"],
+            "opt_in": True,
+        },
     }
 
 
@@ -412,7 +441,7 @@ def _build_parser() -> argparse.ArgumentParser:
         epilog=(
             "First time in a project:\n"
             "  adop init                       # creates .adop/ and adop-overlay.md\n\n"
-            "Simple path (guided, preset-filled):\n"
+            "Simple path (guided path; some fields may be preset or defaulted):\n"
             "  quick-intake -> quick-compare -> quick-trial -> quick-close-trial\n\n"
             "Advanced path (explicit, full control over every field):\n"
             "  intake / compare / start-trial / close-trial\n\n"
@@ -450,6 +479,13 @@ def _build_parser() -> argparse.ArgumentParser:
     quick_intake.add_argument("--candidate-shape", default=CANDIDATE_SHAPES[0], choices=CANDIDATE_SHAPES)
     quick_intake.add_argument("--lane", default=LANES[1], choices=LANES)
     quick_intake.add_argument("--root-cause-hypothesis", default="")
+    quick_intake.add_argument("--platform", default="")
+    quick_intake.add_argument("--license", default="")
+    quick_intake.add_argument("--cost", default="")
+    quick_intake.add_argument("--version", default="")
+    quick_intake.add_argument("--category", default="")
+    quick_intake.add_argument("--ai-compatibility", default="")
+    quick_intake.add_argument("--data-flow-json", default="")
 
     quick_compare = subparsers.add_parser(
         "quick-compare",
@@ -480,6 +516,8 @@ def _build_parser() -> argparse.ArgumentParser:
     quick_trial.add_argument("--use-case", dest="scene", required=True)
     quick_trial.add_argument("--mode", required=True, choices=("review-assist", "read-only-comparison"))
     quick_trial.add_argument("--executor", required=True)
+    quick_trial.add_argument("--decision-owner", required=True)
+    quick_trial.add_argument("--landing-target", required=True)
     quick_trial.add_argument("--trigger", default="")
     quick_trial.add_argument("--evaluation-gate", default="")
     quick_trial.add_argument("--writeback-target", default="")
@@ -487,8 +525,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     quick_close = subparsers.add_parser(
         "quick-close-trial",
-        help="simple path: close a trial with preset judgment fields",
-        description="Close a trial with a verdict and observed effect, using default judgment wording when omitted.",
+        help="simple path: close a trial; hold/reject can use presets, promote stays explicit",
+        description=(
+            "Close a trial with a verdict and observed effect. "
+            "Hold/reject can use default judgment wording; promote requires explicit judgment fields."
+        ),
     )
     quick_close.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(quick_close)
@@ -517,6 +558,13 @@ def _build_parser() -> argparse.ArgumentParser:
     intake.add_argument("--lane", required=True, choices=LANES)
     intake.add_argument("--reason", required=True)
     intake.add_argument("--root-cause-hypothesis", required=True)
+    intake.add_argument("--platform", required=True)
+    intake.add_argument("--license", required=True)
+    intake.add_argument("--cost", required=True)
+    intake.add_argument("--version", required=True)
+    intake.add_argument("--category", required=True)
+    intake.add_argument("--ai-compatibility", required=True)
+    intake.add_argument("--data-flow-json", required=True)
 
     compare = subparsers.add_parser(
         "compare",
@@ -561,8 +609,9 @@ def _build_parser() -> argparse.ArgumentParser:
     start.add_argument("--executor", required=True)
     start.add_argument("--trigger", required=True)
     start.add_argument("--evaluation-gate", required=True)
+    start.add_argument("--landing-target", required=True)
     start.add_argument("--writeback-target", required=True)
-    start.add_argument("--decision-owner", default=None)
+    start.add_argument("--decision-owner", required=True)
     start.add_argument("--fallback", required=True, choices=FALLBACKS)
 
     close = subparsers.add_parser(
@@ -781,13 +830,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _handle_intake(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="intake")
     artifact_id = next_sequential_id(root, "ci")
+    data_flow = _parse_json_arg(args.data_flow_json, "data_flow_json")
     payload = {
         "schema_version": SCHEMA_VERSION,
         "artifact_type": CANDIDATE_INTAKE_NOTE,
         "artifact_id": artifact_id,
         "status": "active",
         "created_at": today_iso(),
+        "recording_mode": getattr(args, "recording_mode", "explicit"),
+        "recording_source": getattr(args, "recording_source", "manual-cli"),
         "candidate_or_tool": args.candidate,
         "candidate_shape": args.candidate_shape,
         "source": args.source,
@@ -797,6 +850,13 @@ def _handle_intake(args: argparse.Namespace) -> dict[str, Any]:
         "current_disposition": PROPOSED,
         "next_action": "compare candidate set",
         ROOT_CAUSE_HYPOTHESIS: args.root_cause_hypothesis,
+        "platform": args.platform,
+        "license": args.license,
+        "cost": args.cost,
+        "version": args.version,
+        "category": args.category,
+        "ai_compatibility": args.ai_compatibility,
+        "data_flow": data_flow,
     }
     validate_intake_payload(payload)
     path = artifacts.write_artifact(root, CANDIDATE_INTAKE_NOTE, artifact_id, payload)
@@ -805,6 +865,7 @@ def _handle_intake(args: argparse.Namespace) -> dict[str, Any]:
 
 def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="compare")
     if len(args.candidates) < 2 or len(args.candidates) > 3:
         raise AdopValidationError("candidate must appear 2-3 times")
     if args.selected not in args.candidates:
@@ -837,6 +898,8 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
         "artifact_id": artifact_id,
         "status": "active",
         "created_at": today_iso(),
+        "recording_mode": getattr(args, "recording_mode", "explicit"),
+        "recording_source": getattr(args, "recording_source", "manual-cli"),
         "related_scene": args.scene,
         "candidate_shape": args.candidate_shape,
         "derived_from": derived_from,
@@ -867,6 +930,7 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
 
 def _handle_start_trial(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="start-trial")
     comparison = None
     if args.derived_from:
         for item in artifacts.find_by_type(root, COMPARISON_NOTE):
@@ -885,6 +949,8 @@ def _handle_start_trial(args: argparse.Namespace) -> dict[str, Any]:
         "artifact_id": "",
         "status": "active",
         "created_at": today_iso(),
+        "recording_mode": getattr(args, "recording_mode", "explicit"),
+        "recording_source": getattr(args, "recording_source", "manual-cli"),
         "related_scene": args.scene,
         "candidate_shape": comparison["candidate_shape"],
         DECOMPOSITION_DECISION: comparison[DECOMPOSITION_DECISION],
@@ -900,6 +966,7 @@ def _handle_start_trial(args: argparse.Namespace) -> dict[str, Any]:
         EXECUTOR: args.executor,
         "trigger": args.trigger,
         EVALUATION_GATE: args.evaluation_gate,
+        "landing_target": args.landing_target,
         "writeback_target": args.writeback_target,
         "decision_owner": args.decision_owner,
         "fallback": args.fallback,
@@ -960,6 +1027,8 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         ROOT_CAUSE_HYPOTHESIS: args.root_cause_hypothesis,
         "preventive_action": args.preventive_actions,
         "why_this_problem_recurred": args.why_this_problem_recurred,
+        "decision_owner": args.decision_owner or packet.get("decision_owner"),
+        "landing_target": packet["landing_target"],
         "candidate_shape": packet["candidate_shape"],
         DECOMPOSITION_DECISION: packet[DECOMPOSITION_DECISION],
         "adoption_unit": packet["adoption_unit"],
@@ -969,6 +1038,16 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         "no_impact_envelope": packet["no_impact_envelope"],
     }
     validate_close_payload(close_payload)
+    if args.verdict == "promote":
+        latest_intake = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=str(packet.get("related_scene", "")))
+        if not latest_intake:
+            raise AdopValidationError("promote requires candidate-intake-note history", 7)
+        unknowns = unknown_tool_attribute_fields(latest_intake)
+        if unknowns:
+            raise AdopValidationError(
+                "promote requires known tool attributes in the latest intake: " + ", ".join(unknowns),
+                7,
+            )
     promote_errors = promote_gate_errors(packet, close_payload)
     if promote_errors:
         raise AdopValidationError("; ".join(promote_errors), 7)
@@ -990,6 +1069,8 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         "status": "closed",
         "created_at": packet["created_at"],
         "closed_at": created_at,
+        "recording_mode": getattr(args, "recording_mode", "explicit"),
+        "recording_source": getattr(args, "recording_source", "manual-cli"),
         "related_scene": packet["related_scene"],
         "derived_from": [packet["artifact_id"]],
         "trial_type": packet["trial_type"],
@@ -999,6 +1080,7 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         "mutation_boundary": packet["mutation_boundary"],
         "verification_method": packet["verification_method"],
         "decision_owner": args.decision_owner or packet.get("decision_owner"),
+        "landing_target": packet["landing_target"],
         OBSERVED_EFFECT: args.observed_effect,
         "evidence_refs": args.evidence_refs,
         "code_level_compatibility_summary": (
@@ -1015,6 +1097,8 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         "status": "closed",
         "created_at": packet["created_at"],
         "closed_at": created_at,
+        "recording_mode": getattr(args, "recording_mode", "explicit"),
+        "recording_source": getattr(args, "recording_source", "manual-cli"),
         "related_scene": packet["related_scene"],
         "derived_from": [packet["artifact_id"]],
         "related_artifacts": [packet["artifact_id"], args.trial_id],
@@ -1028,6 +1112,7 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
         "no_impact_envelope": packet["no_impact_envelope"],
         "verdict": args.verdict,
         "decision_owner": args.decision_owner or packet.get("decision_owner"),
+        "landing_target": packet["landing_target"],
         "recurring_control_decision": args.recurring_control_decision,
         "judgment_reason": args.judgment_reason,
         "observed_effect_summary": args.observed_effect,
@@ -1054,6 +1139,8 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
             "artifact_id": hold_id,
             "status": "closed",
             "created_at": created_at,
+            "recording_mode": getattr(args, "recording_mode", "explicit"),
+            "recording_source": getattr(args, "recording_source", "manual-cli"),
             "related_scene": packet["related_scene"],
             "derived_from": [args.trial_id],
             "decision_owner": args.decision_owner or packet.get("decision_owner"),
@@ -1070,6 +1157,8 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
             "artifact_id": reject_id,
             "status": "closed",
             "created_at": created_at,
+            "recording_mode": getattr(args, "recording_mode", "explicit"),
+            "recording_source": getattr(args, "recording_source", "manual-cli"),
             "related_scene": packet["related_scene"],
             "derived_from": [args.trial_id],
             "decision_owner": args.decision_owner or packet.get("decision_owner"),
@@ -1086,12 +1175,14 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
             "artifact_id": promotion_id,
             "status": "closed",
             "created_at": created_at,
+            "recording_mode": getattr(args, "recording_mode", "explicit"),
+            "recording_source": getattr(args, "recording_source", "manual-cli"),
             "related_scene": packet["related_scene"],
             "derived_from": [args.trial_id],
             "decision_owner": args.decision_owner or packet.get("decision_owner"),
             "repeated_effect": args.observed_effect,
             "trigger_canonical_record": packet.get("trigger_canonical_record", {}),
-            LANDING_TARGET: packet["writeback_target"],
+            LANDING_TARGET: packet["landing_target"],
             "minimum_bake_duration": "n/a",
             "reversal_test": "not run",
         }
@@ -1104,6 +1195,8 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
 
 def _handle_watch(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
+    if args.scene:
+        _ensure_scene_not_rejected(root, args.scene, command="watch")
     artifact_id = next_sequential_id(root, "wt")
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -1123,6 +1216,7 @@ def _handle_watch(args: argparse.Namespace) -> dict[str, Any]:
 
 def _handle_block(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="block")
     parent = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
     if not parent:
         raise AdopValidationError("candidate-intake-note for scene not found", 5)
@@ -1147,6 +1241,7 @@ def _handle_block(args: argparse.Namespace) -> dict[str, Any]:
 
 def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="unblock")
     blocked = artifacts.latest_by_type(root, BLOCKED_NOTE, scene=args.scene)
     if not blocked:
         raise AdopValidationError("blocked-note for scene not found", 5)
@@ -1158,6 +1253,8 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
         "artifact_id": artifact_id,
         "status": "active",
         "created_at": today_iso(),
+        "recording_mode": "explicit",
+        "recording_source": "unblock",
         "related_scene": args.scene,
         "candidate_or_tool": str(blocked.get("candidate_or_tool", "")),
         "source": "unblock",
@@ -1168,6 +1265,13 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
         "next_action": "compare candidate set",
         ROOT_CAUSE_HYPOTHESIS: args.why_unblocked,
         "derived_from": [blocked["artifact_id"]],
+        "platform": str((prior_intake or {}).get("platform", _default_tool_attributes()["platform"])),
+        "license": str((prior_intake or {}).get("license", _default_tool_attributes()["license"])),
+        "cost": str((prior_intake or {}).get("cost", _default_tool_attributes()["cost"])),
+        "version": str((prior_intake or {}).get("version", _default_tool_attributes()["version"])),
+        "category": str((prior_intake or {}).get("category", _default_tool_attributes()["category"])),
+        "ai_compatibility": str((prior_intake or {}).get("ai_compatibility", _default_tool_attributes()["ai_compatibility"])),
+        "data_flow": (prior_intake or {}).get("data_flow", _default_tool_attributes()["data_flow"]),
     }
     validate_intake_payload(payload)
     path = artifacts.write_artifact(root, CANDIDATE_INTAKE_NOTE, artifact_id, payload)
@@ -1363,8 +1467,19 @@ def _handle_summary(args: argparse.Namespace) -> str:
 
 
 def _handle_quick_intake(args: argparse.Namespace) -> dict[str, Any]:
+    defaults = _default_tool_attributes()
     if not args.root_cause_hypothesis:
         args.root_cause_hypothesis = args.why_now
+    args.platform = args.platform or defaults["platform"]
+    args.license = args.license or defaults["license"]
+    args.cost = args.cost or defaults["cost"]
+    args.version = args.version or defaults["version"]
+    args.category = args.category or defaults["category"]
+    args.ai_compatibility = args.ai_compatibility or defaults["ai_compatibility"]
+    if not args.data_flow_json:
+        args.data_flow_json = json.dumps(defaults["data_flow"], ensure_ascii=False)
+    args.recording_mode = "guided"
+    args.recording_source = "quick-intake"
     args.reason = args.why_now
     return _handle_intake(args)
 
@@ -1396,6 +1511,8 @@ def _handle_quick_compare(args: argparse.Namespace) -> dict[str, Any]:
     args.controlability_status = FILTER_STATUSES[0]
     args.controlability_reason = "bounded trial possible"
     args.controlability_constraint = None
+    args.recording_mode = "guided"
+    args.recording_source = "quick-compare"
     return _handle_compare(args)
 
 
@@ -1412,8 +1529,10 @@ def _handle_quick_trial(args: argparse.Namespace) -> dict[str, Any]:
     args.trigger = args.trigger or preset["trigger"]
     args.evaluation_gate = args.evaluation_gate or preset["evaluation_gate"]
     args.writeback_target = args.writeback_target or preset["writeback_target"]
-    args.decision_owner = None
+    args.decision_owner = args.decision_owner
     args.fallback = args.fallback or preset["fallback"]
+    args.recording_mode = "guided"
+    args.recording_source = "quick-trial"
     return _handle_start_trial(args)
 
 
@@ -1422,23 +1541,45 @@ def _handle_quick_close_trial(args: argparse.Namespace) -> dict[str, Any]:
     packet = artifacts.find_trial_packet(root, args.trial_id)
     if not packet:
         raise AdopValidationError("trial-packet not found", 5)
-    preset = _simple_close_preset(args.verdict)
-    args.judgment_reason = args.judgment_reason or preset["judgment_reason"]
-    args.next_action = args.next_action or preset["next_action"]
-    args.recurring_control_decision = (
-        args.recurring_control_decision or preset["recurring_control_decision"]
-    )
-    args.reopen_condition = args.reopen_condition or preset["reopen_condition"]
-    args.preventive_actions = args.preventive_actions or list(preset["preventive_actions"])
-    args.why_this_problem_recurred = (
-        args.why_this_problem_recurred or preset["why_this_problem_recurred"]
-    )
+    if args.verdict == VERDICTS[0]:
+        missing: list[str] = []
+        if not args.judgment_reason.strip():
+            missing.append("--judgment-reason")
+        if not args.next_action.strip():
+            missing.append("--next-action")
+        if not args.recurring_control_decision.strip():
+            missing.append("--recurring-control-decision")
+        if not args.root_cause_hypothesis.strip():
+            missing.append("--root-cause-hypothesis")
+        if not args.preventive_actions:
+            missing.append("--preventive-action")
+        if not args.why_this_problem_recurred.strip():
+            missing.append("--why-this-problem-recurred")
+        if missing:
+            raise AdopValidationError(
+                "quick-close-trial promote requires explicit fields: " + ", ".join(missing),
+                2,
+            )
+    else:
+        preset = _simple_close_preset(args.verdict)
+        args.judgment_reason = args.judgment_reason or preset["judgment_reason"]
+        args.next_action = args.next_action or preset["next_action"]
+        args.recurring_control_decision = (
+            args.recurring_control_decision or preset["recurring_control_decision"]
+        )
+        args.reopen_condition = args.reopen_condition or preset["reopen_condition"]
+        args.preventive_actions = args.preventive_actions or list(preset["preventive_actions"])
+        args.why_this_problem_recurred = (
+            args.why_this_problem_recurred or preset["why_this_problem_recurred"]
+        )
     args.decision_owner = None
     args.evidence_refs = []
     args.root_cause_hypothesis = (
         args.root_cause_hypothesis
         or f"the bounded use case '{packet['related_scene']}' needed a more explicit helper path"
     )
+    args.recording_mode = "guided"
+    args.recording_source = "quick-close-trial"
     return _handle_close_trial(args)
 
 
@@ -1589,7 +1730,8 @@ def _handle_scan(args: argparse.Namespace) -> tuple[int, str]:
     for entry in couplings:
         nt = f"  # {entry['note']}" if entry.get("note") else ""
         lines.append(f"  {entry['path']} [{entry['coupling_type']}, {entry['removal_cost']}]{nt}")
-    lines += ["", f"Record with:", f"  adop couple --use-case {scene} --tool {args.tool} \\"]
+    lines += ["", "Scan output is advisory only. No canonical artifact is written until `adop couple` runs.", ""]
+    lines += [f"Record with:", f"  adop couple --use-case {scene} --tool {args.tool} \\"]
     for entry in couplings:
         np = f"|{entry['note']}" if entry.get("note") else ""
         lines.append(f"    --couple '{entry['path']}|{entry['coupling_type']}|{entry['removal_cost']}{np}' \\")

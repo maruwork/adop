@@ -65,3 +65,9 @@ def test_extended_state_constants():
     assert t.DEPRECATED == "deprecated"
     assert t.MIGRATING == "migrating"
     assert t.ARCHIVED == "archived"
+
+
+def test_recording_metadata_vocab():
+    assert t.RECORDING_MODES == ("guided", "explicit")
+    assert "manual-cli" in t.RECORDING_SOURCES
+    assert "quick-close-trial" in t.RECORDING_SOURCES

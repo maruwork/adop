@@ -10,9 +10,11 @@ import pytest
 
 from adop_validation import (
     AdopValidationError,
+    unknown_tool_attribute_fields,
     validate_archive_note_payload,
     validate_blocked_note_payload,
     validate_deprecation_note_payload,
+    validate_intake_payload,
     validate_migration_note_payload,
     validate_watch_note_payload,
 )
@@ -127,3 +129,73 @@ def test_archive_note_requires_each_field(missing):
 
 def test_archive_note_passes_without_successor():
     validate_archive_note_payload(dict(ARCHIVE_FULL))  # successor_tool optional
+
+
+INTAKE_FULL = {
+    "recording_mode": "explicit",
+    "recording_source": "manual-cli",
+    "candidate_or_tool": "ruff",
+    "source": "doc",
+    "related_scene": "lint",
+    "intended_lane": "assistance",
+    "intake_reason": "evaluate",
+    "root_cause_hypothesis": "the team needs a bounded lint evaluation lane",
+    "current_disposition": "proposed",
+    "candidate_shape": "atomic",
+    "platform": "any",
+    "license": "MIT",
+    "cost": "free",
+    "version": "0.5.0",
+    "category": "cli",
+    "ai_compatibility": "any",
+    "data_flow": {
+        "destination": "local",
+        "data_types": ["code"],
+        "opt_in": True,
+    },
+}
+
+
+def test_intake_requires_tool_attributes():
+    payload = dict(INTAKE_FULL)
+    del payload["platform"]
+    with pytest.raises(AdopValidationError):
+        validate_intake_payload(payload)
+
+
+def test_intake_with_tool_attributes_passes():
+    validate_intake_payload(dict(INTAKE_FULL))
+
+
+def test_intake_requires_recording_metadata():
+    payload = dict(INTAKE_FULL)
+    del payload["recording_mode"]
+    with pytest.raises(AdopValidationError):
+        validate_intake_payload(payload)
+
+
+def test_unknown_tool_attribute_fields_detects_all_unknowns():
+    payload = dict(INTAKE_FULL)
+    payload.update({
+        "platform": "unknown",
+        "license": "unknown",
+        "cost": "unknown",
+        "version": "unknown",
+        "category": "unknown",
+        "ai_compatibility": "unknown",
+        "data_flow": {
+            "destination": "unknown",
+            "data_types": ["unknown"],
+            "opt_in": True,
+        },
+    })
+    assert unknown_tool_attribute_fields(payload) == [
+        "platform",
+        "license",
+        "cost",
+        "version",
+        "category",
+        "ai_compatibility",
+        "data_flow.destination",
+        "data_flow.data_types",
+    ]

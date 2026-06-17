@@ -12,6 +12,14 @@
 - name:
 - source:
 - version / date:
+- platform:
+- license:
+- cost:
+- category:
+- ai compatibility:
+- data flow destination:
+- data flow types:
+- data flow opt-in:
 
 ## 2. classification
 
@@ -55,6 +63,7 @@
 - trial id:
 - current state: `proposed` / `trial-ready` / `in-trial` / `promote` / `hold` / `reject`
 - landing target:
+- writeback target:
 - trial start command:
 - trial close command:
 - artifact:

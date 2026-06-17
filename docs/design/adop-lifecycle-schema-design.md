@@ -5,14 +5,15 @@ Status: Active
 ## Purpose
 
 Define the state machine and artifact schema extensions for ADOP's full tool lifecycle.
-This document is an extension plan on top of the existing Case B (use-case/scene as adoption unit) architecture.
+This document is an extension plan on top of the existing Case B (scene-lane lifecycle with tool identity carried in artifacts) architecture.
 
 ---
 
 ## 1. Adoption Unit
 
-The adoption unit is **use-case + tool**. One adoption = one (tool, use-case) pair.
-State is inferred from the latest artifact for that pair, not stored as an explicit field.
+The lifecycle tracking unit is the **scene lane** rooted at `related_scene`.
+Tool identity and the narrower `adoption_unit` travel inside the lane artifacts.
+State is inferred from the latest lifecycle-relevant artifacts for that scene lane, not stored as an explicit field.
 All artifacts are append-only. There is no `updated_at`.
 
 ---
@@ -81,6 +82,10 @@ watch ──→ proposed ──→ trial-ready ──→ in-trial
 | deprecated | archived | retired without migration | `archive-note` |
 | migrating | archived | migration complete | `archive-note` |
 
+`reject` is terminal for the scene lane. Re-evaluation is allowed only under a
+new `related_scene`; the CLI does not reopen a rejected lane back into `watch`,
+`proposed`, or `trial-ready`.
+
 ---
 
 ## 3. New Artifact Types
@@ -136,13 +141,13 @@ Optional in `watch-note` (may not be known yet), required at `candidate-intake-n
 
 | Field | Values |
 |---|---|
-| `platform` | `windows`, `mac`, `linux`, `any` |
+| `platform` | `windows`, `mac`, `linux`, `any`, `unknown` |
 | `license` | license identifier |
-| `cost` | `free`, `paid`, `freemium` |
+| `cost` | `free`, `paid`, `freemium`, `unknown` |
 | `data_flow` | structured object — see below |
 | `version` | version at time of intake |
 | `category` | `mcp-server`, `cli`, `library`, `api-service`, etc. |
-| `ai_compatibility` | `claude`, `cursor`, `copilot`, `openai`, `any`, etc. |
+| `ai_compatibility` | `claude`, `cursor`, `copilot`, `openai`, `any`, `unknown`, etc. |
 
 ### data_flow structure
 
@@ -153,11 +158,29 @@ Optional in `watch-note` (may not be known yet), required at `candidate-intake-n
 | `opt_in` | `true`, `false` | whether transmission can be disabled by default |
 
 A record with `opt_in: false` and `data_types` containing `code` or `credentials` is an immediate candidate for prohibited use review.
+`unknown` is allowed for guided intake when the team wants to open a bounded record before all attributes are collected, but the unknown itself must be written explicitly.
 
 ### Attribute changes
 
 Attributes are set at intake and do not change in place (append-only).
 If an attribute changes significantly (e.g., free → paid, local → cloud sync added), that is typically a trigger for a state transition to `deprecated`.
+
+Promotion is blocked until the latest intake for the scene has no `unknown`
+tool attributes remaining.
+
+### Declared Usage Tracking
+
+ADOP tracks adoption usage as declared metadata, not as observed hook/log
+telemetry.
+
+| Field | Values | Notes |
+|---|---|---|
+| `recording_mode` | `guided`, `explicit` | whether the operator used the guided path or the full explicit path |
+| `recording_source` | `manual-cli`, `quick-intake`, `quick-compare`, `quick-trial`, `quick-close-trial`, `unblock` | which CLI surface created the record |
+
+These fields are required on `candidate-intake-note`, `comparison-note`,
+`trial-packet`, `trial-result`, `judgment-report`, `hold-note`, `reject-note`,
+and `promotion-note`.
 
 ---
 
@@ -220,10 +243,10 @@ Prefixes for new artifact types to be added to `ARTIFACT_ID_PREFIX` in `adop_typ
 
 ---
 
-## 6. Open Items
+## 6. Fixed Decisions
 
-| Item | Decision needed |
+| Topic | Decision |
 |---|---|
-| Usage tracking | Declared (manual record) vs. observed (hook/log integration); what fields to carry |
-| `reject` recyclability | Terminal state, or allow re-entry to `watch` or `proposed` under conditions |
-| Coupling auto-scan | Coupling capture is currently declared-only (see §4b). A future layer could scan the target project to detect couplings and report declared-vs-observed drift; requires target-project read access and boundary-policy relaxation. |
+| Usage tracking | Declared-only. Canonical artifacts carry `recording_mode` and `recording_source`; ADOP does not treat hook/log observation as canonical state input. |
+| `reject` recyclability | `reject` is terminal for a scene lane. A materially new evaluation must use a new `related_scene`. |
+| Coupling auto-scan (current contract) | `scan` is advisory only. Only `couple` writes canonical coupling history; observed-vs-declared drift detection is out of scope for the current generic contract. |

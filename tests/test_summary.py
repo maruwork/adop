@@ -135,7 +135,8 @@ def test_current_state_in_trial(run, root):
     run("quick-compare", "--artifact-root", root, "--use-case", "lint",
         "--candidate", "pylint", "--candidate", "other", "--selected", "pylint")
     run("quick-trial", "--artifact-root", root, "--use-case", "lint",
-        "--mode", "read-only-comparison", "--executor", "ci")
+        "--mode", "read-only-comparison", "--executor", "ci",
+        "--decision-owner", "lead", "--landing-target", "ci/lint")
     current = _section(_summary(root), "Current State by Scene")
     assert "- lint: in-trial" in current
 

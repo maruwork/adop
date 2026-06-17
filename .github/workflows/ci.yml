@@ -20,6 +20,19 @@ jobs:
         run: |
           adop --version
           adop-sync --help
+      - name: Black-box consumer project smoke
+        shell: bash
+        run: |
+          PROJECT=$(mktemp -d)
+          cd "$PROJECT"
+          adop init
+          test -d .adop
+          test -f adop-overlay.md
+          adop quick-intake --candidate ruff --source doc --use-case lint-ci --why-now "smoke" --platform any --license MIT --cost free --version 0.5.0 --category cli --ai-compatibility any --data-flow-json '{"destination":"local","data_types":["code"],"opt_in":true}'
+          adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
+          adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          adop quick-close-trial --trial-id tr-001 --verdict promote --observed-effect "works" --judgment-reason "trial produced reusable value" --next-action "promote into the lint workflow" --recurring-control-decision yes --root-cause-hypothesis "lint evaluation needed a stable reusable helper" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the team had no explicit adoption record before the trial"
+          adop lint
 
   test:
     strategy:
@@ -48,6 +61,6 @@ jobs:
           ROOT=$(mktemp -d)
           $ADOP quick-intake --artifact-root "$ROOT" --candidate ruff --source doc --use-case lint-ci --why-now "smoke"
           $ADOP quick-compare --artifact-root "$ROOT" --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
-          $ADOP quick-trial   --artifact-root "$ROOT" --use-case lint-ci --mode read-only-comparison --executor ci
+          $ADOP quick-trial   --artifact-root "$ROOT" --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
           $ADOP quick-close-trial --artifact-root "$ROOT" --trial-id tr-001 --verdict hold --observed-effect "needs more data"
           $ADOP lint --artifact-root "$ROOT"
