@@ -1,40 +1,118 @@
 # ADOP
 
-ADOP is a CLI for tracking external tool adoption decisions. It records every step of the lifecycle — from first notice through trial and judgment — as append-only JSON artifacts saved in a `.adop/` directory inside each project.
+When a team evaluates a new library, linter, or service, the reasoning ends up scattered across Slack threads, issue comments, and wikis. Six months later, nobody remembers why the tool was accepted or rejected — or what the trial conditions were. The next team member starts the evaluation over.
 
-Each (tool, use-case) pair is its own adoption unit. State is always derived from the artifact log on disk; nothing is stored in memory or a central server. Common authority (schema, lifecycle rules, CLI) lives in this repo; project-specific trial boards live in project-local overlays.
+ADOP is a CLI that gives each tool evaluation a structured, append-only record. Every decision — from "we noticed this tool" through "we ran a bounded trial" to "we promoted it" or "we rejected it" — is written as a timestamped artifact in your project's `.adop/` directory. The record outlasts the discussion.
 
-## What ADOP Does
+## Who Needs This
 
-- Tracks (tool, use-case) pairs through 11 lifecycle states: watch → proposed → blocked → trial-ready → in-trial → promote / hold / reject → deprecated → migrating → archived
-- Validates the artifact root with `adop lint`; detects tool coupling depth with `adop scan`
-- Shows present state and next recommended command with `adop status` / `adop next`
+Teams that:
+- evaluate multiple tools or libraries per quarter and need to trace why each was accepted or rejected
+- run bounded trials and want to record the trial conditions and outcome, not just the verdict
+- need to show auditors or future teammates that adoption decisions were deliberate and documented
+- want to know how deeply a tool is embedded before deciding to replace it
 
-## Where Artifacts Are Saved
+## How It Works
+
+Each evaluation is tracked as a **(tool, use-case)** pair. Evaluating `ruff` as a linter is a separate record from evaluating `ruff` as a formatter. Each pair moves through up to 11 states:
+
+```
+watch → proposed → blocked → trial-ready → in-trial
+  → promote / hold / reject → deprecated → migrating → archived
+```
+
+State is always derived from what is written on disk. There is no daemon, no database, no central server.
+
+## What It Looks Like
+
+```
+$ adop status
+
+Scene: lint-pipeline
+  Tool:   ruff
+  State:  in-trial
+  Trial:  tr-001 (mode: read-only-comparison, executor: ci)
+  Next:   adop quick-close-trial --trial-id tr-001 --verdict promote --observed-effect "..."
+
+$ adop next
+adop quick-close-trial --artifact-root .adop --trial-id tr-001 --verdict promote --observed-effect "..."
+```
+
+Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is deleted or overwritten. `adop lint` validates the full record.
+
+## Setup
+
+```bash
+git clone https://github.com/maruwork/adop.git
+cd adop
+python shared/python/adop_cli.py --version   # adop 0.1.0
+```
+
+No pip install required. All commands run as `python shared/python/adop_cli.py <command>`.
+The examples below use `adop` as a shorthand — substitute the full path if you have not aliased it.
+
+## Quickstart
+
+```bash
+# 1. In your project directory, scaffold the record store and overlay
+adop init
+
+# 2. Record the first candidate
+adop quick-intake --candidate ruff --use-case lint-pipeline --why-now "evaluating faster linter"
+
+# 3. Compare candidates and select one
+adop quick-compare --use-case lint-pipeline --candidate ruff --candidate pylint --selected ruff
+
+# 4. Start a bounded trial
+adop quick-trial --use-case lint-pipeline --mode read-only-comparison --executor ci
+
+# 5. Check present state at any time
+adop status
+
+# 6. Close the trial with a verdict
+adop quick-close-trial --trial-id tr-001 --verdict promote --observed-effect "30% faster, no regressions"
+
+# 7. Validate the full record
+adop lint
+```
+
+Full command reference: `adop --help`
+
+See `docs/checklists/` before starting adoption work.
+
+## Where Records Are Saved
 
 All artifacts write to `.adop/` in the present working directory by default.
-The `--artifact-root` flag is optional on every command; omitting it uses `.adop/`.
-`adop init` scaffolds the artifact root and a project-local overlay file in one step.
+The `--artifact-root` flag is optional on every command.
+`adop init` creates the directory and a project-local overlay file in one step.
+
+## Detecting Tool Coupling
+
+Before replacing or removing a tool, check how deeply it is embedded:
+
+```bash
+adop scan --target . --tool ruff
+```
+
+Reports every file that imports, configures, or references the tool, along with an estimated removal cost.
 
 ## File Map
 
 - `adop.json`: machine-readable canonical identity and runtime file manifest
-- `shared/python/`: shared code for the generic adoption body
-  - `adop_cli.py`: command entry
+- `shared/python/`: CLI and supporting modules
+  - `adop_cli.py`: command entry point
   - `adop_artifacts.py`: artifact IO / atomic write
-  - `adop_validation.py`: schema / gate validation
+  - `adop_validation.py`: schema and gate validation
   - `adop_summary.py`: summary projection
-  - `adop_types.py`: SSOT constants / field names
-  - `adop_ids.py`: id mint / parse
-  - `adop_state_machine.py`: lifecycle transition helpers
+  - `adop_types.py`: constants and field names
+  - `adop_ids.py`: id generation and parsing
+  - `adop_state_machine.py`: lifecycle transition rules
   - `adop_sync.py`: drift detection and sync for project-local runtime copies
   - `common.py`: bounded runtime helper
-- `docs/checklists/`: checklist items to review before adopting an external tool
-- `shared/templates/`: record templates for external tool adoption
-  - `external-tool-adoption-note-template.md`: adoption note record template
-  - `project-local-adop-overlay-template.md`: project-local overlay minimum structure
-- `docs/design/`: bounded design notes
-- `docs/ADOP_GENERIC_QUICKSTART.md`: generic ADOP reading order and bounded verification path
+- `docs/checklists/`: review checklist before starting an evaluation
+- `shared/templates/`: record templates for adoption notes and project-local overlays
+- `docs/design/`: design notes and schema reference
+- `docs/ADOP_GENERIC_QUICKSTART.md`: fastest path to understand and verify ADOP
 - `SUPPORT.md`: pre-issue checklist and support contact routes
 
 ## Full Reading Order
@@ -50,41 +128,11 @@ The `--artifact-root` flag is optional on every command; omitting it uses `.adop
 9. `docs/design/adop-lifecycle-schema-design.md`
 10. `SUPPORT.md`
 
-## Setup
+## Authority Boundary
 
-```bash
-# Clone and verify
-git clone https://github.com/maruwork/adop.git
-cd adop
-python shared/python/adop_cli.py --version   # adop 0.1.0
-```
+This repository holds the shared authority: artifact schema, lifecycle states, CLI, generic checklist, and templates.
 
-No pip install required. All commands run as `python shared/python/adop_cli.py <command>`.
-The examples below use `adop` as a shorthand — substitute the full path if you have not aliased it.
-
-## How to Use
-
-```bash
-# 1. In your project directory, scaffold the artifact root and overlay
-adop init
-
-# 2. Record the first candidate
-adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"
-
-# 3. Check progress at any time
-adop status
-
-# 4. See what to do next
-adop next
-
-# 5. Detect how deeply the tool is embedded
-adop scan --target . --tool <tool>
-```
-
-Full flow: `quick-intake → quick-compare → quick-trial → quick-close-trial`
-
-See `docs/checklists/` before starting adoption work.
-Bring `shared/templates/` into the project side for operator procedures.
+Each project maintains its own overlay file (scaffolded by `adop init`) that holds the project-specific trial board, operator flow, and landing target authority. The boundary is defined in `docs/design/ADOP_SHELF_CLASSIFICATION.md`.
 
 ## Repository Community Files
 
@@ -98,21 +146,3 @@ Bring `shared/templates/` into the project side for operator procedures.
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/CODEOWNERS`
 - `.github/workflows/ci.yml`
-
-## What Common Authority Owns
-
-- artifact schema
-- trial lifecycle states
-- bounded adoption CLI
-- generic checklist
-- generic adoption note template
-
-## What Project-Local Overlay Owns
-
-- current trial board
-- current summary
-- operator flow
-- hook / queue / runbook activation details
-- landing target authority
-- project-local decision log
-
