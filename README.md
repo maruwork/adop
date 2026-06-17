@@ -28,27 +28,30 @@ State is always derived from what is written on disk. There is no daemon, no dat
 ```
 $ adop status
 
-Scene: lint-pipeline
-  Tool:   ruff
-  State:  in-trial
-  Trial:  tr-001 (mode: read-only-comparison, executor: ci)
-  Next:   adop quick-close-trial --trial-id tr-001 --verdict promote --observed-effect "..."
+ADOP  (.adop/)
+
+  lint-pipeline   in-trial
+
+Next steps:
+  [lint-pipeline]
+    adop quick-close-trial --trial-id tr-001 --verdict <promote|hold|reject> --observed-effect "<what you saw>"
 
 $ adop next
-adop quick-close-trial --artifact-root .adop --trial-id tr-001 --verdict promote --observed-effect "..."
+[lint-pipeline] (in-trial)
+  adop quick-close-trial --trial-id tr-001 --verdict <promote|hold|reject> --observed-effect "<what you saw>"
 ```
 
 Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is deleted or overwritten. `adop lint` validates the full record.
 
 ## Setup
 
+**Requires Python 3.11 or 3.12.** No pip install required.
+
 ```bash
 git clone https://github.com/maruwork/adop.git
 cd adop
 python shared/python/adop_cli.py --version   # adop 0.1.0
-```
-
-No pip install required. All commands run as `python shared/python/adop_cli.py <command>`.
+``` All commands run as `python shared/python/adop_cli.py <command>`.
 The examples below use `adop` as a shorthand — substitute the full path if you have not aliased it.
 
 ## Quickstart
@@ -58,7 +61,7 @@ The examples below use `adop` as a shorthand — substitute the full path if you
 adop init
 
 # 2. Record the first candidate
-adop quick-intake --candidate ruff --use-case lint-pipeline --why-now "evaluating faster linter"
+adop quick-intake --candidate ruff --source doc --use-case lint-pipeline --why-now "evaluating faster linter"
 
 # 3. Compare candidates and select one
 adop quick-compare --use-case lint-pipeline --candidate ruff --candidate pylint --selected ruff

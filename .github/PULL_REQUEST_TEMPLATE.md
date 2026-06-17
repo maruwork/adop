@@ -5,8 +5,8 @@
 
 ## Verification
 
-- [ ] `python shared/python/adop_cli.py --version` (standalone repo: `python/adop_cli.py`)
-- [ ] `python -m py_compile shared/python/*.py` (standalone repo: `python/*.py`)
+- [ ] `python shared/python/adop_cli.py --version`
+- [ ] `python -m py_compile shared/python/*.py`
 - [ ] `python -m pytest`
 
 ## Boundary Check

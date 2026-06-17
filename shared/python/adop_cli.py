@@ -182,7 +182,7 @@ https://github.com/maruwork/adop
 
 # Next-command templates keyed by lifecycle state.
 _NEXT_FOR_STATE: dict[str, str] = {
-    "watch":       'adop quick-intake --use-case {scene} --candidate <tool> --why-now "<reason>"',
+    "watch":       'adop quick-intake --use-case {scene} --candidate <tool> --source doc --why-now "<reason>"',
     "proposed":    'adop quick-compare --use-case {scene} --candidate <tool> --candidate <other> --selected <tool>',
     "trial-ready": 'adop quick-trial --use-case {scene} --mode review-assist --executor <who>',
     "blocked":     'adop unblock --use-case {scene} --why-unblocked "<what changed>"',
@@ -1464,7 +1464,7 @@ def _handle_init(args: argparse.Namespace) -> str:
         "",
         "Next steps:",
         '  adop watch --candidate <tool> --interest-reason "watching to evaluate"',
-        '  adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"',
+        '  adop quick-intake --candidate <tool> --source doc --use-case <scene> --why-now "<reason>"',
         '  adop status',
     ]
     return "\n".join(lines)
@@ -1482,7 +1482,7 @@ def _handle_status(args: argparse.Namespace) -> str:
             "No adoption records yet.",
             "",
             "Start with:",
-            '  adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"',
+            '  adop quick-intake --candidate <tool> --source doc --use-case <scene> --why-now "<reason>"',
         ]
         return "\n".join(lines)
 
@@ -1604,7 +1604,7 @@ def _handle_next(args: argparse.Namespace) -> str:
     items = artifacts.load_all_artifacts(root)
 
     if not scene_states:
-        return 'No records yet — start: adop quick-intake --candidate <tool> --use-case <scene> --why-now "<reason>"'
+        return 'No records yet — start: adop quick-intake --candidate <tool> --source doc --use-case <scene> --why-now "<reason>"'
 
     terminal = {"promote", "archived", "reject"}
     priority = {"in-trial": 0, "proposed": 1, "trial-ready": 2, "watch": 3, "blocked": 4, "deprecated": 5, "migrating": 6}

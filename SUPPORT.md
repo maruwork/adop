@@ -7,7 +7,7 @@ Status: Active
 1. Read `README.md`.
 2. Run the smallest relevant command from `docs/ADOP_GENERIC_QUICKSTART.md`.
 3. Confirm whether the problem belongs in generic ADOP or a project-local overlay.
-4. Check whether the expected behavior is already described in the checklist, template, or verification contract.
+4. Check whether the expected behavior is already described in `docs/checklists/external-tool-adoption-checklist.md` or `docs/ADOP_GENERIC_QUICKSTART.md`.
 
 ## Where To Ask
 
