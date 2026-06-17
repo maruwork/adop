@@ -51,8 +51,18 @@ Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is 
 git clone https://github.com/maruwork/adop.git
 cd adop
 python shared/python/adop_cli.py --version   # adop 0.1.0
-``` All commands run as `python shared/python/adop_cli.py <command>`.
-The examples below use `adop` as a shorthand — substitute the full path if you have not aliased it.
+```
+
+All commands run as `python shared/python/adop_cli.py <command>`.
+For convenience, alias it once per shell session — or add to your shell profile:
+
+```bash
+# Linux / macOS
+alias adop="python $(pwd)/shared/python/adop_cli.py"
+
+# Windows (PowerShell)
+function adop { python "$PWD\shared\python\adop_cli.py" @args }
+```
 
 ## Quickstart
 

@@ -20,7 +20,7 @@ _Nothing yet._
 - Default artifact root `.adop/`: `--artifact-root` is optional on every command
 - `adop_sync.py`: drift detection and sync for project-local runtime copies (`check`, `apply`, `register`, `push`, `list`)
 - `adop.json`: machine-readable canonical identity and runtime file manifest
-- Artifact schema validation for all 13 artifact types including hold-note and reject-note
+- Artifact schema validation for all 14 artifact types including hold-note and reject-note
 - Tool entanglement (coupling-note) recording and reporting
 - Append-only atomic artifact writes with boundary and IO error handling (exit 11, 14)
 - 105 tests covering lifecycle, validation, coupling, artifact root errors, sync, status, and scan

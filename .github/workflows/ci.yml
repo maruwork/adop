@@ -8,10 +8,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,6 +28,7 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -q
       - name: Smoke test (quick-intake → compare → trial → close → lint)
+        shell: bash
         run: |
           ADOP="python shared/python/adop_cli.py"
           ROOT=$(mktemp -d)
