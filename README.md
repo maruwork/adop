@@ -1,23 +1,22 @@
 # ADOP
 
-**Purpose**: The shared canonical shelf for external tool adoption management.
+ADOP is a CLI for tracking external tool adoption decisions. It records every step of the lifecycle — from first notice through trial and judgment — as append-only JSON artifacts saved in a `.adop/` directory inside each project.
 
-This repository holds the shared code, checklists, and templates for ADOP.
-It does not hold any specific project's current trial state or adoption register.
+Each (tool, use-case) pair is its own adoption unit. State is always derived from the artifact log on disk; nothing is stored in memory or a central server. Common authority (schema, lifecycle rules, CLI) lives in this repo; project-specific trial boards live in project-local overlays.
 
-## What This Is
+## What ADOP Does
 
-- `ADOP` is the shared shelf for external tool adoption judgment and trial lifecycle management
-- common authority holds artifact schema, trial lifecycle states, checklists, and templates
-- current trial board, operator flow, and landing target authority belong in project-local overlays
+- Tracks (tool, use-case) pairs through 11 lifecycle states: watch → proposed → blocked → trial-ready → in-trial → promote / hold / reject → deprecated → migrating → archived
+- Validates the artifact root with `adop lint`; detects tool coupling depth with `adop scan`
+- Shows present state and next recommended command with `adop status` / `adop next`
 
-## What This Is Not
+## Where Artifacts Are Saved
 
-- not any specific project's current adoption board
-- not any specific project's canonical operator flow
-- not any specific project's landing target authority
+All artifacts write to `.adop/` in the present working directory by default.
+The `--artifact-root` flag is optional on every command; omitting it uses `.adop/`.
+`adop init` scaffolds the artifact root and a project-local overlay file in one step.
 
-## Shelves
+## File Map
 
 - `adop.json`: machine-readable canonical identity and runtime file manifest
 - `shared/python/`: shared code for the generic adoption body
@@ -38,7 +37,7 @@ It does not hold any specific project's current trial state or adoption register
 - `docs/ADOP_GENERIC_QUICKSTART.md`: generic ADOP reading order and bounded verification path
 - `SUPPORT.md`: pre-issue checklist and support contact routes
 
-## Reading Order
+## Full Reading Order
 
 1. `README.md`
 2. `docs/design/ADOP_SHELF_CLASSIFICATION.md`
@@ -117,15 +116,3 @@ Bring `shared/templates/` into the project side for operator procedures.
 - landing target authority
 - project-local decision log
 
-## Do Not Put Here
-
-- any specific project's current trial board
-- any specific project's current summary
-- any project-specific operator flow
-- any project-specific judgment log
-- any project-specific landing target authority
-
-## Return Path
-
-- return to the shelf entry: `README.md`
-- when reading this as a standalone repo, start from this `README.md`

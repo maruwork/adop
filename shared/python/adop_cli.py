@@ -1624,16 +1624,20 @@ def _handle_next(args: argparse.Namespace) -> str:
     return "\n".join(lines) if lines else "No pending actions."
 
 
-def _handle_lint(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
+def _handle_lint(args: argparse.Namespace) -> tuple[int, str]:
     root = Path(args.artifact_root)
     if not root.exists():
-        return 10, artifacts.json_response("lint", "error", [], [f"artifact root does not exist: {root}"])
-    if not any(root.glob("adop_*_*.json")):
-        return 10, artifacts.json_response("lint", "error", [], [f"artifact root is empty: {root}"])
+        return 10, f"lint: error — artifact root does not exist: {root}"
+    all_files = list(root.glob("adop_*_*.json"))
+    if not all_files:
+        return 10, f"lint: error — artifact root is empty: {root}"
     issues = lint_artifact_root(root)
     if issues:
-        return 10, artifacts.json_response("lint", "error", [], issues)
-    return 0, artifacts.json_response("lint", "ok", [], [])
+        lines = ["lint: issues found"]
+        for issue in issues:
+            lines.append(f"  {issue}")
+        return 10, "\n".join(lines)
+    return 0, f"lint: ok ({len(all_files)} artifact(s) checked)"
 
 
 def _artifact_numeric_sort_key(item: dict[str, Any]) -> tuple[str, int, int, str]:
@@ -1812,8 +1816,8 @@ def main(argv: list[str] | None = None) -> int:
             _emit(_handle_quick_close_trial(args))
             return 0
         if args.command == "lint":
-            exit_code, payload = _handle_lint(args)
-            _emit(payload)
+            exit_code, message = _handle_lint(args)
+            print(message)
             return exit_code
         if args.command == "watch":
             _emit(_handle_watch(args))

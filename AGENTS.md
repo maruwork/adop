@@ -12,8 +12,9 @@ This file is the root stop-rule surface for delegated work inside this repositor
 ## First Read
 
 1. `README.md`
-2. `docs/ADOP_GENERIC_QUICKSTART.md`
-3. `docs/checklists/external-tool-adoption-checklist.md`
+2. `docs/design/ADOP_SHELF_CLASSIFICATION.md`
+3. `docs/ADOP_GENERIC_QUICKSTART.md`
+4. `docs/checklists/external-tool-adoption-checklist.md`
 
 ## Current Authority
 
@@ -44,4 +45,4 @@ Stop immediately if work would:
 
 ## Current Live Restart Rule
 
-- Use `README.md`, `docs/ADOP_GENERIC_QUICKSTART.md`, and `docs/checklists/external-tool-adoption-checklist.md` as the bounded restart route for active understanding.
+- Use `README.md`, `docs/design/ADOP_SHELF_CLASSIFICATION.md`, `docs/ADOP_GENERIC_QUICKSTART.md`, and `docs/checklists/external-tool-adoption-checklist.md` as the bounded restart route for active understanding.
