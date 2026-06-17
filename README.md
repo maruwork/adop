@@ -45,7 +45,16 @@ Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is 
 
 ## Setup
 
-**Requires Python 3.11 or 3.12.** No pip install required.
+**Requires Python 3.11 or 3.12.**
+
+**Option A — pip install (recommended)**
+
+```bash
+pip install git+https://github.com/maruwork/adop.git
+adop --version   # adop 0.1.0
+```
+
+**Option B — clone and run**
 
 ```bash
 git clone https://github.com/maruwork/adop.git
@@ -53,8 +62,8 @@ cd adop
 python shared/python/adop_cli.py --version   # adop 0.1.0
 ```
 
-All commands run as `python shared/python/adop_cli.py <command>`.
-For convenience, alias it once per shell session — or add to your shell profile:
+With Option B, all commands run as `python shared/python/adop_cli.py <command>`.
+For convenience, alias it once per shell session:
 
 ```bash
 # Linux / macOS

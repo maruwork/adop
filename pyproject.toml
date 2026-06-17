@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adop"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "CLI for tracking external tool adoption decisions"
+readme = "README.md"
+license = {text = "MIT"}
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/maruwork/adop"
+Repository = "https://github.com/maruwork/adop"
+
+[project.scripts]
+adop = "adop_cli:main"
+adop-sync = "adop_sync:main"
+
+[tool.setuptools]
+py-modules = [
+    "adop_cli",
+    "adop_artifacts",
+    "adop_ids",
+    "adop_state_machine",
+    "adop_summary",
+    "adop_sync",
+    "adop_types",
+    "adop_validation",
+    "common",
+]
+
+[tool.setuptools.package-dir]
+"" = "shared/python"
