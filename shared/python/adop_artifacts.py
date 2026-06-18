@@ -11,12 +11,8 @@ from typing import Any
 
 from typing import Callable
 
-try:
-    from .adop_ids import next_sequential_id, parse_numeric_id
-    from .adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
-except ImportError:  # pragma: no cover - script import path
-    from adop_ids import next_sequential_id, parse_numeric_id
-    from adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
+from adop_ids import next_sequential_id, parse_numeric_id
+from adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
 
 
 class AdopArtifactError(ValueError):

@@ -75,6 +75,11 @@ jobs:
           adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
           adop next > next-resumed.txt
           grep -q "quick-trial --scene lint-ci" next-resumed.txt
+          adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          adop quick-close-trial --trial-id tr-002 --verdict promote --observed-effect "consumer recovery closed cleanly" --judgment-reason "trial succeeded for the bounded lint scene" --next-action "promote the lint workflow helper" --recurring-control-decision yes --root-cause-hypothesis "the consumer project needed an explicit reusable lint path" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the project had no prior explicit lint adoption record"
+          adop render-html --artifact-root .adop --output dashboard-promote.html --scene lint-ci
+          grep -q "No required next command" dashboard-promote.html
+          grep -q "Copy retirement command" dashboard-promote.html
           adop quick-intake --candidate snyk --source doc --use-case dep-alerts --why-now "blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
           adop block --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
           adop next > next-blocked.txt
@@ -97,22 +102,22 @@ jobs:
           if ($overlay -notmatch "## Current Judgment Memo") { throw "overlay missing Current Judgment Memo" }
           if ($overlay -notmatch "## Approved Use Scenes") { throw "overlay missing Approved Use Scenes" }
           if ($overlay -notmatch "## Prohibited Use Scenes") { throw "overlay missing Prohibited Use Scenes" }
-          Set-Content -Path pyproject.toml -Value @'
-[project]
-name = "consumer-smoke"
-version = "0.0.1"
-
-[tool.ruff]
-line-length = 88
-'@
-          Set-Content -Path .pre-commit-config.yaml -Value @'
-repos:
-  - repo: local
-    hooks:
-      - id: ruff-check
-        entry: python -m ruff check
-        language: system
-'@
+          Set-Content -Path pyproject.toml -Value @(
+            '[project]',
+            'name = "consumer-smoke"',
+            'version = "0.0.1"',
+            '',
+            '[tool.ruff]',
+            'line-length = 88'
+          )
+          Set-Content -Path .pre-commit-config.yaml -Value @(
+            'repos:',
+            '  - repo: local',
+            '    hooks:',
+            '      - id: ruff-check',
+            '        entry: python -m ruff check',
+            '        language: system'
+          )
           Set-Content -Path data-flow.json -Value '{"destination":"local","data_types":["code"],"opt_in":true}'
           adop render-html --artifact-root .adop --output dashboard-empty.html
           $emptyHtml = Get-Content dashboard-empty.html -Raw
@@ -137,6 +142,12 @@ repos:
           adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
           $nextResumed = adop next | Out-String
           if ($nextResumed -notmatch "quick-trial --scene lint-ci") { throw "resumed trial guidance missing" }
+          adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          adop quick-close-trial --trial-id tr-002 --verdict promote --observed-effect "consumer recovery closed cleanly" --judgment-reason "trial succeeded for the bounded lint scene" --next-action "promote the lint workflow helper" --recurring-control-decision "yes" --root-cause-hypothesis "the consumer project needed an explicit reusable lint path" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the project had no prior explicit lint adoption record"
+          adop render-html --artifact-root .adop --output dashboard-promote.html --scene lint-ci
+          $promoteHtml = Get-Content dashboard-promote.html -Raw
+          if ($promoteHtml -notmatch "No required next command") { throw "promote dashboard guidance missing steady-state copy" }
+          if ($promoteHtml -notmatch "Copy retirement command") { throw "promote dashboard retirement action missing" }
           adop quick-intake --candidate snyk --source doc --use-case dep-alerts --why-now "blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
           adop block --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
           $nextBlocked = adop next | Out-String
@@ -165,7 +176,14 @@ repos:
       - name: Version check
         run: python shared/python/adop_cli.py --version
       - name: Validate dev tool surface
-        run: python -m pre_commit run --all-files --show-diff-on-failure
+        run: |
+          python -m pre_commit run check-json --all-files --show-diff-on-failure
+          python -m pre_commit run check-merge-conflict --all-files --show-diff-on-failure
+          python -m pre_commit run check-toml --all-files --show-diff-on-failure
+          python -m pre_commit run check-yaml --all-files --show-diff-on-failure
+          python -m pre_commit run check-github-workflows --all-files --show-diff-on-failure
+          python -m pre_commit run check-renovate --all-files --show-diff-on-failure
+          python -m pre_commit run mypy --all-files --show-diff-on-failure
       - name: Run tests
         run: python -m pytest tests/ -q -n auto
       - name: Smoke test (quick-intake → compare → trial → close → lint)

@@ -7,68 +7,36 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-try:
-    from .adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
-    from .adop_ids import parse_numeric_id
-    from .adop_state_machine import infer_effective_trial_state
-    from .adop_types import (
-        ARCHIVE_NOTE,
-        ARCHIVED,
-        BLOCKED_NOTE,
-        BLOCKED_STATE,
-        CANDIDATE_INTAKE_NOTE,
-        COMPARISON_NOTE,
-        DECOMPOSITION_DECISION,
-        DEPRECATED,
-        DEPRECATION_NOTE,
-        HOLD_NOTE,
-        IN_TRIAL,
-        JUDGMENT_REPORT,
-        COUPLING_NOTE,
-        MIGRATING,
-        MIGRATION_NOTE,
-        PROMOTION_NOTE,
-        PROPOSED,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        STRUCTURAL_GAP,
-        SUMMARY_STATES,
-        TRIAL_PACKET,
-        TRIAL_READY,
-        WATCH,
-        WATCH_NOTE,
-    )
-except ImportError:  # pragma: no cover - script import path
-    from adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
-    from adop_ids import parse_numeric_id
-    from adop_state_machine import infer_effective_trial_state
-    from adop_types import (
-        ARCHIVE_NOTE,
-        ARCHIVED,
-        BLOCKED_NOTE,
-        BLOCKED_STATE,
-        CANDIDATE_INTAKE_NOTE,
-        COMPARISON_NOTE,
-        DECOMPOSITION_DECISION,
-        DEPRECATED,
-        DEPRECATION_NOTE,
-        HOLD_NOTE,
-        IN_TRIAL,
-        JUDGMENT_REPORT,
-        COUPLING_NOTE,
-        MIGRATING,
-        MIGRATION_NOTE,
-        PROMOTION_NOTE,
-        PROPOSED,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        STRUCTURAL_GAP,
-        SUMMARY_STATES,
-        TRIAL_PACKET,
-        TRIAL_READY,
-        WATCH,
-        WATCH_NOTE,
-    )
+from adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
+from adop_ids import parse_numeric_id
+from adop_state_machine import infer_effective_trial_state
+from adop_types import (
+    ARCHIVE_NOTE,
+    ARCHIVED,
+    BLOCKED_NOTE,
+    BLOCKED_STATE,
+    CANDIDATE_INTAKE_NOTE,
+    COMPARISON_NOTE,
+    COUPLING_NOTE,
+    DECOMPOSITION_DECISION,
+    DEPRECATED,
+    DEPRECATION_NOTE,
+    HOLD_NOTE,
+    IN_TRIAL,
+    JUDGMENT_REPORT,
+    MIGRATING,
+    MIGRATION_NOTE,
+    PROMOTION_NOTE,
+    PROPOSED,
+    REMOVAL_COSTS,
+    ROOT_CAUSE_HYPOTHESIS,
+    STRUCTURAL_GAP,
+    SUMMARY_STATES,
+    TRIAL_PACKET,
+    TRIAL_READY,
+    WATCH,
+    WATCH_NOTE,
+)
 
 # Hold / reject are reused by both intake and trial buckets, so they are spelled
 # as literals here rather than imported, matching the existing intake_dispositions set.
@@ -283,8 +251,8 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         for note in notes:
             note_scene = str(note.get("related_scene", "")).strip()
             tool = str(note.get("candidate_or_tool", "-"))
-            key = note_scene or f"tool:{tool}"
-            latest_notes[key] = note  # later id wins (append-only history)
+            note_key = note_scene or f"tool:{tool}"
+            latest_notes[note_key] = note  # later id wins (append-only history)
         for note in latest_notes.values():
             note_scene = str(note.get("related_scene", "")).strip()
             if scene and note_scene != scene:
