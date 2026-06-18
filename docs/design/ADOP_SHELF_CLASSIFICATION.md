@@ -63,6 +63,9 @@ A compliant project-local overlay must declare:
 | Runtime copy path + sync date | local `adop_*.py` copy; must be verified against canonical |
 | Active use cases table | current scene lanes and their lifecycle states |
 | Operator flow | who drives each stage in this project |
+| Current judgment memo | current adoption class, authority boundary, fail-close / escalation / verification |
+| Approved use scenes | which scenes are actually approved for recurring use |
+| Prohibited use scenes | which scenes are blocked or forbidden right now |
 | Landing target | where a promoted tool goes in this project's architecture |
 
 Use `shared/templates/project-local-adop-overlay-template.md` as the starting form.

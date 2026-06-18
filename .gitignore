@@ -15,6 +15,9 @@ sync-registry.json
 
 # pip build artifacts
 *.egg-info/
+build/
+dist/
+node_modules/
 
 # Audit tooling output — not part of the repository
 audit.manifest.yml

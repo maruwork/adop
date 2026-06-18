@@ -126,6 +126,20 @@ def test_validate_rejects_bad_removal_cost():
         })
 
 
+def test_validate_accepts_detection_metadata():
+    validate_coupling_note_payload({
+        "related_scene": "lint",
+        "candidate_or_tool": "ruff",
+        "couplings": [{
+            "path": "pyproject.toml",
+            "coupling_type": "config",
+            "removal_cost": "edit",
+            "detection_source": "surface-rule",
+            "confidence": "high",
+        }],
+    })
+
+
 def test_bad_couple_flag_format_returns_validation_error(run, root):
     code = run("couple", "--artifact-root", root, "--use-case", "lint", "--tool", "ruff",
                "--couple", "missing-fields")

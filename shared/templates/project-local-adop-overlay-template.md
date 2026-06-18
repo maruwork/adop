@@ -56,6 +56,44 @@ Live view: `python shared/python/adop_cli.py summary --artifact-root [path]`
 
 ---
 
+## Current Judgment Memo
+
+State the current project-side judgment in the same language the shared checklist expects.
+Fill these fields even when the answer is "none yet" or "not approved".
+
+| Item | Current project answer |
+|---|---|
+| Adoption class | [operations integration / creation assistance / mixed] |
+| Layer to strengthen | [interface / mechanism / scaling] |
+| Phase | [core build / future extension / implementation / self-improvement loop] |
+| What serves as authority | [repo files, human review gate, workflow, etc.] |
+| What does not serve as authority | [tool output, preview HTML rows, ad-hoc chat notes, etc.] |
+| Fail-close / escalation / verification | [how the project stops, who decides, and how to verify] |
+
+---
+
+## Approved Use Scenes
+
+List the scenes that are currently approved for recurring use in this project.
+If nothing is approved yet, say so explicitly.
+
+| Scene | Tool | Allowed use | Landing target | Notes |
+|---|---|---|---|---|
+| [scene or "none yet"] | [tool] | [what is currently approved] | [target] | [scope or approval note] |
+
+---
+
+## Prohibited Use Scenes
+
+List the scenes that are currently blocked or forbidden in this project.
+Include both "not approved yet" and "explicitly prohibited" when relevant.
+
+| Scene | Tool | Prohibited or blocked use | Reason | Reopen condition |
+|---|---|---|---|---|
+| [scene or "none recorded"] | [tool] | [what must not happen] | [why] | [what would change this] |
+
+---
+
 ## Landing Target Authority
 
 Promoted tools land at:

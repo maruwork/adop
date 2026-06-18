@@ -1,0 +1,25 @@
+{
+  "artifact_id": "cp-061",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "ruff",
+  "couplings": [
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": ".pre-commit-config.yaml",
+      "removal_cost": "edit"
+    },
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": "pyproject.toml",
+      "removal_cost": "edit"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "lint-python",
+  "schema_version": 1,
+  "status": "active"
+}

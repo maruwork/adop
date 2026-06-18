@@ -381,3 +381,15 @@ def test_quick_intake_defaults_tool_attributes_and_guided_mode(run, root, latest
         "data_types": ["unknown"],
         "opt_in": True,
     }
+
+
+def test_quick_intake_normalizes_casual_platform_aliases(run, root, latest):
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", "tool-b", "--source", "doc",
+        "--use-case", "guided-platform", "--why-now", "evaluate",
+        "--platform", "python",
+    ) == 0
+    intake = latest(root, CANDIDATE_INTAKE_NOTE, scene="guided-platform")
+    assert intake is not None
+    assert intake["platform"] == "any"

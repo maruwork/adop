@@ -141,6 +141,22 @@ def test_current_state_in_trial(run, root):
     assert "- lint: in-trial" in current
 
 
+def test_current_state_hold_resume_returns_trial_ready(run, root):
+    run("quick-intake", "--artifact-root", root, "--candidate", "ruff",
+        "--source", "doc", "--use-case", "lint", "--why-now", "need")
+    run("quick-compare", "--artifact-root", root, "--use-case", "lint",
+        "--candidate", "ruff", "--candidate", "other", "--selected", "ruff")
+    run("quick-trial", "--artifact-root", root, "--use-case", "lint",
+        "--mode", "read-only-comparison", "--executor", "ci",
+        "--decision-owner", "lead", "--landing-target", "ci/lint")
+    run("quick-close-trial", "--artifact-root", root, "--trial-id", "tr-001",
+        "--verdict", "hold", "--observed-effect", "needs narrowing")
+    run("quick-compare", "--artifact-root", root, "--use-case", "lint",
+        "--candidate", "ruff", "--candidate", "other", "--selected", "ruff")
+    current = _section(_summary(root), "Current State by Scene")
+    assert "- lint: trial-ready" in current
+
+
 def test_current_state_sceneless_watch_keyed_by_tool(run, root):
     run("watch", "--artifact-root", root, "--candidate", "ruff", "--interest-reason", "x")
     current = _section(_summary(root), "Current State by Scene")

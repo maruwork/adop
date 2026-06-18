@@ -1,0 +1,17 @@
+{
+  "artifact_id": "cp-003",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "pre-commit-hooks",
+  "couplings": [
+    {
+      "coupling_type": "config",
+      "note": "shared repository hygiene hook set",
+      "path": ".pre-commit-config.yaml",
+      "removal_cost": "edit"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "repo-hygiene-hooks",
+  "schema_version": 1,
+  "status": "active"
+}

@@ -7,20 +7,24 @@ on:
     branches: [main]
 
 jobs:
-  pip-install:
-    runs-on: ubuntu-latest
+  consumer-black-box:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-        python-version: "3.13"
+          python-version: "3.13"
       - name: Install package
         run: pip install .
       - name: Verify installed commands
         run: |
           adop --version
           adop-sync --help
-      - name: Black-box consumer project smoke
+      - name: Consumer smoke (Linux)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           PROJECT=$(mktemp -d)
@@ -28,12 +32,118 @@ jobs:
           adop init
           test -d .adop
           test -f adop-overlay.md
-          grep -q "## Landing Target Authority" adop-overlay.md
-          grep -q "## Active Scene Lanes" adop-overlay.md
-          adop quick-intake --candidate ruff --source doc --use-case lint-ci --why-now "smoke" --platform any --license MIT --cost free --version 0.5.0 --category cli --ai-compatibility any --data-flow-json '{"destination":"local","data_types":["code"],"opt_in":true}'
+          grep -q "## Current Judgment Memo" adop-overlay.md
+          grep -q "## Approved Use Scenes" adop-overlay.md
+          grep -q "## Prohibited Use Scenes" adop-overlay.md
+          cat > pyproject.toml <<'EOF'
+          [project]
+          name = "consumer-smoke"
+          version = "0.0.1"
+
+          [tool.ruff]
+          line-length = 88
+          EOF
+          cat > .pre-commit-config.yaml <<'EOF'
+          repos:
+            - repo: local
+              hooks:
+                - id: ruff-check
+                  entry: python -m ruff check
+                  language: system
+          EOF
+          cat > data-flow.json <<'EOF'
+          {"destination":"local","data_types":["code"],"opt_in":true}
+          EOF
+          adop render-html --artifact-root .adop --output dashboard-empty.html
+          grep -q "Start recording when no decisions exist yet" dashboard-empty.html
+          grep -q "adop init" dashboard-empty.html
+          adop quick-intake --candidate ruff --source doc --use-case lint-ci --why-now "smoke" --platform any --license MIT --cost free --version 0.5.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
           adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
           adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
-          adop quick-close-trial --trial-id tr-001 --verdict promote --observed-effect "works" --judgment-reason "trial produced reusable value" --next-action "promote into the lint workflow" --recurring-control-decision yes --root-cause-hypothesis "lint evaluation needed a stable reusable helper" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the team had no explicit adoption record before the trial"
+          adop scan --target . --tool ruff --scene lint-ci --record
+          adop couplings > couplings.txt
+          grep -q "ruff @ lint-ci" couplings.txt
+          grep -q ".pre-commit-config.yaml" couplings.txt
+          grep -q "pyproject.toml" couplings.txt
+          grep -q "\[invocation, edit\]" couplings.txt
+          adop render-html --artifact-root .adop --output dashboard-intake.html --scene lint-ci
+          grep -q "Source data (.adop)" dashboard-intake.html
+          grep -q "What this decision means" dashboard-intake.html
+          adop quick-close-trial --trial-id tr-001 --verdict hold --observed-effect "consumer recovery recorded"
+          adop next > next-hold.txt
+          grep -q "quick-compare --scene lint-ci" next-hold.txt
+          adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
+          adop next > next-resumed.txt
+          grep -q "quick-trial --scene lint-ci" next-resumed.txt
+          adop quick-intake --candidate snyk --source doc --use-case dep-alerts --why-now "blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          adop block --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
+          adop next > next-blocked.txt
+          grep -q "adop unblock --scene dep-alerts" next-blocked.txt
+          adop unblock --scene dep-alerts --why-unblocked "owner approved trial"
+          adop next > next-unblocked.txt
+          grep -q "quick-compare --scene dep-alerts" next-unblocked.txt
+          adop lint
+      - name: Consumer smoke (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $project = Join-Path $env:RUNNER_TEMP "adop-consumer-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory -Force -Path $project | Out-Null
+          Set-Location $project
+          adop init
+          if (-not (Test-Path .adop)) { throw "artifact root not created" }
+          $overlay = Get-Content adop-overlay.md -Raw
+          if ($overlay -notmatch "## Current Judgment Memo") { throw "overlay missing Current Judgment Memo" }
+          if ($overlay -notmatch "## Approved Use Scenes") { throw "overlay missing Approved Use Scenes" }
+          if ($overlay -notmatch "## Prohibited Use Scenes") { throw "overlay missing Prohibited Use Scenes" }
+          Set-Content -Path pyproject.toml -Value @'
+[project]
+name = "consumer-smoke"
+version = "0.0.1"
+
+[tool.ruff]
+line-length = 88
+'@
+          Set-Content -Path .pre-commit-config.yaml -Value @'
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        entry: python -m ruff check
+        language: system
+'@
+          Set-Content -Path data-flow.json -Value '{"destination":"local","data_types":["code"],"opt_in":true}'
+          adop render-html --artifact-root .adop --output dashboard-empty.html
+          $emptyHtml = Get-Content dashboard-empty.html -Raw
+          if ($emptyHtml -notmatch "Start recording when no decisions exist yet") { throw "empty dashboard guidance missing" }
+          if ($emptyHtml -notmatch "adop init") { throw "empty dashboard init command missing" }
+          adop quick-intake --candidate ruff --source doc --use-case lint-ci --why-now "smoke" --platform any --license MIT --cost free --version 0.5.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
+          adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          adop scan --target . --tool ruff --scene lint-ci --record
+          $couplings = adop couplings | Out-String
+          if ($couplings -notmatch "ruff @ lint-ci") { throw "coupling summary missing scene" }
+          if ($couplings -notmatch "\.pre-commit-config.yaml") { throw "coupling summary missing pre-commit file" }
+          if ($couplings -notmatch "pyproject.toml") { throw "coupling summary missing pyproject file" }
+          if ($couplings -notmatch "\[invocation, edit\]") { throw "coupling summary missing invocation evidence" }
+          adop render-html --artifact-root .adop --output dashboard-intake.html --scene lint-ci
+          $dashboard = Get-Content dashboard-intake.html -Raw
+          if ($dashboard -notmatch "Source data \(.adop\)") { throw "dashboard missing artifact root card" }
+          if ($dashboard -notmatch "What this decision means") { throw "dashboard missing detail copy" }
+          adop quick-close-trial --trial-id tr-001 --verdict hold --observed-effect "consumer recovery recorded"
+          $nextHold = adop next | Out-String
+          if ($nextHold -notmatch "quick-compare --scene lint-ci") { throw "hold recovery guidance missing" }
+          adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
+          $nextResumed = adop next | Out-String
+          if ($nextResumed -notmatch "quick-trial --scene lint-ci") { throw "resumed trial guidance missing" }
+          adop quick-intake --candidate snyk --source doc --use-case dep-alerts --why-now "blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          adop block --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
+          $nextBlocked = adop next | Out-String
+          if ($nextBlocked -notmatch "adop unblock --scene dep-alerts") { throw "blocked recovery guidance missing" }
+          adop unblock --scene dep-alerts --why-unblocked "owner approved trial"
+          $nextUnblocked = adop next | Out-String
+          if ($nextUnblocked -notmatch "quick-compare --scene dep-alerts") { throw "unblocked recovery guidance missing" }
           adop lint
 
   test:
@@ -48,14 +158,16 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install pytest
-        run: pip install pytest
+      - name: Install dev tools
+        run: pip install .[dev] pytest
       - name: Syntax check (py_compile)
-        run: python -m py_compile shared/python/adop_cli.py shared/python/adop_artifacts.py shared/python/adop_validation.py shared/python/adop_types.py shared/python/adop_summary.py shared/python/adop_sync.py shared/python/adop_ids.py shared/python/adop_state_machine.py shared/python/common.py
+        run: python -m py_compile shared/python/adop_cli.py shared/python/adop_html.py shared/python/adop_artifacts.py shared/python/adop_validation.py shared/python/adop_types.py shared/python/adop_summary.py shared/python/adop_sync.py shared/python/adop_ids.py shared/python/adop_state_machine.py shared/python/common.py
       - name: Version check
         run: python shared/python/adop_cli.py --version
+      - name: Validate dev tool surface
+        run: python -m pre_commit run --all-files --show-diff-on-failure
       - name: Run tests
-        run: python -m pytest tests/ -q
+        run: python -m pytest tests/ -q -n auto
       - name: Smoke test (quick-intake → compare → trial → close → lint)
         shell: bash
         run: |

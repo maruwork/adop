@@ -11,6 +11,15 @@ readme = "README.md"
 license = {text = "MIT"}
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+    "check-jsonschema>=0.37,<1",
+    "mypy>=1.16,<2",
+    "pre-commit>=4,<5",
+    "pytest-xdist>=3.8,<4",
+    "ruff>=0.12,<1",
+]
+
 [project.urls]
 Homepage = "https://github.com/maruwork/adop"
 Repository = "https://github.com/maruwork/adop"
@@ -23,6 +32,7 @@ adop-sync = "adop_sync:main"
 py-modules = [
     "adop_cli",
     "adop_artifacts",
+    "adop_html",
     "adop_ids",
     "adop_state_machine",
     "adop_summary",
@@ -34,3 +44,24 @@ py-modules = [
 
 [tool.setuptools.package-dir]
 "" = "shared/python"
+
+[tool.setuptools.data-files]
+"share/adop/templates" = [
+    "shared/templates/adop-governance-dashboard-template.html",
+    "shared/templates/project-local-adop-overlay-template.md",
+    "shared/templates/external-tool-adoption-note-template.md",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["shared/python", "tests"]
+ignore_missing_imports = true
+warn_unused_configs = true
+pretty = true

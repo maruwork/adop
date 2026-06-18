@@ -1,0 +1,6 @@
+# prettier ignore for ADOP repo surface examples
+build/
+dist/
+workspace/
+archive/
+common/

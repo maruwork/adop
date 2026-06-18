@@ -1,0 +1,47 @@
+{
+  "artifact_id": "cp-031",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "pre-commit",
+  "couplings": [
+    {
+      "confidence": "high",
+      "coupling_type": "config",
+      "detection_source": "surface-rule",
+      "note": "tool-owned config surface",
+      "path": ".pre-commit-config.yaml",
+      "removal_cost": "edit"
+    },
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": "pyproject.toml",
+      "removal_cost": "edit"
+    },
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": ".github/workflows/ci.yml",
+      "removal_cost": "edit"
+    },
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": "build/pytest-run-006/test_scan_matches_pre_commit_u0/.github/workflows/ci.yml",
+      "removal_cost": "edit"
+    },
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": "build/pytest-run-scanmeta/test_scan_matches_pre_commit_u0/.github/workflows/ci.yml",
+      "removal_cost": "edit"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "commit-gates",
+  "schema_version": 1,
+  "status": "active"
+}

@@ -215,6 +215,8 @@ Each coupling entry:
 | `coupling_type` | yes | `config`, `import`, `invocation`, `generated`, `data-write`, `reference` |
 | `removal_cost` | yes | `clean`, `edit`, `entangled` |
 | `note` | no | free text |
+| `detection_source` | no | `surface-rule`, `python-import`, `config-mention`, `invocation-pattern`, `text-reference` |
+| `confidence` | no | `high`, `medium`, `low` |
 
 `coupling_type` answers *how* the tool is entangled; `removal_cost` is the
 **癒着度** — how hard it is to detach. The report headline per tool is the worst
@@ -227,6 +229,7 @@ file means migration is heavy.
   `--couple 'PATH|TYPE|COST[|NOTE]'` or `--couplings-json` (`@path` reads a file).
 - `couplings` — report latest coupling per scene/tool snapshot, text or `--json`.
 - `summary` — "Tool Entanglement" section shows file count + worst detachment cost.
+- `scan --record` — write the detected coupling snapshot directly as a canonical `coupling-note`.
 
 ## 5. Artifact ID Prefixes
 
@@ -249,4 +252,4 @@ Prefixes for new artifact types to be added to `ARTIFACT_ID_PREFIX` in `adop_typ
 |---|---|
 | Usage tracking | Declared-only. Canonical artifacts carry `recording_mode` and `recording_source`; ADOP does not treat hook/log observation as canonical state input. |
 | `reject` recyclability | `reject` is terminal for a scene lane. A materially new evaluation must use a new `related_scene`. |
-| Coupling auto-scan (current contract) | `scan` is advisory only. Only `couple` writes canonical coupling history; observed-vs-declared drift detection is out of scope for the current generic contract. |
+| Coupling auto-scan (current contract) | `scan` is advisory by default. `scan --record` may write the detected snapshot as a canonical coupling-note; observed-vs-declared drift detection is still out of scope for the current generic contract. |

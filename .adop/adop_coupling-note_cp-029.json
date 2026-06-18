@@ -1,0 +1,16 @@
+{
+  "artifact_id": "cp-029",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "vscode-eslint",
+  "couplings": [
+    {
+      "coupling_type": "reference",
+      "path": ".vscode/extensions.json",
+      "removal_cost": "clean"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "editor-eslint-integration",
+  "schema_version": 1,
+  "status": "active"
+}

@@ -1,0 +1,26 @@
+{
+  "artifact_id": "cp-023",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "prettier",
+  "couplings": [
+    {
+      "coupling_type": "reference",
+      "path": ".prettierignore",
+      "removal_cost": "clean"
+    },
+    {
+      "coupling_type": "config",
+      "path": "package.json",
+      "removal_cost": "edit"
+    },
+    {
+      "coupling_type": "config",
+      "path": ".github/workflows/tool-surface-examples.yml",
+      "removal_cost": "edit"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "js-format",
+  "schema_version": 1,
+  "status": "active"
+}

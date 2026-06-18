@@ -80,13 +80,13 @@ function adop { python "$PWD\shared\python\adop_cli.py" @args }
 adop init
 
 # 2. Record the first candidate
-adop quick-intake --candidate ruff --source doc --use-case lint-pipeline --why-now "evaluating faster linter"
+adop quick-intake --candidate ruff --source doc --scene lint-pipeline --why-now "evaluating faster linter"
 
 # 3. Compare candidates and select one
-adop quick-compare --use-case lint-pipeline --candidate ruff --candidate pylint --selected ruff
+adop quick-compare --scene lint-pipeline --candidate ruff --candidate pylint --selected ruff
 
 # 4. Start a bounded trial
-adop quick-trial --use-case lint-pipeline --mode read-only-comparison --executor ci --decision-owner eng-lead --landing-target ci/lint
+adop quick-trial --scene lint-pipeline --mode read-only-comparison --executor ci --decision-owner eng-lead --landing-target ci/lint
 
 # 5. Check present state at any time
 adop status
@@ -96,6 +96,9 @@ adop quick-close-trial --trial-id tr-001 --verdict hold --observed-effect "30% f
 
 # 7. Validate the full record
 adop lint
+
+# 8. Render one dashboard HTML from the canonical template
+adop render-html --artifact-root .adop --output workspace/html-preview/adop_dashboard.html
 ```
 
 Full command reference: `adop --help`
@@ -121,12 +124,47 @@ adop scan --target . --tool ruff
 ```
 
 Reports every file that imports, configures, or references the tool, along with an estimated removal cost.
+Detected entries also carry a machine-readable detection source and confidence so that
+strong config surfaces can be distinguished from low-confidence text references.
+High-confidence hits are derived from structured surfaces such as `pyproject.toml`,
+`package.json`, `.pre-commit-config.yaml`, workflow `uses:` / `run:` commands, and
+tool-owned config filenames.
+For larger repos, exclude noisy shelves and write the snapshot directly:
+
+```bash
+adop scan --target . --tool ruff --scene lint-ci --exclude archive --exclude common --exclude workspace --record
+```
+
+## Rendering One Dashboard HTML
+
+Use the canonical template under `shared/templates/` and render exactly one dashboard output per target path:
+
+```bash
+adop render-html --artifact-root .adop --output workspace/html-preview/adop_dashboard.html
+```
+
+The rendered dashboard is intended to stand on its own for first-time readers:
+- it explains what ADOP records
+- it shows the artifact root that produced the page
+- it separates recorded lanes from preview sample lanes
+- it shows zero-record startup commands when the artifact root is still empty
+- it keeps promoted lanes on `No required next command` and moves retirement into a separate command box
+- it supports search, state filtering, sorting, and `Show more` for larger lane portfolios
+
+For layout testing, you can stress the board without adding real artifacts:
+
+```bash
+adop render-html --artifact-root .adop --output workspace/html-preview/adop_dashboard.html --sample-board-count 10
+```
+
+When preview lanes are injected this way, the page warns that those rows are samples and must not be treated as project decisions.
 
 ## File Map
 
 - `adop.json`: machine-readable canonical identity and runtime file manifest
 - `shared/python/`: CLI and supporting modules
   - `adop_cli.py`: command entry point
+  - `adop_html.py`: canonical HTML dashboard renderer
   - `adop_artifacts.py`: artifact IO / atomic write
   - `adop_validation.py`: schema and gate validation
   - `adop_summary.py`: summary projection
@@ -137,6 +175,7 @@ Reports every file that imports, configures, or references the tool, along with 
   - `common.py`: bounded runtime helper
 - `docs/checklists/`: review checklist before starting an evaluation
 - `shared/templates/`: record templates for adoption notes and project-local overlays
+  - `adop-governance-dashboard-template.html`: canonical HTML dashboard template
 - `docs/design/`: design notes and schema reference
 - `docs/ADOP_GENERIC_QUICKSTART.md`: fastest path to understand and verify ADOP
 - `SUPPORT.md`: pre-issue checklist and support contact routes

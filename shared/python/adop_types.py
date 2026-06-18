@@ -52,6 +52,18 @@ COUPLING_TYPES: Final[tuple[str, ...]] = (
     "reference",     # file hardcodes a path/name reference to the tool
 )
 # REMOVAL_COSTS = the "癒着度": how hard it is to detach the tool from the file.
+COUPLING_DETECTION_SOURCES: Final[tuple[str, ...]] = (
+    "surface-rule",       # matched a known tool-owned file surface
+    "python-import",      # matched a Python import / from import
+    "config-mention",     # matched a config or dependency declaration mention
+    "invocation-pattern", # matched a command / workflow invocation pattern
+    "text-reference",     # matched a plain text reference only
+)
+COUPLING_CONFIDENCE_LEVELS: Final[tuple[str, ...]] = (
+    "high",
+    "medium",
+    "low",
+)
 REMOVAL_COSTS: Final[tuple[str, ...]] = (
     "clean",         # remove/disable with no edits to other content
     "edit",          # requires targeted edits to the file

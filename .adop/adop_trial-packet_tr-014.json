@@ -1,0 +1,97 @@
+{
+  "adoption_unit": "markdownlint-cli2",
+  "artifact_id": "tr-014",
+  "artifact_type": "trial-packet",
+  "candidate_shape": "atomic",
+  "code_level_compatibility": {
+    "dependency_fit": "",
+    "failure_mode_fit": "",
+    "input_surface_fit": "provided",
+    "mutation_boundary_fit": "provided",
+    "output_contract_fit": "provided",
+    "verification_fit": "provided",
+    "workflow_fit": ""
+  },
+  "compatibility_diagnosis": [
+    {
+      "adoption_unit": "markdownlint-cli2",
+      "authority_safe": "safe when reviewed before writeback",
+      "controlability": "bounded trial is possible",
+      "input_fit": "simple operator input is sufficient",
+      "no_impact_feasibility": "artifact root can stay outside target project",
+      "output_fit": "result can be reviewed before writeback",
+      "recommended_fit_lane": "trial-ready",
+      "scene_fit_to_project": "fits one bounded scene lane"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "decision_owner": "repo-maintainer",
+  "decomposition_decision": "as-is",
+  "dependency_note": "",
+  "derived_from": [
+    "cmp-014"
+  ],
+  "evaluation_gate": "clear compare outcome",
+  "executor": "ci",
+  "failure_mode_hypothesis": [],
+  "fallback": "hold",
+  "input_surface": "bounded comparison input",
+  "landing_target": ".markdownlint-cli2.jsonc",
+  "lane": "assistance",
+  "mutation_boundary": "no write",
+  "no_impact_envelope": {
+    "allowed": [
+      "file read",
+      "metadata read",
+      "git read",
+      "artifact write outside target project",
+      "temp clone outside target project"
+    ],
+    "forbidden": [
+      "dependency install inside target project",
+      "branch mutation inside target project",
+      "tracked file write inside target project",
+      "generated artifact write inside target project"
+    ]
+  },
+  "output_contract": "comparison summary",
+  "recommended_fit_lane": "trial-ready",
+  "recording_mode": "guided",
+  "recording_source": "quick-trial",
+  "related_scene": "markdown-lint",
+  "sandbox_type": "read-only sandbox",
+  "schema_version": 1,
+  "status": "active",
+  "target_project_profile": {
+    "allowed_input_surfaces": [
+      "tool output",
+      "manual notes"
+    ],
+    "allowed_mutation_boundary": "no write",
+    "artifact_surfaces": [
+      "review-note",
+      "trial-artifact"
+    ],
+    "authority_boundary": "human approved writeback only",
+    "main_language": "unknown",
+    "operator_phase": "evaluation",
+    "runtime": [
+      "manual"
+    ],
+    "verification_methods": [
+      "human review"
+    ]
+  },
+  "trial_type": "read-only",
+  "trigger": "manual comparison request",
+  "trigger_canonical_record": {
+    "friction_class": "",
+    "observable_signal": "manual comparison request",
+    "reopen_condition": "",
+    "scene": "markdown-lint",
+    "start_threshold": "",
+    "stop_condition": "clear compare outcome"
+  },
+  "verification_method": "human review",
+  "writeback_target": "trial-result and judgment-report"
+}

@@ -1,0 +1,31 @@
+{
+  "ai_compatibility": "unknown",
+  "artifact_id": "ci-001",
+  "artifact_type": "candidate-intake-note",
+  "candidate_or_tool": "pre-commit-hooks",
+  "candidate_shape": "atomic",
+  "category": "hooks",
+  "cost": "unknown",
+  "created_at": "2026-06-18",
+  "current_disposition": "proposed",
+  "data_flow": {
+    "data_types": [
+      "unknown"
+    ],
+    "destination": "unknown",
+    "opt_in": true
+  },
+  "intake_reason": "bundle common repository hygiene checks",
+  "intended_lane": "operations",
+  "license": "unknown",
+  "next_action": "compare candidate set",
+  "platform": "any",
+  "recording_mode": "guided",
+  "recording_source": "quick-intake",
+  "related_scene": "repo-hygiene-hooks",
+  "root_cause_hypothesis": "bundle common repository hygiene checks",
+  "schema_version": 1,
+  "source": "github",
+  "status": "active",
+  "version": "unknown"
+}

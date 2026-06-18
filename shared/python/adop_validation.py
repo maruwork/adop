@@ -19,6 +19,8 @@ try:
         CANDIDATE_SHAPES,
         COMPARISON_NOTE,
         CONTROLABILITY,
+        COUPLING_CONFIDENCE_LEVELS,
+        COUPLING_DETECTION_SOURCES,
         COUPLING_NOTE,
         COUPLING_TYPES,
         COSTS,
@@ -69,6 +71,8 @@ except ImportError:  # pragma: no cover - script import path
         CANDIDATE_SHAPES,
         COMPARISON_NOTE,
         CONTROLABILITY,
+        COUPLING_CONFIDENCE_LEVELS,
+        COUPLING_DETECTION_SOURCES,
         COUPLING_NOTE,
         COUPLING_TYPES,
         COSTS,
@@ -435,6 +439,18 @@ def validate_coupling_entries(value: Any, field_name: str = "couplings") -> None
         require_non_empty(entry.get("path"), f"{where}.path")
         validate_choice(str(entry.get("coupling_type", "")), f"{where}.coupling_type", COUPLING_TYPES)
         validate_choice(str(entry.get("removal_cost", "")), f"{where}.removal_cost", REMOVAL_COSTS)
+        if "detection_source" in entry:
+            validate_choice(
+                str(entry.get("detection_source", "")),
+                f"{where}.detection_source",
+                COUPLING_DETECTION_SOURCES,
+            )
+        if "confidence" in entry:
+            validate_choice(
+                str(entry.get("confidence", "")),
+                f"{where}.confidence",
+                COUPLING_CONFIDENCE_LEVELS,
+            )
 
 
 def validate_coupling_note_payload(payload: dict[str, Any]) -> None:

@@ -1,0 +1,21 @@
+{
+  "artifact_id": "cp-009",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "pytest-xdist",
+  "couplings": [
+    {
+      "coupling_type": "reference",
+      "path": "adop-overlay.md",
+      "removal_cost": "clean"
+    },
+    {
+      "coupling_type": "config",
+      "path": "pyproject.toml",
+      "removal_cost": "edit"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "parallel-pytest",
+  "schema_version": 1,
+  "status": "active"
+}

@@ -1,0 +1,100 @@
+{
+  "adoption_unit": "mypy",
+  "artifact_id": "cmp-005",
+  "artifact_type": "comparison-note",
+  "candidate_shape": "atomic",
+  "compared_candidates": [
+    "mypy",
+    "no-type-gate"
+  ],
+  "compatibility_diagnosis": [
+    {
+      "adoption_unit": "mypy",
+      "authority_safe": "safe when reviewed before writeback",
+      "controlability": "bounded trial is possible",
+      "input_fit": "simple operator input is sufficient",
+      "no_impact_feasibility": "artifact root can stay outside target project",
+      "output_fit": "result can be reviewed before writeback",
+      "recommended_fit_lane": "trial-ready",
+      "scene_fit_to_project": "fits one bounded scene lane"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "decision_owner": null,
+  "decomposition_decision": "as-is",
+  "derived_from": [
+    "ci-005"
+  ],
+  "discovered_subtargets": [],
+  "discriminator": [
+    "scene-fit",
+    "authority-safe",
+    "controlability"
+  ],
+  "drawbacks": [],
+  "filter_assessment": {
+    "authority_safe": {
+      "constraint": "review before writeback",
+      "reason": "safe when reviewed before writeback",
+      "status": "conditional"
+    },
+    "controlability": {
+      "constraint": null,
+      "reason": "bounded trial possible",
+      "status": "pass"
+    },
+    "scene_fit": {
+      "constraint": null,
+      "reason": "one bounded scene lane",
+      "status": "pass"
+    }
+  },
+  "no_impact_envelope": {
+    "allowed": [
+      "file read",
+      "metadata read",
+      "git read",
+      "artifact write outside target project",
+      "temp clone outside target project"
+    ],
+    "forbidden": [
+      "dependency install inside target project",
+      "branch mutation inside target project",
+      "tracked file write inside target project",
+      "generated artifact write inside target project"
+    ]
+  },
+  "non_tool_alternative": "tighten the manual checklist before adding a tool",
+  "recommended_fit_lane": "trial-ready",
+  "recommended_next_candidate": "",
+  "recording_mode": "guided",
+  "recording_source": "quick-compare",
+  "rejected_reasons": [],
+  "related_scene": "type-check-python",
+  "root_cause_hypothesis": "the use case 'type-check-python' still depends on ad hoc operator judgment",
+  "schema_version": 1,
+  "selected_candidate": "mypy",
+  "selection_reason": "selected mypy for bounded trial",
+  "status": "active",
+  "structural_gap": "current workflow lacks a bounded evaluation lane for this scene",
+  "target_project_profile": {
+    "allowed_input_surfaces": [
+      "tool output",
+      "manual notes"
+    ],
+    "allowed_mutation_boundary": "no write",
+    "artifact_surfaces": [
+      "review-note",
+      "trial-artifact"
+    ],
+    "authority_boundary": "human approved writeback only",
+    "main_language": "unknown",
+    "operator_phase": "evaluation",
+    "runtime": [
+      "manual"
+    ],
+    "verification_methods": [
+      "human review"
+    ]
+  }
+}

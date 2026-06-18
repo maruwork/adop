@@ -1,0 +1,25 @@
+{
+  "artifact_id": "cp-055",
+  "artifact_type": "coupling-note",
+  "candidate_or_tool": "hadolint",
+  "couplings": [
+    {
+      "confidence": "low",
+      "coupling_type": "reference",
+      "detection_source": "text-reference",
+      "path": "Dockerfile.tooling-example",
+      "removal_cost": "clean"
+    },
+    {
+      "confidence": "medium",
+      "coupling_type": "config",
+      "detection_source": "config-mention",
+      "path": ".github/workflows/tool-surface-examples.yml",
+      "removal_cost": "edit"
+    }
+  ],
+  "created_at": "2026-06-18",
+  "related_scene": "dockerfile-lint",
+  "schema_version": 1,
+  "status": "active"
+}

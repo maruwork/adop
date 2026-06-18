@@ -21,6 +21,7 @@ try:
         DECOMPOSITION_DECISION,
         DEPRECATED,
         DEPRECATION_NOTE,
+        HOLD_NOTE,
         IN_TRIAL,
         JUDGMENT_REPORT,
         COUPLING_NOTE,
@@ -51,6 +52,7 @@ except ImportError:  # pragma: no cover - script import path
         DECOMPOSITION_DECISION,
         DEPRECATED,
         DEPRECATION_NOTE,
+        HOLD_NOTE,
         IN_TRIAL,
         JUDGMENT_REPORT,
         COUPLING_NOTE,
@@ -151,6 +153,8 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
             resolved[scene] = DEPRECATED
         elif of_type(scene, PROMOTION_NOTE):
             resolved[scene] = "promote"
+        elif _scene_resumed_after_hold(scene, of_type):
+            resolved[scene] = TRIAL_READY
         elif of_type(scene, TRIAL_PACKET):
             packet = of_type(scene, TRIAL_PACKET)[-1]
             judgment = find_judgment_report(root, str(packet.get("artifact_id", "")))
@@ -183,6 +187,26 @@ def _scene_is_blocked(scene: str, items: list[dict[str, Any]], of_type) -> bool:
         for item in items
     )
     return not reopened
+
+
+def _scene_resumed_after_hold(scene: str, of_type) -> bool:
+    hold_notes = of_type(scene, HOLD_NOTE)
+    comparisons = of_type(scene, COMPARISON_NOTE)
+    if not hold_notes or not comparisons:
+        return False
+
+    latest_hold = hold_notes[-1]
+    latest_comparison = comparisons[-1]
+    derived_from = latest_comparison.get("derived_from") or []
+    if latest_hold.get("artifact_id") not in derived_from:
+        return False
+
+    latest_packet = of_type(scene, TRIAL_PACKET)
+    if not latest_packet:
+        return True
+
+    packet_derived_from = latest_packet[-1].get("derived_from") or []
+    return latest_comparison.get("artifact_id") not in packet_derived_from
 
 
 def get_scene_states(root: Path) -> dict[str, str]:
