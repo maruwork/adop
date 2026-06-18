@@ -176,7 +176,14 @@ jobs:
       - name: Version check
         run: python shared/python/adop_cli.py --version
       - name: Validate dev tool surface
-        run: python -m pre_commit run --all-files --show-diff-on-failure
+        run: |
+          python -m pre_commit run check-json --all-files --show-diff-on-failure
+          python -m pre_commit run check-merge-conflict --all-files --show-diff-on-failure
+          python -m pre_commit run check-toml --all-files --show-diff-on-failure
+          python -m pre_commit run check-yaml --all-files --show-diff-on-failure
+          python -m pre_commit run check-github-workflows --all-files --show-diff-on-failure
+          python -m pre_commit run check-renovate --all-files --show-diff-on-failure
+          python -m pre_commit run mypy --all-files --show-diff-on-failure
       - name: Run tests
         run: python -m pytest tests/ -q -n auto
       - name: Smoke test (quick-intake → compare → trial → close → lint)
