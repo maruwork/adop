@@ -7,7 +7,7 @@
 
 - [ ] `python shared/python/adop_cli.py --version`
 - [ ] `python -m py_compile shared/python/*.py`
-- [ ] `python -m pytest`
+- [ ] `python -m pytest tests/ -q --basetemp workspace/tmp/pytest-local`
 
 ## Boundary Check
 

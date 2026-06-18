@@ -16,137 +16,71 @@ from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Any
 
-try:
-    from .common import fix_stdout_encoding
-    from . import adop_artifacts as artifacts
-    from .adop_html import render_dashboard_html
-    from .adop_ids import next_sequential_id, parse_numeric_id
-    from .adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from .adop_summary import build_summary, get_scene_states
-    from .adop_types import (
-        ARCHIVE_NOTE,
-        BLOCKED_NOTE,
-        CANDIDATE_INTAKE_NOTE,
-        CANDIDATE_SHAPES,
-        COMPARISON_NOTE,
-        COUPLING_NOTE,
-        COUPLING_TYPES,
-        DECOMPOSITION_DECISION,
-        DECOMPOSITION_DECISIONS,
-        DEPRECATION_NOTE,
-        DISPOSITIONS,
-        EVALUATION_GATE,
-        EXECUTOR,
-        FALLBACKS,
-        FILTER_NAMES,
-        FILTER_STATUSES,
-        FIT_LANES,
-        HOLD_NOTE,
-        JUDGMENT_REPORT,
-        LANDING_TARGET,
-        LANES,
-        MIGRATION_NOTE,
-        OBSERVED_EFFECT,
-        PLATFORMS,
-        PROMOTION_NOTE,
-        PROPOSED,
-        RECURRING_CONTROL_DECISIONS,
-        REJECT_NOTE,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        SANDBOX_TYPES,
-        SCHEMA_VERSION,
-        STRUCTURAL_GAP,
-        TRIAL_PACKET,
-        TRIAL_RESULT,
-        TRIAL_TYPES,
-        VERDICTS,
-        WATCH_NOTE,
-    )
-    from .adop_validation import (
-        AdopValidationError,
-        lint_artifact_root,
-        unknown_tool_attribute_fields,
-        today_iso,
-        validate_archive_note_payload,
-        validate_blocked_note_payload,
-        validate_close_payload,
-        validate_comparison_payload,
-        validate_coupling_note_payload,
-        validate_deprecation_note_payload,
-        validate_filter_assessment,
-        validate_intake_payload,
-        validate_migration_note_payload,
-        validate_no_impact_trial_mode,
-        validate_trial_packet_payload,
-        validate_watch_note_payload,
-    )
-except ImportError:  # pragma: no cover - script import path
-    from common import fix_stdout_encoding
+from common import fix_stdout_encoding
 
-    import adop_artifacts as artifacts
-    from adop_html import render_dashboard_html
-    from adop_ids import next_sequential_id, parse_numeric_id
-    from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from adop_summary import build_summary, get_scene_states
-    from adop_types import (
-        ARCHIVE_NOTE,
-        BLOCKED_NOTE,
-        CANDIDATE_INTAKE_NOTE,
-        CANDIDATE_SHAPES,
-        COMPARISON_NOTE,
-        COUPLING_NOTE,
-        COUPLING_TYPES,
-        DECOMPOSITION_DECISION,
-        DECOMPOSITION_DECISIONS,
-        DEPRECATION_NOTE,
-        DISPOSITIONS,
-        EVALUATION_GATE,
-        EXECUTOR,
-        FALLBACKS,
-        FILTER_NAMES,
-        FILTER_STATUSES,
-        FIT_LANES,
-        JUDGMENT_REPORT,
-        LANDING_TARGET,
-        LANES,
-        MIGRATION_NOTE,
-        HOLD_NOTE,
-        OBSERVED_EFFECT,
-        PLATFORMS,
-        PROMOTION_NOTE,
-        PROPOSED,
-        RECURRING_CONTROL_DECISIONS,
-        REJECT_NOTE,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        SANDBOX_TYPES,
-        SCHEMA_VERSION,
-        STRUCTURAL_GAP,
-        TRIAL_PACKET,
-        TRIAL_RESULT,
-        TRIAL_TYPES,
-        VERDICTS,
-        WATCH_NOTE,
-    )
-    from adop_validation import (
-        AdopValidationError,
-        lint_artifact_root,
-        unknown_tool_attribute_fields,
-        today_iso,
-        validate_archive_note_payload,
-        validate_blocked_note_payload,
-        validate_close_payload,
-        validate_comparison_payload,
-        validate_coupling_note_payload,
-        validate_deprecation_note_payload,
-        validate_filter_assessment,
-        validate_intake_payload,
-        validate_migration_note_payload,
-        validate_no_impact_trial_mode,
-        validate_trial_packet_payload,
-        validate_watch_note_payload,
-    )
+import adop_artifacts as artifacts
+from adop_html import render_dashboard_html
+from adop_ids import next_sequential_id, parse_numeric_id
+from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
+from adop_summary import build_summary, get_scene_states
+from adop_types import (
+    ARCHIVE_NOTE,
+    BLOCKED_NOTE,
+    CANDIDATE_INTAKE_NOTE,
+    CANDIDATE_SHAPES,
+    COMPARISON_NOTE,
+    COUPLING_NOTE,
+    COUPLING_TYPES,
+    DECOMPOSITION_DECISION,
+    DECOMPOSITION_DECISIONS,
+    DEPRECATION_NOTE,
+    DISPOSITIONS,
+    EVALUATION_GATE,
+    EXECUTOR,
+    FALLBACKS,
+    FILTER_NAMES,
+    FILTER_STATUSES,
+    FIT_LANES,
+    HOLD_NOTE,
+    JUDGMENT_REPORT,
+    LANDING_TARGET,
+    LANES,
+    MIGRATION_NOTE,
+    OBSERVED_EFFECT,
+    PLATFORMS,
+    PROMOTION_NOTE,
+    PROPOSED,
+    RECURRING_CONTROL_DECISIONS,
+    REJECT_NOTE,
+    REMOVAL_COSTS,
+    ROOT_CAUSE_HYPOTHESIS,
+    SANDBOX_TYPES,
+    SCHEMA_VERSION,
+    STRUCTURAL_GAP,
+    TRIAL_PACKET,
+    TRIAL_RESULT,
+    TRIAL_TYPES,
+    VERDICTS,
+    WATCH_NOTE,
+)
+from adop_validation import (
+    AdopValidationError,
+    lint_artifact_root,
+    today_iso,
+    unknown_tool_attribute_fields,
+    validate_archive_note_payload,
+    validate_blocked_note_payload,
+    validate_close_payload,
+    validate_comparison_payload,
+    validate_coupling_note_payload,
+    validate_deprecation_note_payload,
+    validate_filter_assessment,
+    validate_intake_payload,
+    validate_migration_note_payload,
+    validate_no_impact_trial_mode,
+    validate_trial_packet_payload,
+    validate_watch_note_payload,
+)
 
 fix_stdout_encoding()
 
@@ -303,7 +237,11 @@ _NODE_DEP_FILES: frozenset[str] = frozenset({
 _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     "actionlint": (
         {
-            "patterns": (".actionlint.yaml", ".actionlint.yml", ".github/actionlint.yaml", ".github/actionlint.yml"),
+            "patterns": (
+                ".actionlint.yaml", ".actionlint.yml",
+                ".github/actionlint.yaml", ".github/actionlint.yml",
+                "tool-surfaces/.github/actionlint.yaml", "tool-surfaces/.github/actionlint.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -321,6 +259,7 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
         {
             "patterns": (
                 "eslint.config.js", "eslint.config.cjs", "eslint.config.mjs",
+                "tool-surfaces/eslint.config.js", "tool-surfaces/eslint.config.cjs", "tool-surfaces/eslint.config.mjs",
                 ".eslintrc", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc.yml", ".eslintrc.js",
                 ".eslintignore",
             ),
@@ -329,14 +268,14 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
             "note": "tool-owned config surface",
         },
         {
-            "patterns": (".vscode/extensions.json",),
+            "patterns": (".vscode/extensions.json", "tool-surfaces/.vscode/extensions.json"),
             "contains_any": ("dbaeumer.vscode-eslint",),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "workspace extension recommendation",
         },
         {
-            "patterns": (".vscode/settings.json",),
+            "patterns": (".vscode/settings.json", "tool-surfaces/.vscode/settings.json"),
             "contains_any": ("\"eslint.validate\"", "\"source.fixall.eslint\"", "\"eslint."),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -345,7 +284,7 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "hadolint": (
         {
-            "patterns": (".hadolint.yaml", ".hadolint.yml"),
+            "patterns": (".hadolint.yaml", ".hadolint.yml", "tool-surfaces/.hadolint.yaml", "tool-surfaces/.hadolint.yml"),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -360,7 +299,11 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "markdownlint-cli2": (
         {
-            "patterns": (".markdownlint-cli2.jsonc", ".markdownlint-cli2.json", ".markdownlint-cli2.yaml", ".markdownlint-cli2.yml"),
+            "patterns": (
+                ".markdownlint-cli2.jsonc", ".markdownlint-cli2.json", ".markdownlint-cli2.yaml", ".markdownlint-cli2.yml",
+                "tool-surfaces/.markdownlint-cli2.jsonc", "tool-surfaces/.markdownlint-cli2.json",
+                "tool-surfaces/.markdownlint-cli2.yaml", "tool-surfaces/.markdownlint-cli2.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -379,6 +322,8 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
             "patterns": (
                 ".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.yml",
                 ".prettierignore", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs",
+                "tool-surfaces/.prettierrc", "tool-surfaces/.prettierrc.json", "tool-surfaces/.prettierrc.yaml", "tool-surfaces/.prettierrc.yml",
+                "tool-surfaces/.prettierignore", "tool-surfaces/prettier.config.js", "tool-surfaces/prettier.config.cjs", "tool-surfaces/prettier.config.mjs",
             ),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -387,7 +332,10 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "renovate": (
         {
-            "patterns": ("renovate.json", "renovate.json5", ".github/renovate.json", ".github/renovate.json5"),
+            "patterns": (
+                "renovate.json", "renovate.json5", ".github/renovate.json", ".github/renovate.json5",
+                "tool-surfaces/renovate.json", "tool-surfaces/renovate.json5",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "dependency bot config surface",
@@ -403,7 +351,11 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "trivy": (
         {
-            "patterns": (".trivyignore", "trivy.yaml", "trivy.yml", ".trivy/config.yaml", ".trivy/config.yml"),
+            "patterns": (
+                ".trivyignore", "trivy.yaml", "trivy.yml", ".trivy/config.yaml", ".trivy/config.yml",
+                "tool-surfaces/.trivyignore", "tool-surfaces/trivy.yaml", "tool-surfaces/trivy.yml",
+                "tool-surfaces/.trivy/config.yaml", "tool-surfaces/.trivy/config.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "scanner config surface",
@@ -411,14 +363,14 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "vscode-eslint": (
         {
-            "patterns": (".vscode/extensions.json",),
+            "patterns": (".vscode/extensions.json", "tool-surfaces/.vscode/extensions.json"),
             "contains_any": ("dbaeumer.vscode-eslint",),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "workspace extension recommendation",
         },
         {
-            "patterns": (".vscode/settings.json",),
+            "patterns": (".vscode/settings.json", "tool-surfaces/.vscode/settings.json"),
             "contains_any": ("\"eslint.validate\"", "\"source.fixall.eslint\"", "\"eslint."),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -785,7 +737,8 @@ def _structured_pyproject_match(rel: str, text: str, aliases: list[str]) -> dict
 
 
 def _structured_package_json_match(rel: str, text: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
-    if rel.lower() != "package.json":
+    rel_lower = rel.lower()
+    if rel_lower != "package.json" and not rel_lower.endswith("/package.json"):
         return None
     try:
         data = json.loads(text)
@@ -858,23 +811,23 @@ def _structured_precommit_match(rel: str, text_lower: str, aliases: list[str]) -
 
 
 def _package_scripts_matching_tool(target: Path, aliases: list[str], tool: str) -> set[str]:
-    package_path = target / "package.json"
-    if not package_path.exists():
-        return set()
-    try:
-        data = json.loads(package_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return set()
-    scripts = data.get("scripts")
-    if not isinstance(scripts, dict):
-        return set()
     matched: set[str] = set()
-    for name, value in scripts.items():
-        if not isinstance(name, str) or not isinstance(value, str):
+    for path, rel in _iter_scan_files(target, []):
+        if path.name != "package.json":
             continue
-        value_lower = value.lower()
-        if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(tool, "package.json", value_lower, aliases):
-            matched.add(name.lower())
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        scripts = data.get("scripts")
+        if not isinstance(scripts, dict):
+            continue
+        for name, value in scripts.items():
+            if not isinstance(name, str) or not isinstance(value, str):
+                continue
+            value_lower = value.lower()
+            if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(tool, rel, value_lower, aliases):
+                matched.add(name.lower())
     return matched
 
 
@@ -905,7 +858,10 @@ def _workflow_command_lines(text_lower: str) -> list[str]:
 
 
 def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
-    if not rel.lower().startswith(".github/workflows/"):
+    if not (
+        rel.lower().startswith(".github/workflows/")
+        or rel.lower().startswith("tool-surfaces/.github/workflows/")
+    ):
         return None
 
     action_patterns: dict[str, tuple[str, ...]] = {
@@ -926,7 +882,13 @@ def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases:
                     confidence="high",
                 )
     for line in _workflow_command_lines(text_lower):
-        if any(re.search(rf"\bnpm\s+run\s+{re.escape(script)}\b", line) for script in matching_scripts):
+        if any(
+            re.search(
+                rf"\bnpm(?:\s+--[a-z0-9-]+(?:[ =][^\s]+)?)*\s+run\s+{re.escape(script)}\b",
+                line,
+            )
+            for script in matching_scripts
+        ):
             return _build_detected_coupling(
                 rel, "invocation", "edit",
                 note="workflow run command",

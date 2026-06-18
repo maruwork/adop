@@ -273,6 +273,44 @@ def test_scan_detects_workflow_npm_script_indirection_as_high_confidence(tmp_pat
     assert workflow_entry["confidence"] == "high"
 
 
+def test_scan_detects_tool_surface_workflow_npm_script_indirection(tmp_path, capsys):
+    package = tmp_path / "tool-surfaces" / "package.json"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_text(
+        '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+        encoding="utf-8",
+    )
+    workflow = tmp_path / "tool-surfaces" / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - run: npm run lint:js\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    workflow_entry = next(entry for entry in data if entry["path"] == "tool-surfaces/.github/workflows/ci.yml")
+    assert workflow_entry["coupling_type"] == "invocation"
+    assert workflow_entry["detection_source"] == "invocation-pattern"
+    assert workflow_entry["confidence"] == "high"
+
+
+def test_scan_detects_workflow_npm_prefix_script_indirection(tmp_path, capsys):
+    package = tmp_path / "tool-surfaces" / "package.json"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_text(
+        '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+        encoding="utf-8",
+    )
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - run: npm --prefix tool-surfaces run lint:js\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    workflow_entry = next(entry for entry in data if entry["path"] == ".github/workflows/ci.yml")
+    assert workflow_entry["coupling_type"] == "invocation"
+    assert workflow_entry["detection_source"] == "invocation-pattern"
+    assert workflow_entry["confidence"] == "high"
+
+
 def test_scan_ignores_check_renovate_hook_name(tmp_path, capsys):
     config = tmp_path / ".pre-commit-config.yaml"
     config.write_text(
@@ -315,6 +353,22 @@ def test_scan_detects_vscode_eslint_settings_without_tool_id(tmp_path, capsys):
     assert data[0]["confidence"] == "high"
 
 
+def test_scan_detects_tool_surface_shelf_vscode_settings(tmp_path, capsys):
+    settings = tmp_path / "tool-surfaces" / ".vscode" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text(
+        '{\n  "eslint.validate": ["javascript"]\n}\n',
+        encoding="utf-8",
+    )
+    rc = run("scan", "--target", str(tmp_path), "--tool", "vscode-eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == "tool-surfaces/.vscode/settings.json"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
+
+
 def test_scan_detects_eslint_editor_surface_as_config(tmp_path, capsys):
     settings = tmp_path / ".vscode" / "settings.json"
     settings.parent.mkdir(parents=True, exist_ok=True)
@@ -352,6 +406,22 @@ def test_scan_detects_package_json_script_as_invocation(tmp_path, capsys):
     assert rc == 0
     data = json.loads(capsys.readouterr().out)
     assert data[0]["path"] == "package.json"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_tool_surface_package_json_script_as_invocation(tmp_path, capsys):
+    package = tmp_path / "tool-surfaces" / "package.json"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_text(
+        '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+        encoding="utf-8",
+    )
+    rc = run("scan", "--target", str(tmp_path), "--tool", "eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == "tool-surfaces/package.json"
     assert data[0]["coupling_type"] == "invocation"
     assert data[0]["detection_source"] == "invocation-pattern"
     assert data[0]["confidence"] == "high"

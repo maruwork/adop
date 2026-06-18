@@ -4,5 +4,5 @@
 set -euo pipefail
 
 echo "ADOP repo smoke example"
-test -f pyproject.toml
-test -f package.json
+test -f ../../pyproject.toml
+test -f ../package.json

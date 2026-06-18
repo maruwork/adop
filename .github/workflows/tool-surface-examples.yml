@@ -15,16 +15,16 @@ jobs:
           node-version: "22"
 
       - name: Install JS tooling
-        run: npm install
+        run: npm --prefix tool-surfaces install
 
       - name: Run ESLint
-        run: npm run lint:js
+        run: npm --prefix tool-surfaces run lint:js
 
       - name: Run markdownlint-cli2
-        run: npm run lint:md
+        run: npm --prefix tool-surfaces run lint:md
 
       - name: Run Prettier
-        run: npm run format:check
+        run: npm --prefix tool-surfaces run format:check
 
       - name: Run actionlint
         uses: rhysd/actionlint@v1
@@ -32,15 +32,15 @@ jobs:
       - name: Run Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: Dockerfile.tooling-example
+          dockerfile: tool-surfaces/Dockerfile.tooling-example
 
       - name: Run ShellCheck
         uses: reviewdog/action-shellcheck@v1
         with:
-          path: scripts/repo-smoke.sh
+          path: tool-surfaces/scripts/repo-smoke.sh
 
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.31.0
         with:
           scan-type: fs
-          scan-ref: .
+          scan-ref: tool-surfaces

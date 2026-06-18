@@ -8,7 +8,7 @@ updates:
       - "dependabot"
       - "dependencies"
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/tool-surfaces"
     schedule:
       interval: "weekly"
     labels:
