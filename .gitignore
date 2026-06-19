@@ -29,3 +29,9 @@ docs/governance/
 docs/publication/
 docs/AI_AGENT_RUNTIME_TOKEN_OPTIMIZATION.md
 workspace/
+
+# coverage output
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

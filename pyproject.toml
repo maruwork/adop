@@ -83,3 +83,9 @@ branch = true
 # 80 is a real regression guard, not a vanity target.
 show_missing = true
 fail_under = 80
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-q"

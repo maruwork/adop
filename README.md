@@ -183,7 +183,7 @@ When preview lanes are injected this way, the page warns that those rows are sam
   - `adop-governance-dashboard-template.html`: canonical HTML dashboard template
 - `docs/design/`: design notes and schema reference
 - `docs/ADOP_GENERIC_QUICKSTART.md`: fastest path to understand and verify ADOP
-- `SUPPORT.md`: pre-issue checklist and support contact routes
+- `.github/SUPPORT.md`: pre-issue checklist and support contact routes
 
 ## Full Reading Order
 
@@ -196,7 +196,7 @@ When preview lanes are injected this way, the page warns that those rows are sam
 7. `shared/python/adop_types.py`
 8. `shared/python/adop_cli.py`
 9. `docs/design/adop-lifecycle-schema-design.md`
-10. `SUPPORT.md`
+10. `.github/SUPPORT.md`
 
 ## Authority Boundary
 
@@ -207,11 +207,11 @@ Each project maintains its own overlay file (scaffolded by `adop init`) that hol
 ## Repository Community Files
 
 - `LICENSE`
-- `CONTRIBUTING.md`
-- `SECURITY.md`
-- `CODE_OF_CONDUCT.md`
 - `CHANGELOG.md`
-- `SUPPORT.md`
+- `.github/CONTRIBUTING.md`
+- `.github/SECURITY.md`
+- `.github/CODE_OF_CONDUCT.md`
+- `.github/SUPPORT.md`
 - `.github/ISSUE_TEMPLATE/`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/CODEOWNERS`
