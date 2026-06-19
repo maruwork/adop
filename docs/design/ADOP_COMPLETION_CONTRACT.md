@@ -117,3 +117,7 @@ Before saying "complete", collect and review all of the following:
 - the exact local repo-cleanliness check for this monorepo, if local hygiene is still part of the remaining closure work
 
 If any item is still phrased as expectation instead of evidence, the completion claim is still open.
+
+Latest tracked audit memo for the current state:
+
+- `docs/design/ADOP_COMPLETION_AUDIT_20260619.md`

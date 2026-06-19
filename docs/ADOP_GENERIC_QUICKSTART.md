@@ -10,10 +10,12 @@ Provide the shortest bounded path to understand and verify generic ADOP.
 
 1. `README.md`
 2. `docs/design/ADOP_SHELF_CLASSIFICATION.md`
-3. `docs/checklists/external-tool-adoption-checklist.md`
-4. `shared/templates/external-tool-adoption-note-template.md`
-5. `shared/python/adop_types.py`
-6. `shared/python/adop_cli.py`
+3. `docs/design/ADOP_COMPLETION_CONTRACT.md`
+4. `docs/design/ADOP_COMPLETION_AUDIT_20260619.md`
+5. `docs/checklists/external-tool-adoption-checklist.md`
+6. `shared/templates/external-tool-adoption-note-template.md`
+7. `shared/python/adop_types.py`
+8. `shared/python/adop_cli.py`
 
 ## Fastest Verification
 

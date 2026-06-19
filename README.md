@@ -4,6 +4,17 @@ When a team evaluates a new library, linter, or service, the reasoning ends up s
 
 ADOP is a CLI that gives each tool evaluation a structured, append-only record. Every decision — from "we noticed this tool" through "we ran a bounded trial" to "we promoted it" or "we rejected it" — is written as a timestamped artifact in your project's `.adop/` directory. The record outlasts the discussion.
 
+## Current Audit Surfaces
+
+Use these documents for the current repository state:
+
+- internal completion gate:
+  - `docs/design/ADOP_COMPLETION_CONTRACT.md`
+- latest tracked internal completion audit:
+  - `docs/design/ADOP_COMPLETION_AUDIT_20260619.md`
+- public release minimum:
+  - `docs/publication/PUBLIC_VERIFICATION_CONTRACT.md`
+
 ## Who Needs This
 
 Teams that:
@@ -182,6 +193,7 @@ When preview lanes are injected this way, the page warns that those rows are sam
 - `shared/templates/`: record templates for adoption notes and project-local overlays
   - `adop-governance-dashboard-template.html`: canonical HTML dashboard template
 - `docs/design/`: design notes and schema reference
+  - `ADOP_COMPLETION_AUDIT_20260619.md`: latest tracked internal completion audit memo
 - `docs/ADOP_GENERIC_QUICKSTART.md`: fastest path to understand and verify ADOP
 - `SUPPORT.md`: pre-issue checklist and support contact routes
 
@@ -197,14 +209,15 @@ For local repo tests, prefer `python -m pytest tests/ -q --basetemp workspace/tm
 1. `README.md`
 2. `docs/design/ADOP_SHELF_CLASSIFICATION.md`
 3. `docs/design/ADOP_COMPLETION_CONTRACT.md`
-4. `docs/ADOP_GENERIC_QUICKSTART.md`
-5. `docs/checklists/external-tool-adoption-checklist.md`
-6. `shared/templates/external-tool-adoption-note-template.md`
-7. `shared/templates/project-local-adop-overlay-template.md`
-8. `shared/python/adop_types.py`
-9. `shared/python/adop_cli.py`
-10. `docs/design/adop-lifecycle-schema-design.md`
-11. `SUPPORT.md`
+4. `docs/design/ADOP_COMPLETION_AUDIT_20260619.md`
+5. `docs/ADOP_GENERIC_QUICKSTART.md`
+6. `docs/checklists/external-tool-adoption-checklist.md`
+7. `shared/templates/external-tool-adoption-note-template.md`
+8. `shared/templates/project-local-adop-overlay-template.md`
+9. `shared/python/adop_types.py`
+10. `shared/python/adop_cli.py`
+11. `docs/design/adop-lifecycle-schema-design.md`
+12. `SUPPORT.md`
 
 ## Authority Boundary
 
