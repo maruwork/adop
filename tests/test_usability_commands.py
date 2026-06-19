@@ -37,6 +37,17 @@ def test_init_creates_overlay_file(tmp_path):
     assert "ADOP" in text
 
 
+def test_init_accepts_custom_artifact_root_and_overlay_paths(tmp_path):
+    root = str(tmp_path / "records" / "adop-store")
+    overlay_dir = tmp_path / "notes"
+    overlay_dir.mkdir()
+    overlay = str(overlay_dir / "adop-local.md")
+    rc = run("init", "--artifact-root", root, "--overlay", overlay)
+    assert rc == 0
+    assert Path(root).is_dir()
+    assert Path(overlay).exists()
+
+
 def test_init_overlay_matches_scene_lane_contract(tmp_path):
     root = str(tmp_path / ".adop")
     overlay = str(tmp_path / "adop-overlay.md")

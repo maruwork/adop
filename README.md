@@ -54,6 +54,9 @@ pip install git+https://github.com/maruwork/adop.git
 adop --version   # adop 0.1.1
 ```
 
+This packaged install surface is verified separately from source-tree execution:
+CI builds a wheel from this repo and installs that distribution into a fresh environment before running newcomer smoke checks.
+
 **Option B — clone and run**
 
 ```bash
