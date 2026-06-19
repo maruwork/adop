@@ -1,7 +1,0 @@
-# hadolint global ignore=DL3008
-FROM python:3.13-slim
-
-WORKDIR /app
-COPY pyproject.toml README.md /app/
-
-CMD ["python", "--version"]

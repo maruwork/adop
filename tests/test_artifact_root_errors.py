@@ -17,8 +17,9 @@ def test_uncreatable_root_returns_io_error_not_traceback(run, root, capsys):
     parent_file.write_text("x", encoding="utf-8")
     bad_root = str(parent_file / "sub")  # mkdir under a file -> OSError
 
-    code = run("watch", "--artifact-root", bad_root,
-               "--candidate", "ruff", "--interest-reason", "speed")
+    code = run(
+        "watch", "--artifact-root", bad_root, "--candidate", "ruff", "--interest-reason", "speed"
+    )
 
     assert code == 11
     out = capsys.readouterr().out
@@ -33,9 +34,19 @@ def test_boundary_violation_returns_14(run, root, capsys):
     inside = str(project / "artifacts")
 
     code = run(
-        "quick-intake", "--artifact-root", inside,
-        "--target-project-root", str(project),
-        "--candidate", "x", "--source", "doc", "--use-case", "u", "--why-now", "w",
+        "quick-intake",
+        "--artifact-root",
+        inside,
+        "--target-project-root",
+        str(project),
+        "--candidate",
+        "x",
+        "--source",
+        "doc",
+        "--use-case",
+        "u",
+        "--why-now",
+        "w",
     )
 
     assert code == 14
@@ -59,3 +70,77 @@ def test_lint_on_empty_root_exits_10(run, tmp_path, capsys):
     assert code == 10
     out = capsys.readouterr().out
     assert "empty" in out
+
+
+def _watch_payload(artifact_id: str) -> dict:
+    return {
+        "schema_version": 1,
+        "artifact_type": "watch-note",
+        "artifact_id": artifact_id,
+        "status": "active",
+        "created_at": "2026-01-01",
+        "candidate_or_tool": "x",
+        "interest_reason": "y",
+    }
+
+
+def test_stale_lock_is_reclaimed(tmp_path):
+    import os
+    import time as _t
+
+    import adop_artifacts as A
+
+    A.ensure_artifact_root(tmp_path)
+    name = A.artifact_filename("watch-note", "wt-001")
+    lock = tmp_path / f".{name}.lock"
+    lock.write_text("")
+    old = _t.time() - 120  # far older than the stale threshold
+    os.utime(lock, (old, old))
+    path = A.write_artifact(tmp_path, "watch-note", "wt-001", _watch_payload("wt-001"))
+    assert path.exists()
+    assert not lock.exists()  # reclaimed and cleaned up
+
+
+def test_fresh_lock_blocks(tmp_path):
+    import adop_artifacts as A
+    import pytest
+
+    A.ensure_artifact_root(tmp_path)
+    name = A.artifact_filename("watch-note", "wt-002")
+    lock = tmp_path / f".{name}.lock"
+    lock.write_text("")  # fresh lock (current mtime)
+    with pytest.raises(A.AdopArtifactError):
+        A.write_artifact(tmp_path, "watch-note", "wt-002", _watch_payload("wt-002"))
+
+
+def test_concurrent_id_minting_no_duplicates(tmp_path):
+    """Many writers minting sequential ids under contention must not collide."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    import adop_artifacts as A
+
+    A.ensure_artifact_root(tmp_path)
+
+    def mint(_n):
+        def factory(artifact_id):
+            return {
+                "schema_version": 1,
+                "artifact_type": "watch-note",
+                "artifact_id": artifact_id,
+                "status": "active",
+                "created_at": "2026-01-01",
+                "candidate_or_tool": "x",
+                "interest_reason": "y",
+            }
+
+        artifact_id, _path = A.write_next_sequential_artifact(tmp_path, "watch-note", "wt", factory)
+        return artifact_id
+
+    workers = 12
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        ids = list(ex.map(mint, range(workers)))
+
+    assert len(ids) == workers
+    assert len(set(ids)) == workers, f"duplicate ids minted: {sorted(ids)}"
+    written = sorted(p.name for p in tmp_path.glob("adop_watch-note_*.json"))
+    assert len(written) == workers

@@ -6,17 +6,44 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
-from typing import Callable
+from adop_ids import next_sequential_id, parse_numeric_id
+from adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
 
-try:
-    from .adop_ids import next_sequential_id, parse_numeric_id
-    from .adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
-except ImportError:  # pragma: no cover - script import path
-    from adop_ids import next_sequential_id, parse_numeric_id
-    from adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
+# A write completes in well under a second; a lock older than this can only be
+# the orphan of a crashed/killed writer, so it is safe to reclaim instead of
+# blocking the artifact name forever (round-2 audit, orphaned-lock lockout).
+_LOCK_STALE_SECONDS: float = 30.0
+
+
+def _acquire_lock(lock_path: Path, display_name: str) -> int:
+    """Exclusively create the lock file, reclaiming a clearly-stale orphan once.
+
+    A contended lock surfaces as FileExistsError on POSIX but as PermissionError
+    on Windows (the existing/pending-delete lock cannot be opened O_EXCL). Both
+    mean "another writer holds it", so both are mapped to AdopArtifactError, which
+    write_next_sequential_artifact retries on instead of crashing (Windows race).
+    """
+    try:
+        return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except (FileExistsError, PermissionError) as exc:
+        try:
+            age = time.time() - lock_path.stat().st_mtime
+        except OSError:
+            age = 0.0
+        if age <= _LOCK_STALE_SECONDS:
+            raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc
+        try:
+            lock_path.unlink()
+        except OSError:
+            pass
+        try:
+            return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except (FileExistsError, PermissionError) as exc2:
+            raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc2
 
 
 class AdopArtifactError(ValueError):
@@ -102,7 +129,9 @@ def artifact_path(root: Path, artifact_type: str, artifact_id: str) -> Path:
     return ensure_artifact_root(root) / artifact_filename(artifact_type, artifact_id)
 
 
-def write_artifact(root: Path, artifact_type: str, artifact_id: str, payload: dict[str, Any]) -> Path:
+def write_artifact(
+    root: Path, artifact_type: str, artifact_id: str, payload: dict[str, Any]
+) -> Path:
     path = artifact_path(root, artifact_type, artifact_id)
     body = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     lock_path = path.with_name(f".{path.name}.lock")
@@ -110,10 +139,7 @@ def write_artifact(root: Path, artifact_type: str, artifact_id: str, payload: di
     # would later poison load_all_artifacts (residual B36). Write to a temp file
     # in the same directory, fsync, then os.replace (atomic on the same volume).
     tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
-    try:
-        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
-        raise AdopArtifactError(f"artifact write already in progress: {path.name}") from exc
+    fd = _acquire_lock(lock_path, path.name)
     try:
         os.close(fd)
         if path.exists():
@@ -124,10 +150,18 @@ def write_artifact(root: Path, artifact_type: str, artifact_id: str, payload: di
             os.fsync(handle.fileno())
         os.replace(tmp_path, path)
     finally:
+        # Cleanup must not raise in finally and mask the real result; on Windows
+        # an unlink can transiently fail with PermissionError under contention.
         if tmp_path.exists():
-            tmp_path.unlink()
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
         if lock_path.exists():
-            lock_path.unlink()
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
     return path
 
 
@@ -157,10 +191,7 @@ def write_artifact_group(
             path = resolved / artifact_filename(artifact_type, artifact_id)
             lock_path = path.with_name(f".{path.name}.lock")
             tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
-            try:
-                fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            except FileExistsError as exc:
-                raise AdopArtifactError(f"artifact write already in progress: {path.name}") from exc
+            fd = _acquire_lock(lock_path, path.name)
             # Register the lock for cleanup immediately — before any raise below —
             # so a collision cannot leak a stale .lock file.
             locks.append(lock_path)
@@ -249,7 +280,7 @@ def _filename_type(path: Path) -> str | None:
     stem = path.stem
     if not stem.startswith("adop_"):
         return None
-    middle = stem[len("adop_"):]
+    middle = stem[len("adop_") :]
     if "_" not in middle:
         return None
     return middle.rsplit("_", 1)[0]
@@ -276,7 +307,10 @@ def load_all_artifacts(root: Path) -> list[dict[str, Any]]:
         body_type = payload.get("artifact_type")
         name_type = _filename_type(path)
         if body_type is None:
-            print(f"[adop] artifact missing artifact_type, classified by filename: {path}", file=sys.stderr)
+            print(
+                f"[adop] artifact missing artifact_type, classified by filename: {path}",
+                file=sys.stderr,
+            )
         elif name_type is not None and body_type != name_type:
             print(
                 f"[adop] artifact_type mismatch (filename={name_type}, body={body_type}): {path}",
@@ -310,7 +344,9 @@ def _id_sort_key(item: dict[str, Any]) -> tuple[int, int, str]:
     return (0, number, raw)
 
 
-def latest_by_type(root: Path, artifact_type: str, *, scene: str | None = None) -> dict[str, Any] | None:
+def latest_by_type(
+    root: Path, artifact_type: str, *, scene: str | None = None
+) -> dict[str, Any] | None:
     items = find_by_type(root, artifact_type)
     if scene is not None:
         items = [item for item in items if item.get("related_scene") == scene]
@@ -323,7 +359,9 @@ def latest_by_type(root: Path, artifact_type: str, *, scene: str | None = None) 
 def _find_unique_by_id(root: Path, artifact_type: str, artifact_id: str) -> dict[str, Any] | None:
     if not artifact_id:
         return None
-    matches = [item for item in find_by_type(root, artifact_type) if item.get("artifact_id") == artifact_id]
+    matches = [
+        item for item in find_by_type(root, artifact_type) if item.get("artifact_id") == artifact_id
+    ]
     if len(matches) > 1:
         raise AdopArtifactError(f"multiple {artifact_type} artifacts share id {artifact_id}")
     return matches[0] if matches else None
@@ -337,7 +375,9 @@ def find_judgment_report(root: Path, trial_id: str) -> dict[str, Any] | None:
     return _find_unique_by_id(root, JUDGMENT_REPORT, trial_id)
 
 
-def json_response(command: str, status: str, artifact_refs: list[str], errors: list[str]) -> dict[str, Any]:
+def json_response(
+    command: str, status: str, artifact_refs: list[str], errors: list[str]
+) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "command": command,

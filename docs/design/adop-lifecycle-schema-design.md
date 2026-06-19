@@ -246,6 +246,28 @@ Prefixes for new artifact types to be added to `ARTIFACT_ID_PREFIX` in `adop_typ
 
 ---
 
+## 5b. Schema Versioning
+
+Artifacts carry `schema_version`. Two constants govern durability across adop
+upgrades (`adop_types.py`):
+
+- `SCHEMA_VERSION` — the version new artifacts are **written** at.
+- `MIN_READABLE_SCHEMA_VERSION` — the oldest version still **readable**.
+
+Rules enforced in `validate_artifact_schema`:
+
+- `MIN_READABLE_SCHEMA_VERSION <= version <= SCHEMA_VERSION` → valid.
+- `version > SCHEMA_VERSION` → rejected with an explicit "written by a newer adop;
+  upgrade adop to read it" message (not a generic invalid), so a still-good record
+  is not mistaken for corruption.
+- anything else (non-int, `< MIN_READABLE_SCHEMA_VERSION`) → invalid.
+
+**Compatibility contract:** schema changes are **additive-only** — a new version
+may add optional fields but must not remove or repurpose existing ones. This keeps
+every already-written, append-only artifact valid after an adop upgrade; no
+in-place migration (which would violate append-only) is required. Bumping
+`SCHEMA_VERSION` without raising `MIN_READABLE_SCHEMA_VERSION` preserves old records.
+
 ## 6. Fixed Decisions
 
 | Topic | Decision |

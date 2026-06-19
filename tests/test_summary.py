@@ -23,9 +23,16 @@ def _section(text: str, title: str) -> list[str]:
     out: list[str] = []
     in_section = False
     headers = {
-        "ADOP Summary", "Current State by Scene", "Intake Dispositions", "Trial States",
-        "Lifecycle Notes", "Unrecognized Trial States", "Root-Cause Signals",
-        "Structural Gaps", "Decomposition Decisions", "Recommended Fit Lanes",
+        "ADOP Summary",
+        "Current State by Scene",
+        "Intake Dispositions",
+        "Trial States",
+        "Lifecycle Notes",
+        "Unrecognized Trial States",
+        "Root-Cause Signals",
+        "Structural Gaps",
+        "Decomposition Decisions",
+        "Recommended Fit Lanes",
         "Preventive Actions",
     }
     for line in text.splitlines():
@@ -58,10 +65,30 @@ def test_new_states_absent_from_intake_and_trial_sections(run, root):
 
 def test_retirement_chain_shows_each_note(run, root):
     promote_scene(run, root, scene="lint", tool="pylint")
-    run("deprecate", "--artifact-root", root, "--use-case", "lint",
-        "--retirement-reason", "faster", "--replacement-candidate", "ruff", "--timeline", "Q3")
-    run("migrate", "--artifact-root", root, "--use-case", "lint",
-        "--migration-target", "ruff", "--migration-plan", "p")
+    run(
+        "deprecate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--retirement-reason",
+        "faster",
+        "--replacement-candidate",
+        "ruff",
+        "--timeline",
+        "Q3",
+    )
+    run(
+        "migrate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--migration-target",
+        "ruff",
+        "--migration-plan",
+        "p",
+    )
     lifecycle = _section(_summary(root), "Lifecycle Notes")
     assert "- deprecated: 1 [lint]" in lifecycle
     assert "- migrating: 1 [lint]" in lifecycle
@@ -71,10 +98,32 @@ def test_retirement_chain_shows_each_note(run, root):
 def test_latest_note_per_scene_not_double_counted(run, root):
     """Two deprecation-notes for one scene count once (latest wins, append-only)."""
     promote_scene(run, root, scene="lint", tool="pylint")
-    run("deprecate", "--artifact-root", root, "--use-case", "lint",
-        "--retirement-reason", "r1", "--replacement-candidate", "ruff", "--timeline", "Q3")
-    run("deprecate", "--artifact-root", root, "--use-case", "lint",
-        "--retirement-reason", "r2", "--replacement-candidate", "ruff", "--timeline", "Q4")
+    run(
+        "deprecate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--retirement-reason",
+        "r1",
+        "--replacement-candidate",
+        "ruff",
+        "--timeline",
+        "Q3",
+    )
+    run(
+        "deprecate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--retirement-reason",
+        "r2",
+        "--replacement-candidate",
+        "ruff",
+        "--timeline",
+        "Q4",
+    )
     lifecycle = _section(_summary(root), "Lifecycle Notes")
     assert "- deprecated: 1 [lint]" in lifecycle
 
@@ -87,13 +136,34 @@ def test_scene_filter_excludes_sceneless_watch(run, root):
 
 # --- Current State by Scene (single resolved state per scene) ---------------
 
+
 def test_current_state_resolves_to_latest_in_retirement_chain(run, root):
     """A scene promoted then migrated shows ONLY migrating, not three states."""
     promote_scene(run, root, scene="lint", tool="pylint")
-    run("deprecate", "--artifact-root", root, "--use-case", "lint",
-        "--retirement-reason", "faster", "--replacement-candidate", "ruff", "--timeline", "Q3")
-    run("migrate", "--artifact-root", root, "--use-case", "lint",
-        "--migration-target", "ruff", "--migration-plan", "p")
+    run(
+        "deprecate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--retirement-reason",
+        "faster",
+        "--replacement-candidate",
+        "ruff",
+        "--timeline",
+        "Q3",
+    )
+    run(
+        "migrate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--migration-target",
+        "ruff",
+        "--migration-plan",
+        "p",
+    )
     current = _section(_summary(root), "Current State by Scene")
     assert "- lint: migrating" in current
     assert not any("promote" in line or "deprecated" in line for line in current)
@@ -101,58 +171,203 @@ def test_current_state_resolves_to_latest_in_retirement_chain(run, root):
 
 def test_current_state_archived_wins(run, root):
     promote_scene(run, root, scene="lint", tool="pylint")
-    run("deprecate", "--artifact-root", root, "--use-case", "lint",
-        "--retirement-reason", "x", "--replacement-candidate", "ruff", "--timeline", "Q3")
+    run(
+        "deprecate",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--retirement-reason",
+        "x",
+        "--replacement-candidate",
+        "ruff",
+        "--timeline",
+        "Q3",
+    )
     run("archive", "--artifact-root", root, "--use-case", "lint", "--end-date", "2026-09-30")
     current = _section(_summary(root), "Current State by Scene")
     assert "- lint: archived" in current
 
 
 def test_current_state_blocked(run, root):
-    run("quick-intake", "--artifact-root", root, "--candidate", "mypy",
-        "--source", "doc", "--use-case", "typecheck", "--why-now", "strict")
-    run("block", "--artifact-root", root, "--use-case", "typecheck",
-        "--block-reason", "budget", "--unblock-condition", "Q3", "--owner", "lead")
+    run(
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "mypy",
+        "--source",
+        "doc",
+        "--use-case",
+        "typecheck",
+        "--why-now",
+        "strict",
+    )
+    run(
+        "block",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "typecheck",
+        "--block-reason",
+        "budget",
+        "--unblock-condition",
+        "Q3",
+        "--owner",
+        "lead",
+    )
     current = _section(_summary(root), "Current State by Scene")
     assert "- typecheck: blocked" in current
 
 
 def test_current_state_unblock_returns_to_proposed(run, root):
     """Provenance, not timestamps: an intake derived from the blocked-note clears blocked."""
-    run("quick-intake", "--artifact-root", root, "--candidate", "mypy",
-        "--source", "doc", "--use-case", "typecheck", "--why-now", "strict")
-    run("block", "--artifact-root", root, "--use-case", "typecheck",
-        "--block-reason", "budget", "--unblock-condition", "Q3", "--owner", "lead")
-    run("unblock", "--artifact-root", root, "--use-case", "typecheck", "--why-unblocked", "approved")
+    run(
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "mypy",
+        "--source",
+        "doc",
+        "--use-case",
+        "typecheck",
+        "--why-now",
+        "strict",
+    )
+    run(
+        "block",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "typecheck",
+        "--block-reason",
+        "budget",
+        "--unblock-condition",
+        "Q3",
+        "--owner",
+        "lead",
+    )
+    run(
+        "unblock", "--artifact-root", root, "--use-case", "typecheck", "--why-unblocked", "approved"
+    )
     current = _section(_summary(root), "Current State by Scene")
     assert "- typecheck: proposed" in current
     assert not any("blocked" in line for line in current)
 
 
 def test_current_state_in_trial(run, root):
-    run("quick-intake", "--artifact-root", root, "--candidate", "pylint",
-        "--source", "doc", "--use-case", "lint", "--why-now", "need")
-    run("quick-compare", "--artifact-root", root, "--use-case", "lint",
-        "--candidate", "pylint", "--candidate", "other", "--selected", "pylint")
-    run("quick-trial", "--artifact-root", root, "--use-case", "lint",
-        "--mode", "read-only-comparison", "--executor", "ci",
-        "--decision-owner", "lead", "--landing-target", "ci/lint")
+    run(
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "pylint",
+        "--source",
+        "doc",
+        "--use-case",
+        "lint",
+        "--why-now",
+        "need",
+    )
+    run(
+        "quick-compare",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--candidate",
+        "pylint",
+        "--candidate",
+        "other",
+        "--selected",
+        "pylint",
+    )
+    run(
+        "quick-trial",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--mode",
+        "read-only-comparison",
+        "--executor",
+        "ci",
+        "--decision-owner",
+        "lead",
+        "--landing-target",
+        "ci/lint",
+    )
     current = _section(_summary(root), "Current State by Scene")
     assert "- lint: in-trial" in current
 
 
 def test_current_state_hold_resume_returns_trial_ready(run, root):
-    run("quick-intake", "--artifact-root", root, "--candidate", "ruff",
-        "--source", "doc", "--use-case", "lint", "--why-now", "need")
-    run("quick-compare", "--artifact-root", root, "--use-case", "lint",
-        "--candidate", "ruff", "--candidate", "other", "--selected", "ruff")
-    run("quick-trial", "--artifact-root", root, "--use-case", "lint",
-        "--mode", "read-only-comparison", "--executor", "ci",
-        "--decision-owner", "lead", "--landing-target", "ci/lint")
-    run("quick-close-trial", "--artifact-root", root, "--trial-id", "tr-001",
-        "--verdict", "hold", "--observed-effect", "needs narrowing")
-    run("quick-compare", "--artifact-root", root, "--use-case", "lint",
-        "--candidate", "ruff", "--candidate", "other", "--selected", "ruff")
+    run(
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "ruff",
+        "--source",
+        "doc",
+        "--use-case",
+        "lint",
+        "--why-now",
+        "need",
+    )
+    run(
+        "quick-compare",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--candidate",
+        "ruff",
+        "--candidate",
+        "other",
+        "--selected",
+        "ruff",
+    )
+    run(
+        "quick-trial",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--mode",
+        "read-only-comparison",
+        "--executor",
+        "ci",
+        "--decision-owner",
+        "lead",
+        "--landing-target",
+        "ci/lint",
+    )
+    run(
+        "quick-close-trial",
+        "--artifact-root",
+        root,
+        "--trial-id",
+        "tr-001",
+        "--verdict",
+        "hold",
+        "--observed-effect",
+        "needs narrowing",
+    )
+    run(
+        "quick-compare",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--candidate",
+        "ruff",
+        "--candidate",
+        "other",
+        "--selected",
+        "ruff",
+    )
     current = _section(_summary(root), "Current State by Scene")
     assert "- lint: trial-ready" in current
 
@@ -161,3 +376,206 @@ def test_current_state_sceneless_watch_keyed_by_tool(run, root):
     run("watch", "--artifact-root", root, "--candidate", "ruff", "--interest-reason", "x")
     current = _section(_summary(root), "Current State by Scene")
     assert "- (watch) ruff: watch" in current
+
+
+def test_reject_note_resolves_scene_to_reject(run, root):
+    from pathlib import Path
+
+    from adop_summary import get_scene_states
+
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "R",
+            "--source",
+            "doc",
+            "--use-case",
+            "r",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "no") == 0
+    assert get_scene_states(Path(root))["r"] == "reject"
+
+
+def test_summary_loads_artifacts_once(run, root, monkeypatch):
+    import adop_artifacts
+
+    for i in range(6):
+        sc = f"s{i}"
+        assert (
+            run(
+                "quick-intake",
+                "--artifact-root",
+                root,
+                "--candidate",
+                "t",
+                "--source",
+                "doc",
+                "--use-case",
+                sc,
+                "--why-now",
+                "x",
+            )
+            == 0
+        )
+        assert (
+            run(
+                "quick-compare",
+                "--artifact-root",
+                root,
+                "--use-case",
+                sc,
+                "--candidate",
+                "t",
+                "--candidate",
+                "u",
+                "--selected",
+                "t",
+            )
+            == 0
+        )
+        assert (
+            run(
+                "quick-trial",
+                "--artifact-root",
+                root,
+                "--use-case",
+                sc,
+                "--mode",
+                "review-assist",
+                "--executor",
+                "ci",
+                "--decision-owner",
+                "l",
+                "--landing-target",
+                "ci",
+            )
+            == 0
+        )
+        tid = f"tr-00{i + 1}"
+        assert (
+            run(
+                "quick-close-trial",
+                "--artifact-root",
+                root,
+                "--trial-id",
+                tid,
+                "--verdict",
+                "hold",
+                "--observed-effect",
+                "x",
+            )
+            == 0
+        )
+    calls = {"n": 0}
+    real = adop_artifacts.load_all_artifacts
+
+    def counting(target):
+        calls["n"] += 1
+        return real(target)
+
+    monkeypatch.setattr(adop_artifacts, "load_all_artifacts", counting)
+    monkeypatch.setattr(adop_summary, "load_all_artifacts", counting)
+    adop_summary.build_summary(Path(root))
+    # The whole summary must come from a single artifact-root load, not one
+    # disk reload per trial/scene (was O(scenes x files)).
+    assert calls["n"] <= 2, f"artifact root re-loaded {calls['n']} times (per-trial reload)"
+
+
+def test_structural_gap_suppressed_once_in_trial(run, root):
+    # proposed scene shows the gap; in-trial scene must not.
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "a",
+            "--source",
+            "doc",
+            "--use-case",
+            "prop",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "b",
+            "--source",
+            "doc",
+            "--use-case",
+            "live",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "prop",
+            "--candidate",
+            "a",
+            "--candidate",
+            "c",
+            "--selected",
+            "a",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "live",
+            "--candidate",
+            "b",
+            "--candidate",
+            "d",
+            "--selected",
+            "b",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "live",
+            "--mode",
+            "review-assist",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "o",
+            "--landing-target",
+            "x",
+        )
+        == 0
+    )
+    text = _summary(root)
+    gap = [
+        ln for ln in text.splitlines() if ln.startswith("- ") and "bounded evaluation lane" in ln
+    ]
+    scenes_with_gap = {ln.split(":")[0][2:] for ln in gap}
+    assert "prop" in scenes_with_gap  # pre-trial: gap shown
+    assert "live" not in scenes_with_gap  # in-trial: gap suppressed

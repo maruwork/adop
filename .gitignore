@@ -29,3 +29,13 @@ docs/governance/
 docs/publication/
 docs/AI_AGENT_RUNTIME_TOKEN_OPTIMIZATION.md
 workspace/
+
+# coverage output
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# this canonical repo does not track its own root adoption records
+# (root-only: a tracked worked example under examples/**/.adop/ is allowed)
+/.adop/

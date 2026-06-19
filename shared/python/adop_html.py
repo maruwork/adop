@@ -9,14 +9,9 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-try:
-    from .adop_artifacts import AdopArtifactError, load_all_artifacts
-    from .adop_ids import parse_numeric_id
-    from .adop_summary import get_scene_states
-except ImportError:  # pragma: no cover - script import path
-    from adop_artifacts import AdopArtifactError, load_all_artifacts
-    from adop_ids import parse_numeric_id
-    from adop_summary import get_scene_states
+from adop_artifacts import AdopArtifactError, load_all_artifacts
+from adop_ids import parse_numeric_id
+from adop_summary import get_scene_states
 
 _TEMPLATE_NAME = "adop-governance-dashboard-template.html"
 
@@ -173,7 +168,11 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
         ],
         "artifacts": [
             {"type": "trial-result", "id": "tr-003", "purpose": "captures doc generation outcome"},
-            {"type": "promotion-note", "id": "pm-003", "purpose": "marks the doc decision as promoted"},
+            {
+                "type": "promotion-note",
+                "id": "pm-003",
+                "purpose": "marks the doc decision as promoted",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -198,7 +197,11 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
             {"label": "Observed effect", "value": "deployment annotations remained bounded"},
         ],
         "artifacts": [
-            {"type": "promotion-note", "id": "pm-004", "purpose": "records the approved observability decision"},
+            {
+                "type": "promotion-note",
+                "id": "pm-004",
+                "purpose": "records the approved observability decision",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -222,7 +225,11 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
             {"label": "Trial readiness", "value": "executor, gate, and boundary are defined"},
         ],
         "artifacts": [
-            {"type": "trial-packet", "id": "tr-004", "purpose": "declares trial scope and controls"},
+            {
+                "type": "trial-packet",
+                "id": "tr-004",
+                "purpose": "declares trial scope and controls",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -321,7 +328,11 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
             {"label": "Why now", "value": "dependency update burden keeps recurring"},
         ],
         "artifacts": [
-            {"type": "candidate-intake-note", "id": "ci-004", "purpose": "records the proposed decision"},
+            {
+                "type": "candidate-intake-note",
+                "id": "ci-004",
+                "purpose": "records the proposed decision",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -333,7 +344,7 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
         "decision": "Observed need; not yet narrowed to a trial decision",
         "landing_target": "docs/editorial",
         "control_model": "No execution authority granted",
-        "last_evidence": "Watch note wa-001",
+        "last_evidence": "Watch note wt-001",
         "kind_meta": "cli / MIT / prose lint",
         "why_it_matters": "ADOP can show interest without pretending a decision exists.",
         "why_this_state": "Only watch-level evidence exists, so the review remains before intake.",
@@ -342,10 +353,13 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
         "allowed": ["watch entry"],
         "forbidden": ["trial start", "writeback authority"],
         "rationale": [
-            {"label": "Interest reason", "value": "editorial consistency is becoming a recurring problem"},
+            {
+                "label": "Interest reason",
+                "value": "editorial consistency is becoming a recurring problem",
+            },
         ],
         "artifacts": [
-            {"type": "watch-note", "id": "wa-001", "purpose": "records early interest only"},
+            {"type": "watch-note", "id": "wt-001", "purpose": "records early interest only"},
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -369,7 +383,11 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
             {"label": "Archive reason", "value": "migration away from tslint is complete"},
         ],
         "artifacts": [
-            {"type": "archive-note", "id": "ar-001", "purpose": "records final closure of the decision"},
+            {
+                "type": "archive-note",
+                "id": "ar-001",
+                "purpose": "records final closure of the decision",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -390,10 +408,17 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
         "allowed": ["historical reference", "planned migration work"],
         "forbidden": ["treating this decision as the current approved standard"],
         "rationale": [
-            {"label": "Retirement reason", "value": "the successor decision is replacing the old lint path"},
+            {
+                "label": "Retirement reason",
+                "value": "the successor decision is replacing the old lint path",
+            },
         ],
         "artifacts": [
-            {"type": "deprecation-note", "id": "dp-001", "purpose": "records the retirement decision"},
+            {
+                "type": "deprecation-note",
+                "id": "dp-001",
+                "purpose": "records the retirement decision",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -414,10 +439,17 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
         "allowed": ["historical lookup"],
         "forbidden": ["reopening the same rejected scene"],
         "rationale": [
-            {"label": "Reject reason", "value": "cost and fit did not justify adoption for this scene"},
+            {
+                "label": "Reject reason",
+                "value": "cost and fit did not justify adoption for this scene",
+            },
         ],
         "artifacts": [
-            {"type": "reject-note", "id": "rj-001", "purpose": "records terminal rejection for this use case"},
+            {
+                "type": "reject-note",
+                "id": "rj-001",
+                "purpose": "records terminal rejection for this use case",
+            },
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -448,10 +480,7 @@ def _load_template() -> str:
 
 
 def _strip_runtime_metadata(item: dict[str, Any]) -> dict[str, Any]:
-    return {
-        key: value for key, value in item.items()
-        if key not in {"_path", "_adop_path"}
-    }
+    return {key: value for key, value in item.items() if key not in {"_path", "_adop_path"}}
 
 
 def _latest(items: list[dict[str, Any]], artifact_type: str) -> dict[str, Any] | None:
@@ -484,18 +513,22 @@ def _lane_meta(scene_items: list[dict[str, Any]]) -> str:
         return "decision record"
     flow = intake.get("data_flow") or {}
     destination = _pick_first(flow.get("destination"), "unspecified flow")
-    return " / ".join([
-        _pick_first(intake.get("category"), "category ?"),
-        _pick_first(intake.get("license"), "license ?"),
-        destination,
-    ])
+    return " / ".join(
+        [
+            _pick_first(intake.get("category"), "category ?"),
+            _pick_first(intake.get("license"), "license ?"),
+            destination,
+        ]
+    )
 
 
 def _scene_label(scene: str) -> str:
     words = [part for part in scene.replace("_", "-").split("-") if part]
     if not words:
         return scene
-    return " ".join(word.upper() if len(word) <= 3 else word[:1].upper() + word[1:] for word in words)
+    return " ".join(
+        word.upper() if len(word) <= 3 else word[:1].upper() + word[1:] for word in words
+    )
 
 
 def _landing_target(scene_items: list[dict[str, Any]]) -> str:
@@ -556,7 +589,7 @@ def _decision_text(state: str, scene_items: list[dict[str, Any]], landing_target
         return "Trial is running and waiting for a decision."
     if state == "blocked":
         return _pick_first(
-            (_latest(scene_items, "blocked-note") or {}).get("blocking_reason"),
+            (_latest(scene_items, "blocked-note") or {}).get("block_reason"),
             "Blocked until someone makes an explicit unblock decision.",
         )
     if state == "proposed":
@@ -564,15 +597,36 @@ def _decision_text(state: str, scene_items: list[dict[str, Any]], landing_target
     if state == "watch":
         return "On the radar, but no active decision exists yet."
     if state == "deprecated":
-        return "A retirement path is recorded for this decision."
+        return _pick_first(
+            (_latest(scene_items, "deprecation-note") or {}).get("retirement_reason"),
+            "A retirement path is recorded for this decision.",
+        )
     if state == "migrating":
-        return "Replacement work is actively in progress."
+        target = _pick_first((_latest(scene_items, "migration-note") or {}).get("migration_target"))
+        return (
+            f"Replacement in progress; migrating to {target}."
+            if target != "-"
+            else "Replacement work is actively in progress."
+        )
     if state == "archived":
+        archive = _latest(scene_items, "archive-note") or {}
+        end = _pick_first(archive.get("end_date"))
+        successor = _pick_first(archive.get("successor_tool"))
+        if end != "-" and successor != "-":
+            return f"Closed on {end}; succeeded by {successor}."
+        if end != "-":
+            return f"Closed and archived on {end}."
         return "This decision is closed and archived."
     if state == "hold":
-        return "The trial closed on hold, and the decision is paused."
+        return _pick_first(
+            (_latest(scene_items, "hold-note") or {}).get("hold_reason"),
+            "The trial closed on hold, and the decision is paused.",
+        )
     if state == "reject":
-        return "The trial closed with a reject decision."
+        return _pick_first(
+            (_latest(scene_items, "reject-note") or {}).get("reject_reason"),
+            "This decision ended in rejection for this use case.",
+        )
     return "A lifecycle state is recorded."
 
 
@@ -591,33 +645,79 @@ def _control_model(scene_items: list[dict[str, Any]]) -> str:
             return f"allowed {len(allowed)} / forbidden {len(forbidden)} controls recorded"
     packet = _latest(scene_items, "trial-packet")
     if packet:
-        return ", ".join([
-            part for part in (
-                _pick_first(packet.get("mutation_boundary")),
-                _pick_first(packet.get("verification_method")),
+        return (
+            ", ".join(
+                [
+                    part
+                    for part in (
+                        _pick_first(packet.get("mutation_boundary")),
+                        _pick_first(packet.get("verification_method")),
+                    )
+                    if part != "-"
+                ]
             )
-            if part != "-"
-        ]) or "trial boundary recorded"
+            or "trial boundary recorded"
+        )
     return "No usage limits are recorded yet."
 
 
 def _allowed_forbidden(scene_items: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
-    judgment = _latest(scene_items, "judgment-report")
-    if judgment:
-        envelope = judgment.get("no_impact_envelope") or {}
+    # Prefer the closed-trial judgment envelope; fall back to the open trial
+    # packet's envelope so in-trial / trial-ready lanes still show real limits.
+    for artifact_type in ("judgment-report", "trial-packet"):
+        source = _latest(scene_items, artifact_type)
+        if not source:
+            continue
+        envelope = source.get("no_impact_envelope") or {}
         allowed = [str(item) for item in envelope.get("allowed") or []]
         forbidden = [str(item) for item in envelope.get("forbidden") or []]
-        return allowed, forbidden
-    state = ""
-    if scene_items:
-        state = str(scene_items[-1].get("status", ""))
+        if allowed or forbidden:
+            return allowed, forbidden
     return (
-        ["No explicit allow-list recorded yet"] if state else ["No explicit allow-list recorded yet"],
+        ["No explicit allow-list recorded yet"],
         ["No explicit deny-list recorded yet"],
     )
 
 
 def _rationale(scene_items: list[dict[str, Any]]) -> list[dict[str, str]]:
+    # Retirement-tail notes win over the (older) promote judgment-report: once a
+    # lane is deprecated/migrating/archived, the relevant reasoning is the
+    # retirement note, not the promotion that preceded it.
+    archive = _latest(scene_items, "archive-note")
+    if archive:
+        rows = [
+            ("End date", archive.get("end_date")),
+            ("Successor tool", archive.get("successor_tool")),
+        ]
+        surfaced = [
+            {"label": label, "value": _pick_first(value)}
+            for label, value in rows
+            if _pick_first(value) != "-"
+        ]
+        return surfaced or [
+            {"label": "Archived", "value": "This decision is closed and kept as history."}
+        ]
+    migration = _latest(scene_items, "migration-note")
+    if migration:
+        return [
+            {"label": "Migration target", "value": _pick_first(migration.get("migration_target"))},
+            {"label": "Migration plan", "value": _pick_first(migration.get("migration_plan"))},
+        ]
+    deprecation = _latest(scene_items, "deprecation-note")
+    if deprecation:
+        rows = [
+            ("Retirement reason", deprecation.get("retirement_reason")),
+            (
+                "Replacement candidates",
+                ", ".join(str(x) for x in deprecation.get("replacement_candidates") or []),
+            ),
+            ("Timeline", deprecation.get("timeline")),
+        ]
+        return [
+            {"label": label, "value": _pick_first(value)}
+            for label, value in rows
+            if _pick_first(value) != "-"
+        ]
     judgment = _latest(scene_items, "judgment-report")
     if judgment:
         rows = [
@@ -625,30 +725,48 @@ def _rationale(scene_items: list[dict[str, Any]]) -> list[dict[str, str]]:
             ("Observed effect", judgment.get("observed_effect_summary")),
             ("Root-cause hypothesis", judgment.get("root_cause_hypothesis")),
             ("Why this problem recurred", judgment.get("why_this_problem_recurred")),
-            ("Preventive action", ", ".join(str(x) for x in judgment.get("preventive_action") or [])),
+            (
+                "Preventive action",
+                ", ".join(str(x) for x in judgment.get("preventive_action") or []),
+            ),
             ("Recurring control decision", judgment.get("recurring_control_decision")),
         ]
-        return [{"label": label, "value": _pick_first(value)} for label, value in rows if _pick_first(value) != "-"]
-    intake = _latest(scene_items, "candidate-intake-note")
+        return [
+            {"label": label, "value": _pick_first(value)}
+            for label, value in rows
+            if _pick_first(value) != "-"
+        ]
+    reject_note = _latest(scene_items, "reject-note")
+    if reject_note:
+        return [{"label": "Reject reason", "value": _pick_first(reject_note.get("reject_reason"))}]
     blocked = _latest(scene_items, "blocked-note")
     if blocked:
-        return [{"label": "Block reason", "value": _pick_first(blocked.get("blocking_reason"), blocked.get("reason"))}]
+        return [{"label": "Block reason", "value": _pick_first(blocked.get("block_reason"))}]
+    intake = _latest(scene_items, "candidate-intake-note")
     if intake:
         return [
-            {"label": "Why now", "value": _pick_first(intake.get("reason"))},
-            {"label": "Root-cause hypothesis", "value": _pick_first(intake.get("root_cause_hypothesis"))},
+            {"label": "Why now", "value": _pick_first(intake.get("intake_reason"))},
+            {
+                "label": "Root-cause hypothesis",
+                "value": _pick_first(intake.get("root_cause_hypothesis")),
+            },
         ]
+    watch = _latest(scene_items, "watch-note")
+    if watch:
+        return [{"label": "Interest reason", "value": _pick_first(watch.get("interest_reason"))}]
     return [{"label": "Status", "value": "No reason fields are available yet for this decision."}]
 
 
 def _artifacts(scene_items: list[dict[str, Any]]) -> list[dict[str, str]]:
     rows = []
     for item in sorted(scene_items, key=_id_sort_key):
-        rows.append({
-            "type": str(item.get("artifact_type", "-")),
-            "id": str(item.get("artifact_id", "-")),
-            "purpose": _artifact_purpose(item),
-        })
+        rows.append(
+            {
+                "type": str(item.get("artifact_type", "-")),
+                "id": str(item.get("artifact_id", "-")),
+                "purpose": _artifact_purpose(item),
+            }
+        )
     return rows
 
 
@@ -680,7 +798,9 @@ def _artifact_purpose(item: dict[str, Any]) -> str:
 
 
 def _timeline(scene_items: list[dict[str, Any]], state: str) -> list[dict[str, Any]]:
-    has = lambda artifact_type: _latest(scene_items, artifact_type) is not None
+    def has(artifact_type: str) -> bool:
+        return _latest(scene_items, artifact_type) is not None
+
     return [
         {
             "step": "Intake",
@@ -710,14 +830,18 @@ def _timeline(scene_items: list[dict[str, Any]], state: str) -> list[dict[str, A
     ]
 
 
-def _lane_summary(scene_items: list[dict[str, Any]], state: str, lane: dict[str, Any]) -> dict[str, str]:
+def _lane_summary(
+    scene_items: list[dict[str, Any]], state: str, lane: dict[str, Any]
+) -> dict[str, str]:
     judgment = _latest(scene_items, "judgment-report")
     next_text = _default_next_text(state, lane["landing_target"])
     summary = {
         "headline": f"{lane['tool']} is in the {_state_label(state)} state for the {lane['scene']} use case.",
         "why_it_matters": "This keeps tool decisions reviewable instead of rediscovering them later.",
         "why_this_state": _decision_text(state, scene_items, str(lane["landing_target"])),
-        "what_happens_next": next_text if state == "promote" else _pick_first(judgment.get("next_action") if judgment else "", next_text),
+        "what_happens_next": next_text
+        if state == "promote"
+        else _pick_first(judgment.get("next_action") if judgment else "", next_text),
         "change_condition": _default_change_condition(state),
     }
     if judgment and judgment.get("judgment_reason"):
@@ -779,87 +903,216 @@ def _next_command(scene: str, state: str, scene_items: list[dict[str, Any]]) -> 
 def _command_details(state: str, scene: str) -> list[dict[str, str]]:
     if state == "watch":
         return [
-            {"label": "Why this command", "value": "The tool is only being watched. Intake is the first command that turns interest into a recorded review."},
-            {"label": "Use it when", "value": "You have decided the tool should enter formal review for this use case."},
-            {"label": "Do not use it when", "value": "The team is still only collecting ideas and is not ready to open a real review."},
-            {"label": "Result", "value": "ADOP records why the review is starting and moves this decision out of watch-only status."},
+            {
+                "label": "Why this command",
+                "value": "The tool is only being watched. Intake is the first command that turns interest into a recorded review.",
+            },
+            {
+                "label": "Use it when",
+                "value": "You have decided the tool should enter formal review for this use case.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "The team is still only collecting ideas and is not ready to open a real review.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP records why the review is starting and moves this decision out of watch-only status.",
+            },
         ]
     if state == "proposed":
         return [
-            {"label": "Why this command", "value": "The candidate exists, but ADOP still needs one selected option before trial planning can be trusted."},
-            {"label": "Use it when", "value": "You are ready to narrow the review to one chosen candidate for this use case."},
-            {"label": "Do not use it when", "value": "You still need to gather candidates or the selected tool is not decided yet."},
-            {"label": "Result", "value": "ADOP records the chosen candidate and prepares the decision for bounded trial setup."},
+            {
+                "label": "Why this command",
+                "value": "The candidate exists, but ADOP still needs one selected option before trial planning can be trusted.",
+            },
+            {
+                "label": "Use it when",
+                "value": "You are ready to narrow the review to one chosen candidate for this use case.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "You still need to gather candidates or the selected tool is not decided yet.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP records the chosen candidate and prepares the decision for bounded trial setup.",
+            },
         ]
     if state == "trial-ready":
         return [
-            {"label": "Why this command", "value": "Comparison is complete, but ADOP still needs the trial boundary, owner, and target before execution begins."},
-            {"label": "Use it when", "value": "The team is ready to start the bounded trial under explicit ownership and scope."},
-            {"label": "Do not use it when", "value": "The trial owner, execution mode, or allowed use area is still undecided."},
-            {"label": "Result", "value": "ADOP records the trial plan and moves the review into an executable trial phase."},
+            {
+                "label": "Why this command",
+                "value": "Comparison is complete, but ADOP still needs the trial boundary, owner, and target before execution begins.",
+            },
+            {
+                "label": "Use it when",
+                "value": "The team is ready to start the bounded trial under explicit ownership and scope.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "The trial owner, execution mode, or allowed use area is still undecided.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP records the trial plan and moves the review into an executable trial phase.",
+            },
         ]
     if state == "in-trial":
         return [
-            {"label": "Why this command", "value": "Trial output exists, but ADOP still needs the final decision to close the review properly."},
-            {"label": "Use it when", "value": "The bounded trial has finished and you are ready to record promote, hold, or reject."},
-            {"label": "Do not use it when", "value": "Evidence is still incomplete or the team has not decided the verdict yet."},
-            {"label": "Result", "value": "ADOP records the outcome and moves the decision into its next explicit lifecycle state."},
+            {
+                "label": "Why this command",
+                "value": "Trial output exists, but ADOP still needs the final decision to close the review properly.",
+            },
+            {
+                "label": "Use it when",
+                "value": "The bounded trial has finished and you are ready to record promote, hold, or reject.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "Evidence is still incomplete or the team has not decided the verdict yet.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP records the outcome and moves the decision into its next explicit lifecycle state.",
+            },
         ]
     if state == "blocked":
         return [
-            {"label": "Why this command", "value": "This decision is blocked. Unblock exists to record that the blocking condition is actually resolved."},
-            {"label": "Use it when", "value": "The blocker has been cleared and you need to record what changed."},
-            {"label": "Do not use it when", "value": "The blocker still exists, or you are only reviewing the situation without resolving it."},
-            {"label": "Result", "value": "ADOP removes the blocked state and reopens the decision for the next review step."},
+            {
+                "label": "Why this command",
+                "value": "This decision is blocked. Unblock exists to record that the blocking condition is actually resolved.",
+            },
+            {
+                "label": "Use it when",
+                "value": "The blocker has been cleared and you need to record what changed.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "The blocker still exists, or you are only reviewing the situation without resolving it.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP removes the blocked state and reopens the decision for the next review step.",
+            },
         ]
     if state == "hold":
         return [
-            {"label": "Why this command", "value": "The earlier trial paused. Comparison is the clean way to restart the review with a fresh narrowed choice."},
-            {"label": "Use it when", "value": "You want to resume the paused review and choose the next candidate path."},
-            {"label": "Do not use it when", "value": "The review should remain paused or a blocker must be resolved first."},
-            {"label": "Result", "value": "ADOP records the resumed comparison and moves the decision back toward a bounded trial."},
+            {
+                "label": "Why this command",
+                "value": "The earlier trial paused. Comparison is the clean way to restart the review with a fresh narrowed choice.",
+            },
+            {
+                "label": "Use it when",
+                "value": "You want to resume the paused review and choose the next candidate path.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "The review should remain paused or a blocker must be resolved first.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP records the resumed comparison and moves the decision back toward a bounded trial.",
+            },
         ]
     if state == "deprecated":
         return [
-            {"label": "Why this command", "value": "Retirement has been decided, but ADOP still needs the actual migration target and plan."},
-            {"label": "Use it when", "value": "A replacement path is agreed and the team is ready to record migration work."},
-            {"label": "Do not use it when", "value": "The replacement target or migration plan is still unclear."},
-            {"label": "Result", "value": "ADOP records the replacement plan and marks the decision as actively being replaced."},
+            {
+                "label": "Why this command",
+                "value": "Retirement has been decided, but ADOP still needs the actual migration target and plan.",
+            },
+            {
+                "label": "Use it when",
+                "value": "A replacement path is agreed and the team is ready to record migration work.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "The replacement target or migration plan is still unclear.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP records the replacement plan and marks the decision as actively being replaced.",
+            },
         ]
     if state == "migrating":
         return [
-            {"label": "Why this command", "value": "Replacement work is already underway. Archive is the final step that closes the old decision."},
-            {"label": "Use it when", "value": "Migration is complete and the retired decision should be kept only as history."},
-            {"label": "Do not use it when", "value": "The old tool is still in use or migration work is not actually finished."},
-            {"label": "Result", "value": "ADOP closes the decision and retains it only as historical record."},
+            {
+                "label": "Why this command",
+                "value": "Replacement work is already underway. Archive is the final step that closes the old decision.",
+            },
+            {
+                "label": "Use it when",
+                "value": "Migration is complete and the retired decision should be kept only as history.",
+            },
+            {
+                "label": "Do not use it when",
+                "value": "The old tool is still in use or migration work is not actually finished.",
+            },
+            {
+                "label": "Result",
+                "value": "ADOP closes the decision and retains it only as historical record.",
+            },
         ]
     if state == "reject":
         return [
-            {"label": "Why there is no command", "value": "A reject decision is terminal for this use case."},
-            {"label": "Use a new review when", "value": "A materially different evaluation must begin later under a new use case key."},
+            {
+                "label": "Why there is no command",
+                "value": "A reject decision is terminal for this use case.",
+            },
+            {
+                "label": "Use a new review when",
+                "value": "A materially different evaluation must begin later under a new use case key.",
+            },
         ]
     if state == "archived":
         return [
-            {"label": "Why there is no command", "value": "This decision is already closed and kept only for historical reference."},
-            {"label": "Use a new review when", "value": "A materially new evaluation needs to start instead of reviving old history."},
+            {
+                "label": "Why there is no command",
+                "value": "This decision is already closed and kept only for historical reference.",
+            },
+            {
+                "label": "Use a new review when",
+                "value": "A materially new evaluation needs to start instead of reviving old history.",
+            },
         ]
     if state == "promote":
         return [
-            {"label": "Why there is no command", "value": "The decision is already approved, so no normal lifecycle command is required now."},
-            {"label": "What to do instead", "value": "Keep use inside the approved area and recorded rules until retirement is needed."},
+            {
+                "label": "Why there is no command",
+                "value": "The decision is already approved, so no normal lifecycle command is required now.",
+            },
+            {
+                "label": "What to do instead",
+                "value": "Keep use inside the approved area and recorded rules until retirement is needed.",
+            },
         ]
     return [
-        {"label": "Why this command", "value": "This is the next recorded lifecycle move for the decision."},
+        {
+            "label": "Why this command",
+            "value": "This is the next recorded lifecycle move for the decision.",
+        },
         {"label": "Result", "value": "ADOP records the next explicit state change."},
     ]
 
 
 def _retirement_command_details() -> list[dict[str, str]]:
     return [
-        {"label": "Why this command", "value": "The tool is still approved. This command exists only to record that retirement has formally started."},
-        {"label": "Use it when", "value": "The team has decided the approved tool should stop being the active path."},
-        {"label": "Do not use it when", "value": "You only want to pause usage temporarily or there is not yet a real retirement decision."},
-        {"label": "Result", "value": "ADOP records the retirement start and moves the decision into the removal phase."},
+        {
+            "label": "Why this command",
+            "value": "The tool is still approved. This command exists only to record that retirement has formally started.",
+        },
+        {
+            "label": "Use it when",
+            "value": "The team has decided the approved tool should stop being the active path.",
+        },
+        {
+            "label": "Do not use it when",
+            "value": "You only want to pause usage temporarily or there is not yet a real retirement decision.",
+        },
+        {
+            "label": "Result",
+            "value": "ADOP records the retirement start and moves the decision into the removal phase.",
+        },
     ]
 
 
@@ -887,7 +1140,7 @@ def _command_surface(scene: str, state: str, scene_items: list[dict[str, Any]]) 
                 "retirement_command_label": "Retirement command",
                 "retirement_command_note": "This command changes the decision from approved into retirement tracking.",
                 "retirement_command_details": _retirement_command_details(),
-                "retirement_command": f'adop deprecate --scene {scene} --deprecation-reason "<reason>"',
+                "retirement_command": f'adop deprecate --scene {scene} --retirement-reason "<reason>" --replacement-candidate "<tool>" --timeline "<when>"',
                 "retirement_command_copyable": True,
             }
         )
@@ -915,7 +1168,9 @@ def _default_change_condition(state: str) -> str:
     if state == "promote":
         return "A retirement, migration, or archive note would move this decision beyond promoted."
     if state in {"trial-ready", "in-trial"}:
-        return "A decision record will decide whether this review becomes promoted, hold, or reject."
+        return (
+            "A decision record will decide whether this review becomes promoted, hold, or reject."
+        )
     if state == "blocked":
         return "An unblock path plus renewed intake would change this decision."
     if state == "watch":
@@ -933,11 +1188,15 @@ def _build_lane(scene: str, scene_items: list[dict[str, Any]], state: str) -> di
     tool = _lane_tool(scene_items)
     landing_target = _landing_target(scene_items)
     command_surface = _command_surface(scene, state, scene_items)
-    summary = _lane_summary(scene_items, state, {
-        "tool": tool,
-        "scene": scene,
-        "landing_target": landing_target,
-    })
+    summary = _lane_summary(
+        scene_items,
+        state,
+        {
+            "tool": tool,
+            "scene": scene,
+            "landing_target": landing_target,
+        },
+    )
     allowed, forbidden = _allowed_forbidden(scene_items)
     return {
         "scene": scene,
@@ -949,7 +1208,9 @@ def _build_lane(scene: str, scene_items: list[dict[str, Any]], state: str) -> di
         "state_meaning": _state_meaning(state),
         "tone": _state_tone(state),
         "decision": _decision_text(state, scene_items, landing_target),
-        "next_step": _default_next_text(state, landing_target) if not summary["what_happens_next"] else summary["what_happens_next"],
+        "next_step": _default_next_text(state, landing_target)
+        if not summary["what_happens_next"]
+        else summary["what_happens_next"],
         "landing_target": landing_target,
         "control_model": _control_model(scene_items),
         "last_evidence": _last_evidence(scene_items),
@@ -963,7 +1224,9 @@ def _build_lane(scene: str, scene_items: list[dict[str, Any]], state: str) -> di
         "forbidden": forbidden,
         "rationale": _rationale(scene_items),
         "artifacts": _artifacts(scene_items),
-        "raw_artifacts": [_strip_runtime_metadata(item) for item in sorted(scene_items, key=_id_sort_key)],
+        "raw_artifacts": [
+            _strip_runtime_metadata(item) for item in sorted(scene_items, key=_id_sort_key)
+        ],
         "timeline": _timeline(scene_items, state),
         "is_sample": False,
         **command_surface,
@@ -977,15 +1240,29 @@ def _sample_lane(base: dict[str, Any]) -> dict[str, Any]:
     lane["state_label"] = _state_label(str(lane["state"]))
     lane["state_meaning"] = _state_meaning(str(lane["state"]))
     lane["tone"] = _state_tone(str(lane["state"]))
-    lane["headline"] = f"{lane['tool']} is in the {lane['state_label']} state for the {lane['scene']} use case."
+    lane["headline"] = (
+        f"{lane['tool']} is in the {lane['state_label']} state for the {lane['scene']} use case."
+    )
     lane["next_step"] = _default_next_text(str(lane["state"]), str(lane.get("landing_target", "-")))
     lane.update(_command_surface(str(lane["scene"]), str(lane["state"]), []))
     lane["timeline"] = lane.get("timeline") or [
         {"step": "Intake", "body": "Sample decision for layout stress testing.", "done": True},
         {"step": "Comparison", "body": "Sample decision for layout stress testing.", "done": True},
-        {"step": "Trial", "body": "Sample decision for layout stress testing.", "done": lane["state"] in {"trial-ready", "in-trial", "promote"}},
-        {"step": "Judgment", "body": "Sample decision for layout stress testing.", "done": lane["state"] == "promote"},
-        {"step": "Operational state", "body": f"Sample decision is in the {lane['state_label']} state.", "done": True},
+        {
+            "step": "Trial",
+            "body": "Sample decision for layout stress testing.",
+            "done": lane["state"] in {"trial-ready", "in-trial", "promote"},
+        },
+        {
+            "step": "Judgment",
+            "body": "Sample decision for layout stress testing.",
+            "done": lane["state"] == "promote",
+        },
+        {
+            "step": "Operational state",
+            "body": f"Sample decision is in the {lane['state_label']} state.",
+            "done": True,
+        },
     ]
     lane["is_sample"] = True
     return lane
@@ -1017,7 +1294,11 @@ def build_dashboard_payload(
     items = load_all_artifacts(root)
     scene_states = get_scene_states(root)
     lanes = [
-        _build_lane(scene, [item for item in items if str(item.get("related_scene", "")).strip() == scene], state)
+        _build_lane(
+            scene,
+            [item for item in items if str(item.get("related_scene", "")).strip() == scene],
+            state,
+        )
         for scene, state in scene_states.items()
     ]
     lanes.sort(key=lambda lane: (_STATE_SORT.get(str(lane["state"]), 99), str(lane["scene"])))
@@ -1025,11 +1306,16 @@ def build_dashboard_payload(
     if sample_board_count > len(lanes):
         existing_scenes = {str(lane["scene"]) for lane in lanes}
         available = [
-            candidate for candidate in _SAMPLE_LANES
+            candidate
+            for candidate in _SAMPLE_LANES
             if str(candidate["scene"]) not in existing_scenes
         ]
-        historical_candidates = [candidate for candidate in available if _is_historical(str(candidate["state"]))]
-        active_candidates = [candidate for candidate in available if not _is_historical(str(candidate["state"]))]
+        historical_candidates = [
+            candidate for candidate in available if _is_historical(str(candidate["state"]))
+        ]
+        active_candidates = [
+            candidate for candidate in available if not _is_historical(str(candidate["state"]))
+        ]
 
         chosen: list[dict[str, Any]] = []
         has_historical_real = any(_is_historical(str(lane["state"])) for lane in lanes)
@@ -1128,13 +1414,8 @@ def render_dashboard_html(
     )
     payload_json = json.dumps(payload, ensure_ascii=False)
     payload_json = (
-        payload_json
-        .replace("&", "\\u0026")
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
+        payload_json.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
     )
-    return (
-        template
-        .replace("__ADOP_DASHBOARD_TITLE__", escape(title))
-        .replace("__ADOP_DASHBOARD_PAYLOAD__", payload_json)
+    return template.replace("__ADOP_DASHBOARD_TITLE__", escape(title)).replace(
+        "__ADOP_DASHBOARD_PAYLOAD__", payload_json
     )

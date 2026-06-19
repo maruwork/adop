@@ -5,10 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
-try:
-    from .adop_types import FILTER_NAMES, IN_TRIAL, TRIAL_READY
-except ImportError:  # pragma: no cover - script import path
-    from adop_types import FILTER_NAMES, IN_TRIAL, TRIAL_READY
+from adop_types import FILTER_NAMES, IN_TRIAL, TRIAL_READY
 
 
 def comparison_ready_for_trial(comparison: dict[str, Any]) -> bool:
@@ -22,7 +19,9 @@ def comparison_ready_for_trial(comparison: dict[str, Any]) -> bool:
     return True
 
 
-def infer_effective_trial_state(packet: dict[str, Any], judgment_report: dict[str, Any] | None) -> str:
+def infer_effective_trial_state(
+    packet: dict[str, Any], judgment_report: dict[str, Any] | None
+) -> str:
     if judgment_report:
         return str(judgment_report.get("verdict", IN_TRIAL))
     return IN_TRIAL

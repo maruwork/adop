@@ -1,0 +1,31 @@
+{
+  "ai_compatibility": "any",
+  "artifact_id": "ci-001",
+  "artifact_type": "candidate-intake-note",
+  "candidate_or_tool": "ruff",
+  "candidate_shape": "atomic",
+  "category": "cli",
+  "cost": "free",
+  "created_at": "2026-06-20",
+  "current_disposition": "proposed",
+  "data_flow": {
+    "data_types": [
+      "code"
+    ],
+    "destination": "local",
+    "opt_in": true
+  },
+  "intake_reason": "evaluate a faster linter than the status quo",
+  "intended_lane": "assistance",
+  "license": "MIT",
+  "next_action": "compare candidate set",
+  "platform": "any",
+  "recording_mode": "guided",
+  "recording_source": "quick-intake",
+  "related_scene": "lint-ci",
+  "root_cause_hypothesis": "evaluate a faster linter than the status quo",
+  "schema_version": 1,
+  "source": "doc",
+  "status": "active",
+  "version": "0.5.0"
+}

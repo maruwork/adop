@@ -14,9 +14,8 @@ PYTHON_DIR = Path(__file__).resolve().parent.parent / "shared" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-import pytest  # noqa: E402
-
 import adop_artifacts as artifacts  # noqa: E402
+import pytest  # noqa: E402
 from adop_cli import main  # noqa: E402
 
 
@@ -51,35 +50,93 @@ def promote_scene(run, root: str, *, scene: str = "lint", tool: str = "pylint") 
 
     Leaves the scene in the `promote` state so retirement transitions can run.
     """
-    assert run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", tool, "--source", "doc",
-        "--use-case", scene, "--why-now", "need bounded trial",
-        "--platform", "any",
-        "--license", "MIT",
-        "--cost", "free",
-        "--version", "1.0.0",
-        "--category", "cli",
-        "--ai-compatibility", "any",
-        "--data-flow-json", '{"destination":"local","data_types":["code"],"opt_in":true}',
-    ) == 0
-    assert run(
-        "quick-compare", "--artifact-root", root, "--use-case", scene,
-        "--candidate", tool, "--candidate", "other-tool", "--selected", tool,
-    ) == 0
-    assert run(
-        "quick-trial", "--artifact-root", root, "--use-case", scene,
-        "--mode", "read-only-comparison", "--executor", "ci",
-        "--decision-owner", "lead", "--landing-target", "ci/lint",
-    ) == 0
-    assert run(
-        "quick-close-trial", "--artifact-root", root,
-        "--trial-id", "tr-001", "--verdict", "promote",
-        "--observed-effect", "works",
-        "--judgment-reason", "trial produced reusable value",
-        "--next-action", "promote into the lint workflow",
-        "--recurring-control-decision", "yes",
-        "--root-cause-hypothesis", "lint evaluation needed a stable reusable helper",
-        "--preventive-action", "document the approved lint usage scene",
-        "--why-this-problem-recurred", "the team had no explicit adoption record before the trial",
-    ) == 0
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            tool,
+            "--source",
+            "doc",
+            "--use-case",
+            scene,
+            "--why-now",
+            "need bounded trial",
+            "--platform",
+            "any",
+            "--license",
+            "MIT",
+            "--cost",
+            "free",
+            "--version",
+            "1.0.0",
+            "--category",
+            "cli",
+            "--ai-compatibility",
+            "any",
+            "--data-flow-json",
+            '{"destination":"local","data_types":["code"],"opt_in":true}',
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            scene,
+            "--candidate",
+            tool,
+            "--candidate",
+            "other-tool",
+            "--selected",
+            tool,
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--use-case",
+            scene,
+            "--mode",
+            "read-only-comparison",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "lead",
+            "--landing-target",
+            "ci/lint",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-close-trial",
+            "--artifact-root",
+            root,
+            "--trial-id",
+            "tr-001",
+            "--verdict",
+            "promote",
+            "--observed-effect",
+            "works",
+            "--judgment-reason",
+            "trial produced reusable value",
+            "--next-action",
+            "promote into the lint workflow",
+            "--recurring-control-decision",
+            "yes",
+            "--root-cause-hypothesis",
+            "lint evaluation needed a stable reusable helper",
+            "--preventive-action",
+            "document the approved lint usage scene",
+            "--why-this-problem-recurred",
+            "the team had no explicit adoption record before the trial",
+        )
+        == 0
+    )

@@ -17,9 +17,12 @@ Teams that:
 Each evaluation is tracked as a **scene lane** rooted at `related_scene`, with the chosen tool and adoption unit carried by the artifacts inside that lane. Evaluating `ruff` as a linter is therefore a separate lane from evaluating `ruff` as a formatter. Each lane moves through up to 11 states:
 
 ```
-watch → proposed → blocked → trial-ready → in-trial
-  → promote / hold / reject → deprecated → migrating → archived
+watch → proposed → trial-ready → in-trial → promote / hold / reject
 ```
+
+`proposed` may branch to `blocked` (and back); `reject` is reachable before a trial
+(`proposed` / `blocked`) or after a `hold`. The retirement tail after `promote` is
+`deprecated → migrating → archived`.
 
 State is always derived from what is written on disk. There is no daemon, no database, no central server.
 
@@ -42,6 +45,8 @@ $ adop next
 ```
 
 Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is deleted or overwritten. `adop lint` validates the full record.
+
+**Correcting a mistake:** because the store is append-only, you do not edit or delete a wrong artifact — you append a newer one that supersedes it. The latest artifact of each type per scene wins (e.g. record a fresh `coupling` snapshot, or move the lane forward with the next lifecycle command). The erroneous record stays visible as history, which is the point.
 
 ## Setup
 
@@ -178,7 +183,7 @@ When preview lanes are injected this way, the page warns that those rows are sam
   - `adop-governance-dashboard-template.html`: canonical HTML dashboard template
 - `docs/design/`: design notes and schema reference
 - `docs/ADOP_GENERIC_QUICKSTART.md`: fastest path to understand and verify ADOP
-- `SUPPORT.md`: pre-issue checklist and support contact routes
+- `.github/SUPPORT.md`: pre-issue checklist and support contact routes
 
 ## Full Reading Order
 
@@ -191,7 +196,7 @@ When preview lanes are injected this way, the page warns that those rows are sam
 7. `shared/python/adop_types.py`
 8. `shared/python/adop_cli.py`
 9. `docs/design/adop-lifecycle-schema-design.md`
-10. `SUPPORT.md`
+10. `.github/SUPPORT.md`
 
 ## Authority Boundary
 
@@ -202,11 +207,11 @@ Each project maintains its own overlay file (scaffolded by `adop init`) that hol
 ## Repository Community Files
 
 - `LICENSE`
-- `CONTRIBUTING.md`
-- `SECURITY.md`
-- `CODE_OF_CONDUCT.md`
 - `CHANGELOG.md`
-- `SUPPORT.md`
+- `.github/CONTRIBUTING.md`
+- `.github/SECURITY.md`
+- `.github/CODE_OF_CONDUCT.md`
+- `.github/SUPPORT.md`
 - `.github/ISSUE_TEMPLATE/`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/CODEOWNERS`

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
-import io
 import json
 import os
 import re
@@ -16,137 +15,69 @@ from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Any
 
-try:
-    from .common import fix_stdout_encoding
-    from . import adop_artifacts as artifacts
-    from .adop_html import render_dashboard_html
-    from .adop_ids import next_sequential_id, parse_numeric_id
-    from .adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from .adop_summary import build_summary, get_scene_states
-    from .adop_types import (
-        ARCHIVE_NOTE,
-        BLOCKED_NOTE,
-        CANDIDATE_INTAKE_NOTE,
-        CANDIDATE_SHAPES,
-        COMPARISON_NOTE,
-        COUPLING_NOTE,
-        COUPLING_TYPES,
-        DECOMPOSITION_DECISION,
-        DECOMPOSITION_DECISIONS,
-        DEPRECATION_NOTE,
-        DISPOSITIONS,
-        EVALUATION_GATE,
-        EXECUTOR,
-        FALLBACKS,
-        FILTER_NAMES,
-        FILTER_STATUSES,
-        FIT_LANES,
-        HOLD_NOTE,
-        JUDGMENT_REPORT,
-        LANDING_TARGET,
-        LANES,
-        MIGRATION_NOTE,
-        OBSERVED_EFFECT,
-        PLATFORMS,
-        PROMOTION_NOTE,
-        PROPOSED,
-        RECURRING_CONTROL_DECISIONS,
-        REJECT_NOTE,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        SANDBOX_TYPES,
-        SCHEMA_VERSION,
-        STRUCTURAL_GAP,
-        TRIAL_PACKET,
-        TRIAL_RESULT,
-        TRIAL_TYPES,
-        VERDICTS,
-        WATCH_NOTE,
-    )
-    from .adop_validation import (
-        AdopValidationError,
-        lint_artifact_root,
-        unknown_tool_attribute_fields,
-        today_iso,
-        validate_archive_note_payload,
-        validate_blocked_note_payload,
-        validate_close_payload,
-        validate_comparison_payload,
-        validate_coupling_note_payload,
-        validate_deprecation_note_payload,
-        validate_filter_assessment,
-        validate_intake_payload,
-        validate_migration_note_payload,
-        validate_no_impact_trial_mode,
-        validate_trial_packet_payload,
-        validate_watch_note_payload,
-    )
-except ImportError:  # pragma: no cover - script import path
-    from common import fix_stdout_encoding
-
-    import adop_artifacts as artifacts
-    from adop_html import render_dashboard_html
-    from adop_ids import next_sequential_id, parse_numeric_id
-    from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from adop_summary import build_summary, get_scene_states
-    from adop_types import (
-        ARCHIVE_NOTE,
-        BLOCKED_NOTE,
-        CANDIDATE_INTAKE_NOTE,
-        CANDIDATE_SHAPES,
-        COMPARISON_NOTE,
-        COUPLING_NOTE,
-        COUPLING_TYPES,
-        DECOMPOSITION_DECISION,
-        DECOMPOSITION_DECISIONS,
-        DEPRECATION_NOTE,
-        DISPOSITIONS,
-        EVALUATION_GATE,
-        EXECUTOR,
-        FALLBACKS,
-        FILTER_NAMES,
-        FILTER_STATUSES,
-        FIT_LANES,
-        JUDGMENT_REPORT,
-        LANDING_TARGET,
-        LANES,
-        MIGRATION_NOTE,
-        HOLD_NOTE,
-        OBSERVED_EFFECT,
-        PLATFORMS,
-        PROMOTION_NOTE,
-        PROPOSED,
-        RECURRING_CONTROL_DECISIONS,
-        REJECT_NOTE,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        SANDBOX_TYPES,
-        SCHEMA_VERSION,
-        STRUCTURAL_GAP,
-        TRIAL_PACKET,
-        TRIAL_RESULT,
-        TRIAL_TYPES,
-        VERDICTS,
-        WATCH_NOTE,
-    )
-    from adop_validation import (
-        AdopValidationError,
-        lint_artifact_root,
-        unknown_tool_attribute_fields,
-        today_iso,
-        validate_archive_note_payload,
-        validate_blocked_note_payload,
-        validate_close_payload,
-        validate_comparison_payload,
-        validate_coupling_note_payload,
-        validate_deprecation_note_payload,
-        validate_filter_assessment,
-        validate_intake_payload,
-        validate_migration_note_payload,
-        validate_no_impact_trial_mode,
-        validate_trial_packet_payload,
-        validate_watch_note_payload,
-    )
+import adop_artifacts as artifacts
+from adop_html import render_dashboard_html
+from adop_ids import next_sequential_id, parse_numeric_id
+from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
+from adop_summary import build_summary, get_scene_states
+from adop_types import (
+    ARCHIVE_NOTE,
+    BLOCKED_NOTE,
+    CANDIDATE_INTAKE_NOTE,
+    CANDIDATE_SHAPES,
+    COMPARISON_NOTE,
+    COUPLING_NOTE,
+    COUPLING_TYPES,
+    DECOMPOSITION_DECISION,
+    DECOMPOSITION_DECISIONS,
+    DEPRECATION_NOTE,
+    EVALUATION_GATE,
+    EXECUTOR,
+    FALLBACKS,
+    FILTER_NAMES,
+    FILTER_STATUSES,
+    FIT_LANES,
+    HOLD_NOTE,
+    JUDGMENT_REPORT,
+    LANDING_TARGET,
+    LANES,
+    MIGRATION_NOTE,
+    OBSERVED_EFFECT,
+    PLATFORMS,
+    PROMOTION_NOTE,
+    PROPOSED,
+    RECURRING_CONTROL_DECISIONS,
+    REJECT_NOTE,
+    REMOVAL_COSTS,
+    ROOT_CAUSE_HYPOTHESIS,
+    SANDBOX_TYPES,
+    SCHEMA_VERSION,
+    STRUCTURAL_GAP,
+    TRIAL_PACKET,
+    TRIAL_RESULT,
+    TRIAL_TYPES,
+    VERDICTS,
+    WATCH_NOTE,
+)
+from adop_validation import (
+    AdopValidationError,
+    lint_artifact_root,
+    today_iso,
+    unknown_tool_attribute_fields,
+    validate_archive_note_payload,
+    validate_blocked_note_payload,
+    validate_close_payload,
+    validate_comparison_payload,
+    validate_coupling_note_payload,
+    validate_deprecation_note_payload,
+    validate_filter_assessment,
+    validate_intake_payload,
+    validate_migration_note_payload,
+    validate_no_impact_trial_mode,
+    validate_trial_packet_payload,
+    validate_watch_note_payload,
+)
+from common import fix_stdout_encoding
 
 fix_stdout_encoding()
 
@@ -279,31 +210,48 @@ Adoption checklist: `docs/checklists/external-tool-adoption-checklist.md`
 
 # Next-command templates keyed by lifecycle state.
 _NEXT_FOR_STATE: dict[str, str] = {
-    "watch":       'adop quick-intake --scene {scene} --candidate <tool> --source doc --why-now "<reason>"',
-    "proposed":    'adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>',
-    "trial-ready": 'adop quick-trial --scene {scene} --mode review-assist --executor <who> --decision-owner <owner> --landing-target <target>',
-    "blocked":     'adop unblock --scene {scene} --why-unblocked "<what changed>"',
-    "hold":        'adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>  # resume trial; or: adop deprecate if no longer needed',
-    "reject":      'adop deprecate --scene {scene} --deprecation-reason "rejected at trial" # or: adop archive if fully closed',
-    "deprecated":  'adop migrate --scene {scene} --migration-target <target> --migration-plan "<plan>"',
-    "migrating":   'adop archive --scene {scene} --end-date <YYYY-MM-DD>',
+    "watch": 'adop quick-intake --scene {scene} --candidate <tool> --source doc --why-now "<reason>"',
+    "proposed": "adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>",
+    "trial-ready": "adop quick-trial --scene {scene} --mode review-assist --executor <who> --decision-owner <owner> --landing-target <target>",
+    "blocked": 'adop unblock --scene {scene} --why-unblocked "<what changed>"',
+    "hold": "adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>  # resume trial; or: adop reject if no longer needed",
+    "deprecated": 'adop migrate --scene {scene} --migration-target <target> --migration-plan "<plan>"',
+    "migrating": "adop archive --scene {scene} --end-date <YYYY-MM-DD>",
 }
 
-_CONFIG_FILE_NAMES: frozenset[str] = frozenset({
-    "pyproject.toml", "setup.cfg", "setup.py", "tox.ini",
-    ".pre-commit-config.yaml", ".flake8",
-    "requirements.txt", "requirements-dev.txt", "requirements-test.txt",
-})
+_CONFIG_FILE_NAMES: frozenset[str] = frozenset(
+    {
+        "pyproject.toml",
+        "setup.cfg",
+        "setup.py",
+        "tox.ini",
+        ".pre-commit-config.yaml",
+        ".flake8",
+        "requirements.txt",
+        "requirements-dev.txt",
+        "requirements-test.txt",
+    }
+)
 
 # Node ecosystem: package.json declares deps + scripts; lock files are generated artifacts.
-_NODE_DEP_FILES: frozenset[str] = frozenset({
-    "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-})
+_NODE_DEP_FILES: frozenset[str] = frozenset(
+    {
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+    }
+)
 
 _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     "actionlint": (
         {
-            "patterns": (".actionlint.yaml", ".actionlint.yml", ".github/actionlint.yaml", ".github/actionlint.yml"),
+            "patterns": (
+                ".actionlint.yaml",
+                ".actionlint.yml",
+                ".github/actionlint.yaml",
+                ".github/actionlint.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -320,8 +268,14 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     "eslint": (
         {
             "patterns": (
-                "eslint.config.js", "eslint.config.cjs", "eslint.config.mjs",
-                ".eslintrc", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc.yml", ".eslintrc.js",
+                "eslint.config.js",
+                "eslint.config.cjs",
+                "eslint.config.mjs",
+                ".eslintrc",
+                ".eslintrc.json",
+                ".eslintrc.yaml",
+                ".eslintrc.yml",
+                ".eslintrc.js",
                 ".eslintignore",
             ),
             "coupling_type": "config",
@@ -337,7 +291,7 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
         },
         {
             "patterns": (".vscode/settings.json",),
-            "contains_any": ("\"eslint.validate\"", "\"source.fixall.eslint\"", "\"eslint."),
+            "contains_any": ('"eslint.validate"', '"source.fixall.eslint"', '"eslint.'),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "workspace editor settings",
@@ -360,7 +314,12 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "markdownlint-cli2": (
         {
-            "patterns": (".markdownlint-cli2.jsonc", ".markdownlint-cli2.json", ".markdownlint-cli2.yaml", ".markdownlint-cli2.yml"),
+            "patterns": (
+                ".markdownlint-cli2.jsonc",
+                ".markdownlint-cli2.json",
+                ".markdownlint-cli2.yaml",
+                ".markdownlint-cli2.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -377,8 +336,14 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     "prettier": (
         {
             "patterns": (
-                ".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.yml",
-                ".prettierignore", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs",
+                ".prettierrc",
+                ".prettierrc.json",
+                ".prettierrc.yaml",
+                ".prettierrc.yml",
+                ".prettierignore",
+                "prettier.config.js",
+                "prettier.config.cjs",
+                "prettier.config.mjs",
             ),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -387,7 +352,12 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "renovate": (
         {
-            "patterns": ("renovate.json", "renovate.json5", ".github/renovate.json", ".github/renovate.json5"),
+            "patterns": (
+                "renovate.json",
+                "renovate.json5",
+                ".github/renovate.json",
+                ".github/renovate.json5",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "dependency bot config surface",
@@ -403,7 +373,13 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "trivy": (
         {
-            "patterns": (".trivyignore", "trivy.yaml", "trivy.yml", ".trivy/config.yaml", ".trivy/config.yml"),
+            "patterns": (
+                ".trivyignore",
+                "trivy.yaml",
+                "trivy.yml",
+                ".trivy/config.yaml",
+                ".trivy/config.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "scanner config surface",
@@ -419,7 +395,7 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
         },
         {
             "patterns": (".vscode/settings.json",),
-            "contains_any": ("\"eslint.validate\"", "\"source.fixall.eslint\"", "\"eslint."),
+            "contains_any": ('"eslint.validate"', '"source.fixall.eslint"', '"eslint.'),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "workspace editor settings",
@@ -427,10 +403,27 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
 }
 
-_SCAN_SKIP_DIRS: frozenset[str] = frozenset({
-    ".git", ".hg", "__pycache__", ".pytest_cache", ".mypy_cache",
-    ".venv", "venv", "env", "node_modules", ".adop", "build", "dist",
-})
+# Skip files larger than this when scanning for couplings: a coupling is a
+# config/import/invocation reference, never a multi-MB blob, so reading huge
+# files in full would only risk OOM (round-2 audit R4).
+_MAX_SCAN_FILE_BYTES: int = 5_000_000
+
+_SCAN_SKIP_DIRS: frozenset[str] = frozenset(
+    {
+        ".git",
+        ".hg",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".venv",
+        "venv",
+        "env",
+        "node_modules",
+        ".adop",
+        "build",
+        "dist",
+    }
+)
 
 _PLATFORM_ALIASES: dict[str, str] = {
     "win": "windows",
@@ -511,9 +504,9 @@ def _next_step(scene: str, state: str, root: Path, items: list[dict[str, Any]]) 
     """Return the recommended next CLI command for the given scene/state."""
     if state == "in-trial":
         pkts = [
-            i for i in items
-            if i.get("artifact_type") == TRIAL_PACKET
-            and str(i.get("related_scene", "")) == scene
+            i
+            for i in items
+            if i.get("artifact_type") == TRIAL_PACKET and str(i.get("related_scene", "")) == scene
         ]
         trial_id = str(pkts[-1]["artifact_id"]) if pkts else "tr-001"
         return (
@@ -534,7 +527,9 @@ def _prepare_artifact_root(args: argparse.Namespace) -> Path:
     try:
         return artifacts.ensure_artifact_root(
             Path(root_arg),
-            target_project_root=Path(args.target_project_root) if getattr(args, "target_project_root", None) else None,
+            target_project_root=Path(args.target_project_root)
+            if getattr(args, "target_project_root", None)
+            else None,
             allow_project_impact=bool(getattr(args, "allow_project_impact", False)),
         )
     except artifacts.AdopBoundaryError as exc:
@@ -658,8 +653,7 @@ def _tool_search_aliases(tool: str) -> list[str]:
 
 def _text_mentions_tool(text_lower: str, aliases: list[str]) -> bool:
     return any(
-        re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", text_lower)
-        for alias in aliases
+        re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", text_lower) for alias in aliases
     )
 
 
@@ -701,7 +695,9 @@ def _surface_rule_match(tool: str, rel: str, text_lower: str) -> dict[str, Any] 
     for rule in rules:
         patterns = tuple(str(pattern).lower() for pattern in rule.get("patterns", ()))
         prefixes = tuple(str(prefix).lower() for prefix in rule.get("path_prefixes", ()))
-        matches_path = rel_lower in patterns or any(Path(rel_lower).name.startswith(prefix) for prefix in prefixes)
+        matches_path = rel_lower in patterns or any(
+            Path(rel_lower).name.startswith(prefix) for prefix in prefixes
+        )
         if not matches_path:
             continue
         contains_any = tuple(str(token).lower() for token in rule.get("contains_any", ()))
@@ -718,13 +714,14 @@ def _surface_rule_match(tool: str, rel: str, text_lower: str) -> dict[str, Any] 
     return None
 
 
-def _text_mentions_tool_in_context(tool: str, rel: str, text_lower: str, aliases: list[str]) -> bool:
+def _text_mentions_tool_in_context(
+    tool: str, rel: str, text_lower: str, aliases: list[str]
+) -> bool:
     tool_key = tool.lower().strip()
     rel_lower = rel.lower()
     if tool_key == "renovate":
         return bool(
-            re.search(r"(?<!check-)\brenovate\b", text_lower)
-            or "renovatebot" in text_lower
+            re.search(r"(?<!check-)\brenovate\b", text_lower) or "renovatebot" in text_lower
         )
     if tool_key == "hadolint" and Path(rel_lower).name.startswith("dockerfile"):
         return "hadolint" in text_lower
@@ -753,7 +750,9 @@ def _structured_pyproject_match(rel: str, text: str, aliases: list[str]) -> dict
     normalized_aliases = {alias.replace("-", "_").replace(".", "_") for alias in aliases}
     if isinstance(tool_table, dict) and any(alias in tool_table for alias in normalized_aliases):
         return _build_detected_coupling(
-            rel, "config", "edit",
+            rel,
+            "config",
+            "edit",
             note="tool configuration section",
             detection_source="config-mention",
             confidence="high",
@@ -774,9 +773,15 @@ def _structured_pyproject_match(rel: str, text: str, aliases: list[str]) -> dict
         if isinstance(requires, list):
             dependency_lists.append(requires)
 
-    if any(_dependency_string_mentions_tool(item, aliases) for group in dependency_lists for item in group):
+    if any(
+        _dependency_string_mentions_tool(item, aliases)
+        for group in dependency_lists
+        for item in group
+    ):
         return _build_detected_coupling(
-            rel, "config", "edit",
+            rel,
+            "config",
+            "edit",
             note="dependency declaration",
             detection_source="config-mention",
             confidence="high",
@@ -784,7 +789,9 @@ def _structured_pyproject_match(rel: str, text: str, aliases: list[str]) -> dict
     return None
 
 
-def _structured_package_json_match(rel: str, text: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
+def _structured_package_json_match(
+    rel: str, text: str, aliases: list[str], tool: str
+) -> dict[str, Any] | None:
     if rel.lower() != "package.json":
         return None
     try:
@@ -802,7 +809,9 @@ def _structured_package_json_match(rel: str, text: str, aliases: list[str], tool
     for mapping in dependency_maps:
         if isinstance(mapping, dict) and any(str(key).lower() in alias_set for key in mapping):
             return _build_detected_coupling(
-                rel, "config", "edit",
+                rel,
+                "config",
+                "edit",
                 note="dependency declaration",
                 detection_source="config-mention",
                 confidence="high",
@@ -814,9 +823,13 @@ def _structured_package_json_match(rel: str, text: str, aliases: list[str], tool
             if not isinstance(value, str):
                 continue
             value_lower = value.lower()
-            if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(tool, rel, value_lower, aliases):
+            if _looks_like_pytest_xdist_invocation(
+                tool, value_lower
+            ) or _text_mentions_tool_in_context(tool, rel, value_lower, aliases):
                 return _build_detected_coupling(
-                    rel, "invocation", "edit",
+                    rel,
+                    "invocation",
+                    "edit",
                     note="package script invocation",
                     detection_source="invocation-pattern",
                     confidence="high",
@@ -824,20 +837,30 @@ def _structured_package_json_match(rel: str, text: str, aliases: list[str], tool
     return None
 
 
-def _structured_precommit_match(rel: str, text_lower: str, aliases: list[str]) -> dict[str, Any] | None:
+def _structured_precommit_match(
+    rel: str, text_lower: str, aliases: list[str]
+) -> dict[str, Any] | None:
     if rel.lower() not in (".pre-commit-config.yaml", ".pre-commit-config.yml"):
         return None
 
-    if "github.com/pre-commit/pre-commit-hooks" in text_lower and any(alias == "pre-commit-hooks" for alias in aliases):
+    if "github.com/pre-commit/pre-commit-hooks" in text_lower and any(
+        alias == "pre-commit-hooks" for alias in aliases
+    ):
         return _build_detected_coupling(
-            rel, "config", "edit",
+            rel,
+            "config",
+            "edit",
             note="hook repository declaration",
             detection_source="config-mention",
             confidence="high",
         )
-    if "github.com/python-jsonschema/check-jsonschema" in text_lower and any(alias == "check-jsonschema" for alias in aliases):
+    if "github.com/python-jsonschema/check-jsonschema" in text_lower and any(
+        alias == "check-jsonschema" for alias in aliases
+    ):
         return _build_detected_coupling(
-            rel, "config", "edit",
+            rel,
+            "config",
+            "edit",
             note="hook repository declaration",
             detection_source="config-mention",
             confidence="high",
@@ -849,7 +872,9 @@ def _structured_precommit_match(rel: str, text_lower: str, aliases: list[str]) -
             continue
         if _text_mentions_tool(line, aliases):
             return _build_detected_coupling(
-                rel, "invocation", "edit",
+                rel,
+                "invocation",
+                "edit",
                 note="hook entry declaration",
                 detection_source="config-mention",
                 confidence="high",
@@ -873,7 +898,9 @@ def _package_scripts_matching_tool(target: Path, aliases: list[str], tool: str) 
         if not isinstance(name, str) or not isinstance(value, str):
             continue
         value_lower = value.lower()
-        if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(tool, "package.json", value_lower, aliases):
+        if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(
+            tool, "package.json", value_lower, aliases
+        ):
             matched.add(name.lower())
     return matched
 
@@ -904,7 +931,9 @@ def _workflow_command_lines(text_lower: str) -> list[str]:
     return commands
 
 
-def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
+def _structured_workflow_match(
+    target: Path, rel: str, text_lower: str, aliases: list[str], tool: str
+) -> dict[str, Any] | None:
     if not rel.lower().startswith(".github/workflows/"):
         return None
 
@@ -920,22 +949,32 @@ def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases:
         if line.startswith(("- uses:", "uses:")):
             if any(pattern in line for pattern in action_patterns.get(tool.lower().strip(), ())):
                 return _build_detected_coupling(
-                    rel, "invocation", "edit",
+                    rel,
+                    "invocation",
+                    "edit",
                     note="workflow action usage",
                     detection_source="invocation-pattern",
                     confidence="high",
                 )
     for line in _workflow_command_lines(text_lower):
-        if any(re.search(rf"\bnpm\s+run\s+{re.escape(script)}\b", line) for script in matching_scripts):
+        if any(
+            re.search(rf"\bnpm\s+run\s+{re.escape(script)}\b", line) for script in matching_scripts
+        ):
             return _build_detected_coupling(
-                rel, "invocation", "edit",
+                rel,
+                "invocation",
+                "edit",
                 note="workflow run command",
                 detection_source="invocation-pattern",
                 confidence="high",
             )
-        if _looks_like_pytest_xdist_invocation(tool, line) or _text_mentions_tool_in_context(tool, rel, line, aliases):
+        if _looks_like_pytest_xdist_invocation(tool, line) or _text_mentions_tool_in_context(
+            tool, rel, line, aliases
+        ):
             return _build_detected_coupling(
-                rel, "invocation", "edit",
+                rel,
+                "invocation",
+                "edit",
                 note="workflow run command",
                 detection_source="invocation-pattern",
                 confidence="high",
@@ -943,11 +982,17 @@ def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases:
     return None
 
 
-def _structured_shell_script_match(path: Path, rel: str, text_lower: str, tool: str) -> dict[str, Any] | None:
+def _structured_shell_script_match(
+    path: Path, rel: str, text_lower: str, tool: str
+) -> dict[str, Any] | None:
     if tool.lower().strip() == "shellcheck" and path.suffix in (".sh", ".bash"):
-        if any(raw_line.strip().startswith("# shellcheck ") for raw_line in text_lower.splitlines()):
+        if any(
+            raw_line.strip().startswith("# shellcheck ") for raw_line in text_lower.splitlines()
+        ):
             return _build_detected_coupling(
-                rel, "config", "edit",
+                rel,
+                "config",
+                "edit",
                 note="inline shellcheck directive",
                 detection_source="config-mention",
                 confidence="high",
@@ -955,7 +1000,9 @@ def _structured_shell_script_match(path: Path, rel: str, text_lower: str, tool: 
     return None
 
 
-def _structured_config_match(target: Path, path: Path, rel: str, text: str, text_lower: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
+def _structured_config_match(
+    target: Path, path: Path, rel: str, text: str, text_lower: str, aliases: list[str], tool: str
+) -> dict[str, Any] | None:
     return (
         _structured_pyproject_match(rel, text, aliases)
         or _structured_package_json_match(rel, text, aliases, tool)
@@ -994,6 +1041,8 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
 
     for path, rel in _iter_scan_files(target, excludes):
         try:
+            if path.stat().st_size > _MAX_SCAN_FILE_BYTES:
+                continue
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
@@ -1004,7 +1053,9 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
             couplings.append(surface_match)
             continue
 
-        structured_match = _structured_config_match(target, path, rel, text, text_lower, aliases, tool)
+        structured_match = _structured_config_match(
+            target, path, rel, text, text_lower, aliases, tool
+        )
         if structured_match:
             couplings.append(structured_match)
             continue
@@ -1013,7 +1064,9 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
             if re.search(rf"(?m)^\s*(?:import|from)\s+{re.escape(tool_mod)}\b", text):
                 couplings.append(
                     _build_detected_coupling(
-                        rel, "import", "edit",
+                        rel,
+                        "import",
+                        "edit",
                         detection_source="python-import",
                         confidence="high",
                     )
@@ -1023,7 +1076,9 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                 if path.name in ("package-lock.json", "pnpm-lock.yaml", "yarn.lock"):
                     couplings.append(
                         _build_detected_coupling(
-                            rel, "config", "clean",
+                            rel,
+                            "config",
+                            "clean",
                             note="generated lock file",
                             detection_source="config-mention",
                             confidence="medium",
@@ -1032,47 +1087,85 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                 else:
                     couplings.append(
                         _build_detected_coupling(
-                            rel, "config", "edit",
+                            rel,
+                            "config",
+                            "edit",
                             detection_source="config-mention",
                             confidence="medium",
                         )
                     )
-        elif path.name in _CONFIG_FILE_NAMES or path.suffix in (".yml", ".yaml", ".toml", ".cfg", ".ini"):
-            if _text_mentions_tool_in_context(tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(tool, text_lower):
-                if path.name in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
+        elif path.name in _CONFIG_FILE_NAMES or path.suffix in (
+            ".yml",
+            ".yaml",
+            ".toml",
+            ".cfg",
+            ".ini",
+        ):
+            if _text_mentions_tool_in_context(
+                tool, rel, text_lower, aliases
+            ) or _looks_like_pytest_xdist_invocation(tool, text_lower):
+                if path.name in (
+                    "requirements.txt",
+                    "requirements-dev.txt",
+                    "requirements-test.txt",
+                ):
                     couplings.append(
                         _build_detected_coupling(
-                            rel, "config", "clean",
+                            rel,
+                            "config",
+                            "clean",
                             note="dependency declaration",
                             detection_source="config-mention",
                             confidence="medium",
                         )
                     )
                 else:
-                    detection_source = "invocation-pattern" if _looks_like_pytest_xdist_invocation(tool, text_lower) else "config-mention"
+                    detection_source = (
+                        "invocation-pattern"
+                        if _looks_like_pytest_xdist_invocation(tool, text_lower)
+                        else "config-mention"
+                    )
                     confidence = "high" if detection_source == "invocation-pattern" else "medium"
                     couplings.append(
                         _build_detected_coupling(
-                            rel, "config", "edit",
+                            rel,
+                            "config",
+                            "edit",
                             detection_source=detection_source,
                             confidence=confidence,
                         )
                     )
-        elif path.suffix in (".sh", ".bash", ".ps1", ".bat", ".cmd") or path.name in ("Makefile", "makefile"):
-            if _text_mentions_tool_in_context(tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(tool, text_lower):
+        elif path.suffix in (".sh", ".bash", ".ps1", ".bat", ".cmd") or path.name in (
+            "Makefile",
+            "makefile",
+        ):
+            if _text_mentions_tool_in_context(
+                tool, rel, text_lower, aliases
+            ) or _looks_like_pytest_xdist_invocation(tool, text_lower):
                 detection_source = "invocation-pattern"
                 confidence = "high"
                 couplings.append(
                     _build_detected_coupling(
-                        rel, "invocation", "edit",
+                        rel,
+                        "invocation",
+                        "edit",
                         detection_source=detection_source,
                         confidence=confidence,
                     )
                 )
-        elif _text_mentions_tool_in_context(tool, rel, text_lower, aliases) and path.suffix not in (".pyc", ".pyo", ".lock", ".md", ".rst", ".txt"):
+        elif _text_mentions_tool_in_context(tool, rel, text_lower, aliases) and path.suffix not in (
+            ".pyc",
+            ".pyo",
+            ".lock",
+            ".md",
+            ".rst",
+            ".txt",
+        ):
             couplings.append(
                 _build_detected_coupling(
-                    rel, "reference", "clean",
+                    rel,
+                    "reference",
+                    "clean",
                     detection_source="text-reference",
                     confidence="low",
                 )
@@ -1080,7 +1173,9 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
     return couplings
 
 
-def _write_coupling_note(root: Path, *, scene: str, tool: str, couplings: list[dict[str, Any]]) -> Path:
+def _write_coupling_note(
+    root: Path, *, scene: str, tool: str, couplings: list[dict[str, Any]]
+) -> Path:
     artifact_id = next_sequential_id(root, "cp")
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1163,7 +1258,9 @@ def _simple_close_preset(verdict: str) -> dict[str, Any]:
             "next_action": "promote with explicit writeback review",
             "recurring_control_decision": RECURRING_CONTROL_DECISIONS[2],
             "reopen_condition": "",
-            "preventive_actions": ["capture the reusable writeback pattern in project-local guidance"],
+            "preventive_actions": [
+                "capture the reusable writeback pattern in project-local guidance"
+            ],
             "why_this_problem_recurred": "the use case had no stable helper path before the bounded trial",
         }
     if verdict == VERDICTS[1]:
@@ -1181,7 +1278,9 @@ def _simple_close_preset(verdict: str) -> dict[str, Any]:
             "next_action": "keep the use case on manual handling",
             "recurring_control_decision": RECURRING_CONTROL_DECISIONS[1],
             "reopen_condition": "retry only if a different bounded scene appears",
-            "preventive_actions": ["record the rejected pattern so the same trial is not repeated blindly"],
+            "preventive_actions": [
+                "record the rejected pattern so the same trial is not repeated blindly"
+            ],
             "why_this_problem_recurred": "the candidate did not fit the bounded scene well enough",
         }
     raise AdopValidationError(f"unsupported quick close verdict: {verdict}", 2)
@@ -1189,7 +1288,6 @@ def _simple_close_preset(verdict: str) -> dict[str, Any]:
 
 def _comparison_filter_args(parser: argparse.ArgumentParser) -> None:
     for cli_name in ("scene-fit", "authority-safe", "controlability"):
-        key = cli_name.replace("-", "_")
         parser.add_argument(f"--{cli_name}-status", required=True, choices=FILTER_STATUSES)
         parser.add_argument(f"--{cli_name}-reason", required=True)
         parser.add_argument(f"--{cli_name}-constraint", default=None)
@@ -1221,7 +1319,6 @@ def _project_boundary_args(parser: argparse.ArgumentParser) -> None:
 def _build_filter_assessment(args: argparse.Namespace) -> dict[str, dict[str, str | None]]:
     data: dict[str, dict[str, str | None]] = {}
     for key in FILTER_NAMES:
-        cli_name = key.replace("_", "-")
         data[key] = {
             "status": getattr(args, f"{key}_status"),
             "reason": getattr(args, f"{key}_reason"),
@@ -1275,7 +1372,9 @@ def _build_parser() -> argparse.ArgumentParser:
     quick_intake.add_argument("--source", required=True)
     _scene_arg(quick_intake, required=True, help_text="scene lane to record")
     quick_intake.add_argument("--why-now", required=True)
-    quick_intake.add_argument("--candidate-shape", default=CANDIDATE_SHAPES[0], choices=CANDIDATE_SHAPES)
+    quick_intake.add_argument(
+        "--candidate-shape", default=CANDIDATE_SHAPES[0], choices=CANDIDATE_SHAPES
+    )
     quick_intake.add_argument("--lane", default=LANES[1], choices=LANES)
     quick_intake.add_argument("--root-cause-hypothesis", default="")
     quick_intake.add_argument("--platform", default="")
@@ -1296,11 +1395,18 @@ def _build_parser() -> argparse.ArgumentParser:
     _scene_arg(quick_compare, required=True, help_text="scene lane to compare within")
     quick_compare.add_argument("--candidate", dest="candidates", action="append", required=True)
     quick_compare.add_argument("--selected", required=True)
-    quick_compare.add_argument("--candidate-shape", default=CANDIDATE_SHAPES[0], choices=CANDIDATE_SHAPES)
+    quick_compare.add_argument(
+        "--candidate-shape", default=CANDIDATE_SHAPES[0], choices=CANDIDATE_SHAPES
+    )
     quick_compare.add_argument("--adoption-unit")
     quick_compare.add_argument("--root-cause-hypothesis", default="")
-    quick_compare.add_argument("--structural-gap", default="current workflow lacks a bounded evaluation lane for this scene")
-    quick_compare.add_argument("--non-tool-alternative", default="tighten the manual checklist before adding a tool")
+    quick_compare.add_argument(
+        "--structural-gap",
+        default="current workflow lacks a bounded evaluation lane for this scene",
+    )
+    quick_compare.add_argument(
+        "--non-tool-alternative", default="tighten the manual checklist before adding a tool"
+    )
     quick_compare.add_argument("--target-project-profile-json", default="")
     quick_compare.add_argument("--compatibility-diagnosis-json", default="")
     quick_compare.add_argument("--no-impact-envelope-json", default="")
@@ -1313,7 +1419,9 @@ def _build_parser() -> argparse.ArgumentParser:
     quick_trial.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     _project_boundary_args(quick_trial)
     _scene_arg(quick_trial, required=True, help_text="scene lane to open a trial for")
-    quick_trial.add_argument("--mode", required=True, choices=("review-assist", "read-only-comparison"))
+    quick_trial.add_argument(
+        "--mode", required=True, choices=("review-assist", "read-only-comparison")
+    )
     quick_trial.add_argument("--executor", required=True)
     quick_trial.add_argument("--decision-owner", required=True)
     quick_trial.add_argument("--landing-target", required=True)
@@ -1340,7 +1448,9 @@ def _build_parser() -> argparse.ArgumentParser:
     quick_close.add_argument("--next-action", default="")
     quick_close.add_argument("--reopen-condition", default="")
     quick_close.add_argument("--recurring-control-decision", default="")
-    quick_close.add_argument("--preventive-action", dest="preventive_actions", action="append", default=[])
+    quick_close.add_argument(
+        "--preventive-action", dest="preventive_actions", action="append", default=[]
+    )
     quick_close.add_argument("--why-this-problem-recurred", default="")
 
     intake = subparsers.add_parser(
@@ -1378,7 +1488,9 @@ def _build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--candidate-shape", required=True, choices=CANDIDATE_SHAPES)
     compare.add_argument("--decomposition-decision", required=True, choices=DECOMPOSITION_DECISIONS)
     compare.add_argument("--adoption-unit", required=True)
-    compare.add_argument("--discovered-subtarget", dest="discovered_subtargets", action="append", default=[])
+    compare.add_argument(
+        "--discovered-subtarget", dest="discovered_subtargets", action="append", default=[]
+    )
     compare.add_argument("--recommended-next-candidate", default="")
     compare.add_argument("--target-project-profile-json", required=True)
     compare.add_argument("--compatibility-diagnosis-json", required=True)
@@ -1427,10 +1539,14 @@ def _build_parser() -> argparse.ArgumentParser:
     close.add_argument("--evidence-ref", dest="evidence_refs", action="append", default=[])
     close.add_argument("--reopen-condition", default="")
     close.add_argument("--next-action", required=True)
-    close.add_argument("--recurring-control-decision", required=True, choices=RECURRING_CONTROL_DECISIONS)
+    close.add_argument(
+        "--recurring-control-decision", required=True, choices=RECURRING_CONTROL_DECISIONS
+    )
     close.add_argument("--decision-owner", default=None)
     close.add_argument("--root-cause-hypothesis", required=True)
-    close.add_argument("--preventive-action", dest="preventive_actions", action="append", required=True)
+    close.add_argument(
+        "--preventive-action", dest="preventive_actions", action="append", required=True
+    )
     close.add_argument("--why-this-problem-recurred", required=True)
 
     summary = subparsers.add_parser(
@@ -1508,7 +1624,9 @@ def _build_parser() -> argparse.ArgumentParser:
     _project_boundary_args(watch_cmd)
     watch_cmd.add_argument("--candidate", required=True)
     watch_cmd.add_argument("--interest-reason", required=True)
-    _scene_arg(watch_cmd, required=False, default="", help_text="optional scene lane if already known")
+    _scene_arg(
+        watch_cmd, required=False, default="", help_text="optional scene lane if already known"
+    )
 
     block_cmd = subparsers.add_parser(
         "block",
@@ -1532,6 +1650,16 @@ def _build_parser() -> argparse.ArgumentParser:
     _scene_arg(unblock_cmd, required=True, help_text="scene lane to unblock")
     unblock_cmd.add_argument("--why-unblocked", required=True)
 
+    reject_cmd = subparsers.add_parser(
+        "reject",
+        help="reject a candidate before trial, or after a hold, without a trial verdict",
+        description="Create a reject-note for a proposed / blocked / hold scene lane. Terminal for the scene.",
+    )
+    reject_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
+    _project_boundary_args(reject_cmd)
+    _scene_arg(reject_cmd, required=True, help_text="scene lane to reject")
+    reject_cmd.add_argument("--reject-reason", required=True)
+
     deprecate_cmd = subparsers.add_parser(
         "deprecate",
         help="begin retirement of a promoted tool",
@@ -1541,7 +1669,9 @@ def _build_parser() -> argparse.ArgumentParser:
     _project_boundary_args(deprecate_cmd)
     _scene_arg(deprecate_cmd, required=True, help_text="scene lane to retire")
     deprecate_cmd.add_argument("--retirement-reason", required=True)
-    deprecate_cmd.add_argument("--replacement-candidate", dest="replacement_candidates", action="append", required=True)
+    deprecate_cmd.add_argument(
+        "--replacement-candidate", dest="replacement_candidates", action="append", required=True
+    )
     deprecate_cmd.add_argument("--timeline", required=True)
 
     migrate_cmd = subparsers.add_parser(
@@ -1586,7 +1716,10 @@ def _build_parser() -> argparse.ArgumentParser:
     _scene_arg(couple_cmd, required=True, help_text="scene lane this coupling snapshot belongs to")
     couple_cmd.add_argument("--tool", required=True)
     couple_cmd.add_argument(
-        "--couple", dest="couples", action="append", default=[],
+        "--couple",
+        dest="couples",
+        action="append",
+        default=[],
         metavar="PATH|TYPE|COST[|NOTE]",
         help="one coupling entry, pipe-delimited; repeatable",
     )
@@ -1631,7 +1764,13 @@ def _build_parser() -> argparse.ArgumentParser:
     scan_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
     scan_cmd.add_argument("--target", required=True, metavar="DIR", help="directory to scan")
     scan_cmd.add_argument("--tool", required=True, help="tool name to detect (case-insensitive)")
-    _scene_arg(scan_cmd, required=False, default=None, metavar="SCENE", help_text="optional scene lane label for the resulting coupling note")
+    _scene_arg(
+        scan_cmd,
+        required=False,
+        default=None,
+        metavar="SCENE",
+        help_text="optional scene lane label for the resulting coupling note",
+    )
     scan_cmd.add_argument(
         "--exclude",
         dest="excludes",
@@ -1640,7 +1779,9 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="path prefix or glob to skip; repeatable",
     )
-    scan_cmd.add_argument("--record", action="store_true", help="write the detected coupling set as a coupling-note")
+    scan_cmd.add_argument(
+        "--record", action="store_true", help="write the detected coupling set as a coupling-note"
+    )
     scan_cmd.add_argument("--json", action="store_true", help="emit raw JSON coupling list")
 
     next_cmd = subparsers.add_parser(
@@ -1649,6 +1790,24 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Print the single next recommended CLI command for each pending scene lane.",
     )
     next_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
+
+    aggregate_cmd = subparsers.add_parser(
+        "aggregate",
+        help="aggregate lifecycle states across multiple artifact roots (read-only)",
+        description=(
+            "Cross-project portfolio view: for each --root, list its scene lanes, "
+            "the tool, and the current lifecycle state. Read-only; writes nothing."
+        ),
+    )
+    aggregate_cmd.add_argument(
+        "--root",
+        dest="roots",
+        action="append",
+        required=True,
+        metavar="DIR",
+        help="artifact root to include; repeatable",
+    )
+    aggregate_cmd.add_argument("--json", action="store_true")
 
     return parser
 
@@ -1698,8 +1857,12 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
     parent = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
     if not parent:
         raise AdopValidationError("candidate-intake-note for scene not found", 5)
-    target_project_profile = _parse_json_arg(args.target_project_profile_json, "target_project_profile_json")
-    compatibility_diagnosis = _parse_json_arg(args.compatibility_diagnosis_json, "compatibility_diagnosis_json")
+    target_project_profile = _parse_json_arg(
+        args.target_project_profile_json, "target_project_profile_json"
+    )
+    compatibility_diagnosis = _parse_json_arg(
+        args.compatibility_diagnosis_json, "compatibility_diagnosis_json"
+    )
     no_impact_envelope = (
         _parse_json_arg(args.no_impact_envelope_json, "no_impact_envelope_json")
         if args.no_impact_envelope_json
@@ -1710,7 +1873,11 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
         if isinstance(item, dict) and str(item.get("adoption_unit")) == args.adoption_unit:
             recommended_fit_lane = str(item.get("recommended_fit_lane", ""))
             break
-    if not recommended_fit_lane and compatibility_diagnosis and isinstance(compatibility_diagnosis[0], dict):
+    if (
+        not recommended_fit_lane
+        and compatibility_diagnosis
+        and isinstance(compatibility_diagnosis[0], dict)
+    ):
         recommended_fit_lane = str(compatibility_diagnosis[0].get("recommended_fit_lane", ""))
     artifact_id = next_sequential_id(root, "cmp")
     derived_from = [parent["artifact_id"]]
@@ -1819,6 +1986,7 @@ def _handle_start_trial(args: argparse.Namespace) -> dict[str, Any]:
         "dependency_note": "",
         "failure_mode_hypothesis": [],
     }
+
     def _build_packet_payload(artifact_id: str) -> dict[str, Any]:
         payload = dict(base_payload)
         payload["artifact_id"] = artifact_id
@@ -1840,7 +2008,10 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
     if not packet:
         raise AdopValidationError("trial-packet not found", 5)
     # Detect double-close before building any payloads (exit 5 = readiness gate).
-    if any(str(r.get("artifact_id")) == args.trial_id for r in artifacts.find_by_type(root, TRIAL_RESULT)):
+    if any(
+        str(r.get("artifact_id")) == args.trial_id
+        for r in artifacts.find_by_type(root, TRIAL_RESULT)
+    ):
         raise AdopValidationError(f"trial {args.trial_id} already closed", 5)
     close_payload = {
         "verdict": args.verdict,
@@ -1864,13 +2035,16 @@ def _handle_close_trial(args: argparse.Namespace) -> dict[str, Any]:
     }
     validate_close_payload(close_payload)
     if args.verdict == "promote":
-        latest_intake = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=str(packet.get("related_scene", "")))
+        latest_intake = artifacts.latest_by_type(
+            root, CANDIDATE_INTAKE_NOTE, scene=str(packet.get("related_scene", ""))
+        )
         if not latest_intake:
             raise AdopValidationError("promote requires candidate-intake-note history", 7)
         unknowns = unknown_tool_attribute_fields(latest_intake)
         if unknowns:
             raise AdopValidationError(
-                "promote requires known tool attributes in the latest intake: " + ", ".join(unknowns),
+                "promote requires known tool attributes in the latest intake: "
+                + ", ".join(unknowns),
                 7,
             )
     promote_errors = promote_gate_errors(packet, close_payload)
@@ -2086,16 +2260,26 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
         "intended_lane": LANES[1],
         "intake_reason": args.why_unblocked,
         "current_disposition": PROPOSED,
-        "candidate_shape": str(prior_intake.get("candidate_shape", "unknown")) if prior_intake else "unknown",
+        "candidate_shape": str(prior_intake.get("candidate_shape", "unknown"))
+        if prior_intake
+        else "unknown",
         "next_action": "compare candidate set",
         ROOT_CAUSE_HYPOTHESIS: args.why_unblocked,
         "derived_from": [blocked["artifact_id"]],
-        "platform": str((prior_intake or {}).get("platform", _default_tool_attributes()["platform"])),
+        "platform": str(
+            (prior_intake or {}).get("platform", _default_tool_attributes()["platform"])
+        ),
         "license": str((prior_intake or {}).get("license", _default_tool_attributes()["license"])),
         "cost": str((prior_intake or {}).get("cost", _default_tool_attributes()["cost"])),
         "version": str((prior_intake or {}).get("version", _default_tool_attributes()["version"])),
-        "category": str((prior_intake or {}).get("category", _default_tool_attributes()["category"])),
-        "ai_compatibility": str((prior_intake or {}).get("ai_compatibility", _default_tool_attributes()["ai_compatibility"])),
+        "category": str(
+            (prior_intake or {}).get("category", _default_tool_attributes()["category"])
+        ),
+        "ai_compatibility": str(
+            (prior_intake or {}).get(
+                "ai_compatibility", _default_tool_attributes()["ai_compatibility"]
+            )
+        ),
         "data_flow": (prior_intake or {}).get("data_flow", _default_tool_attributes()["data_flow"]),
     }
     validate_intake_payload(payload)
@@ -2103,14 +2287,54 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
     return artifacts.json_response("unblock", "ok", [path.name], [])
 
 
+def _handle_reject(args: argparse.Namespace) -> dict[str, Any]:
+    root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="reject")
+    if get_scene_states(root).get(args.scene) == "in-trial":
+        raise AdopValidationError(
+            "scene is in an open trial; reject it with 'close-trial --verdict reject' instead", 7
+        )
+    hold = artifacts.latest_by_type(root, HOLD_NOTE, scene=args.scene)
+    blocked = artifacts.latest_by_type(root, BLOCKED_NOTE, scene=args.scene)
+    comparison = artifacts.latest_by_type(root, COMPARISON_NOTE, scene=args.scene)
+    intake = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
+    parent = hold or blocked or comparison or intake
+    if not parent:
+        raise AdopValidationError("no intake/blocked/hold history for scene to reject", 5)
+    tool = (comparison or {}).get("selected_candidate") or str(
+        (intake or {}).get("candidate_or_tool", "")
+    )
+    artifact_id = next_sequential_id(root, "rj")
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "artifact_type": REJECT_NOTE,
+        "artifact_id": artifact_id,
+        "status": "closed",
+        "created_at": today_iso(),
+        "recording_mode": "explicit",
+        "recording_source": "manual-cli",
+        "related_scene": args.scene,
+        "candidate_or_tool": tool,
+        "derived_from": [parent["artifact_id"]],
+        "reject_reason": args.reject_reason,
+        "drawbacks": [],
+    }
+    path = artifacts.write_artifact(root, REJECT_NOTE, artifact_id, payload)
+    return artifacts.json_response("reject", "ok", [path.name], [])
+
+
 def _handle_deprecate(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
     parent = artifacts.latest_by_type(root, PROMOTION_NOTE, scene=args.scene)
     if not parent:
-        raise AdopValidationError("promotion-note for scene not found; tool must be promoted before deprecation", 5)
+        raise AdopValidationError(
+            "promotion-note for scene not found; tool must be promoted before deprecation", 5
+        )
     cmp = artifacts.latest_by_type(root, COMPARISON_NOTE, scene=args.scene)
     intake = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
-    tool_name = (cmp or {}).get("selected_candidate") or str((intake or {}).get("candidate_or_tool", ""))
+    tool_name = (cmp or {}).get("selected_candidate") or str(
+        (intake or {}).get("candidate_or_tool", "")
+    )
     artifact_id = next_sequential_id(root, "dp")
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -2134,7 +2358,9 @@ def _handle_migrate(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
     parent = artifacts.latest_by_type(root, DEPRECATION_NOTE, scene=args.scene)
     if not parent:
-        raise AdopValidationError("deprecation-note for scene not found; tool must be deprecated before migration", 5)
+        raise AdopValidationError(
+            "deprecation-note for scene not found; tool must be deprecated before migration", 5
+        )
     artifact_id = next_sequential_id(root, "mg")
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -2160,7 +2386,8 @@ def _handle_archive(args: argparse.Namespace) -> dict[str, Any]:
     parent = migration or deprecation
     if not parent:
         raise AdopValidationError(
-            "deprecation-note or migration-note for scene not found; tool must be deprecated before archiving", 5
+            "deprecation-note or migration-note for scene not found; tool must be deprecated before archiving",
+            5,
         )
     artifact_id = next_sequential_id(root, "ar")
     payload: dict[str, Any] = {
@@ -2223,7 +2450,8 @@ def _worst_removal_cost(couplings: list[dict[str, Any]]) -> str:
 def _latest_coupling_notes(root: Path, scene: str | None) -> list[dict[str, Any]]:
     """Latest coupling-note per (tool, scene) — each note is a full snapshot."""
     notes = [
-        item for item in artifacts.load_all_artifacts(root)
+        item
+        for item in artifacts.load_all_artifacts(root)
         if item.get("artifact_type") == COUPLING_NOTE
         and (scene is None or str(item.get("related_scene", "")) == scene)
     ]
@@ -2317,9 +2545,14 @@ def _handle_quick_compare(args: argparse.Namespace) -> dict[str, Any]:
     args.recommended_next_candidate = ""
     args.owner = None
     args.adoption_unit = args.adoption_unit or args.selected
-    args.root_cause_hypothesis = args.root_cause_hypothesis or f"the use case '{args.scene}' still depends on ad hoc operator judgment"
+    args.root_cause_hypothesis = (
+        args.root_cause_hypothesis
+        or f"the use case '{args.scene}' still depends on ad hoc operator judgment"
+    )
     if not args.target_project_profile_json:
-        args.target_project_profile_json = json.dumps(_simple_project_profile_default(), ensure_ascii=False)
+        args.target_project_profile_json = json.dumps(
+            _simple_project_profile_default(), ensure_ascii=False
+        )
     if not args.compatibility_diagnosis_json:
         args.compatibility_diagnosis_json = json.dumps(
             _simple_compatibility_diagnosis_default(args.adoption_unit),
@@ -2416,9 +2649,17 @@ def _handle_init(args: argparse.Namespace) -> str:
     overlay_path = Path(args.overlay)
     created_overlay = not overlay_path.exists()
     if created_overlay:
+        # Create the overlay's parent directory so a nested --overlay path does not
+        # crash with a raw FileNotFoundError from copy/write.
+        if overlay_path.parent != Path(""):
+            overlay_path.parent.mkdir(parents=True, exist_ok=True)
         candidates = (
             Path(__file__).parent.parent / "templates" / "project-local-adop-overlay-template.md",
-            Path(sys.prefix) / "share" / "adop" / "templates" / "project-local-adop-overlay-template.md",
+            Path(sys.prefix)
+            / "share"
+            / "adop"
+            / "templates"
+            / "project-local-adop-overlay-template.md",
         )
         for candidate in candidates:
             if candidate.exists():
@@ -2428,14 +2669,18 @@ def _handle_init(args: argparse.Namespace) -> str:
             overlay_path.write_text(_OVERLAY_INIT_STUB, encoding="utf-8")
 
     lines = ["ADOP initialized.", ""]
-    lines.append(f"  Artifact root : {root}/{'  (created)' if created_root else '  (already exists)'}")
-    lines.append(f"  Overlay file  : {overlay_path}{'  (created)' if created_overlay else '  (already exists)'}")
+    lines.append(
+        f"  Artifact root : {root}/{'  (created)' if created_root else '  (already exists)'}"
+    )
+    lines.append(
+        f"  Overlay file  : {overlay_path}{'  (created)' if created_overlay else '  (already exists)'}"
+    )
     lines += [
         "",
         "Next steps:",
         '  adop watch --candidate <tool> --interest-reason "watching to evaluate"',
         '  adop quick-intake --candidate <tool> --source doc --scene <scene> --why-now "<reason>"',
-        '  adop status',
+        "  adop status",
     ]
     return "\n".join(lines)
 
@@ -2477,7 +2722,11 @@ def _handle_status(args: argparse.Namespace) -> str:
             lines.append(f"  {tool} @ {sc}: {len(entries)} file(s), max detachment: {worst}")
     else:
         tool_hint = next(
-            (str(i.get("candidate_or_tool", "<tool>")) for i in items if i.get("candidate_or_tool")),
+            (
+                str(i.get("candidate_or_tool", "<tool>"))
+                for i in items
+                if i.get("candidate_or_tool")
+            ),
             "<tool>",
         )
         scene_hint = next(iter(sorted(scene_states)), "<scene>")
@@ -2500,21 +2749,28 @@ def _handle_scan(args: argparse.Namespace) -> tuple[int, str]:
     target = Path(args.target)
     if not target.is_dir():
         raise AdopValidationError(f"scan target is not a directory: {target}", 2)
-    excludes = [_normalize_scan_pattern(raw) for raw in getattr(args, "excludes", []) if str(raw).strip()]
+    excludes = [
+        _normalize_scan_pattern(raw) for raw in getattr(args, "excludes", []) if str(raw).strip()
+    ]
     scene = getattr(args, "scene", None) or "<scene>"
     couplings = _scan_target_for_tool(target, args.tool, excludes)
     artifact_ref = ""
 
     if not couplings:
         if getattr(args, "record", False):
-            return 0, f"No references to '{args.tool}' found in {target}/\nNo coupling note was written."
+            return (
+                0,
+                f"No references to '{args.tool}' found in {target}/\nNo coupling note was written.",
+            )
         return 0, f"No references to '{args.tool}' found in {target}/"
 
     if getattr(args, "record", False):
         if getattr(args, "scene", None) is None:
             raise AdopValidationError("scan --record requires --scene", 2)
         root = _prepare_artifact_root(args)
-        artifact_ref = _write_coupling_note(root, scene=args.scene, tool=args.tool, couplings=couplings).name
+        artifact_ref = _write_coupling_note(
+            root, scene=args.scene, tool=args.tool, couplings=couplings
+        ).name
 
     if getattr(args, "json", False):
         if artifact_ref:
@@ -2544,19 +2800,92 @@ def _handle_scan(args: argparse.Namespace) -> tuple[int, str]:
         lines += ["", f"Recorded coupling snapshot: {artifact_ref}"]
         return 0, "\n".join(lines)
 
-    lines += ["", "Scan output is advisory only. No canonical artifact is written until `adop couple` or `adop scan --record` runs.", ""]
+    lines += [
+        "",
+        "Scan output is advisory only. No canonical artifact is written until `adop couple` or `adop scan --record` runs.",
+        "",
+    ]
     direct = [f"adop scan --target {args.target} --tool {args.tool}"]
     if getattr(args, "scene", None):
         direct.append(f"--scene {scene}")
     for excluded in excludes:
         direct.append(f"--exclude {excluded}")
     direct.append("--record")
-    lines += ["Record directly next time:", f"  {' '.join(direct)}", "", "Or create a manual snapshot:", f"  adop couple --scene {scene} --tool {args.tool} \\"]
+    lines += [
+        "Record directly next time:",
+        f"  {' '.join(direct)}",
+        "",
+        "Or create a manual snapshot:",
+        f"  adop couple --scene {scene} --tool {args.tool} \\",
+    ]
     for entry in couplings:
         np = f"|{entry['note']}" if entry.get("note") else ""
-        lines.append(f"    --couple '{entry['path']}|{entry['coupling_type']}|{entry['removal_cost']}{np}' \\")
-    lines += ["", "Or as JSON:", f"  adop scan --target {args.target} --tool {args.tool} --json > couplings.json"]
-    lines.append(f"  adop couple --scene {scene} --tool {args.tool} --couplings-json @couplings.json")
+        lines.append(
+            f"    --couple '{entry['path']}|{entry['coupling_type']}|{entry['removal_cost']}{np}' \\"
+        )
+    lines += [
+        "",
+        "Or as JSON:",
+        f"  adop scan --target {args.target} --tool {args.tool} --json > couplings.json",
+    ]
+    lines.append(
+        f"  adop couple --scene {scene} --tool {args.tool} --couplings-json @couplings.json"
+    )
+    return 0, "\n".join(lines)
+
+
+def _aggregate_scene_tool(items: list[dict[str, Any]], scene: str) -> str:
+    """Best tool name for a scene: comparison's selected_candidate, else latest candidate_or_tool."""
+    scene_items = sorted(
+        (i for i in items if str(i.get("related_scene", "")) == scene),
+        key=_artifact_numeric_sort_key,
+    )
+    for item in reversed(scene_items):
+        tool = item.get("selected_candidate") or item.get("candidate_or_tool")
+        if tool:
+            return str(tool)
+    return "-"
+
+
+def _handle_aggregate(args: argparse.Namespace) -> tuple[int, dict[str, Any] | str]:
+    portfolio: list[dict[str, Any]] = []
+    for raw in args.roots:
+        root = Path(raw)
+        if not root.exists():
+            portfolio.append(
+                {"root": str(root), "scene": None, "tool": None, "state": "MISSING_ROOT"}
+            )
+            continue
+        items = artifacts.load_all_artifacts(root)
+        for scene, state in sorted(get_scene_states(root).items()):
+            portfolio.append(
+                {
+                    "root": str(root),
+                    "scene": scene,
+                    "tool": _aggregate_scene_tool(items, scene),
+                    "state": state,
+                }
+            )
+    if getattr(args, "json", False):
+        return 0, {
+            "schema_version": SCHEMA_VERSION,
+            "command": "aggregate",
+            "status": "ok",
+            "count": len(portfolio),
+            "portfolio": portfolio,
+        }
+    if not portfolio:
+        return 0, "ADOP Portfolio\n(no scenes across the given roots)"
+    lines = ["ADOP Portfolio (across roots)"]
+    current_root = None
+    for row in portfolio:
+        if row["root"] != current_root:
+            current_root = row["root"]
+            lines.append(f"\n{current_root}/")
+        if row["scene"] is None:
+            lines.append(f"  ! {row['state']}")
+        else:
+            lines.append(f"  {row['scene']}: {row['state']} ({row['tool']})")
     return 0, "\n".join(lines)
 
 
@@ -2569,7 +2898,15 @@ def _handle_next(args: argparse.Namespace) -> str:
         return 'No records yet — start: adop quick-intake --candidate <tool> --source doc --scene <scene> --why-now "<reason>"'
 
     terminal = {"promote", "archived", "reject"}
-    priority = {"in-trial": 0, "proposed": 1, "trial-ready": 2, "watch": 3, "blocked": 4, "deprecated": 5, "migrating": 6}
+    priority = {
+        "in-trial": 0,
+        "proposed": 1,
+        "trial-ready": 2,
+        "watch": 3,
+        "blocked": 4,
+        "deprecated": 5,
+        "migrating": 6,
+    }
     active = sorted(
         [(sc, st) for sc, st in scene_states.items() if st not in terminal],
         key=lambda x: (priority.get(x[1], 99), x[0]),
@@ -2793,6 +3130,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "unblock":
             _emit(_handle_unblock(args))
             return 0
+        if args.command == "reject":
+            _emit(_handle_reject(args))
+            return 0
         if args.command == "deprecate":
             _emit(_handle_deprecate(args))
             return 0
@@ -2825,6 +3165,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "next":
             print(_handle_next(args))
             return 0
+        if args.command == "aggregate":
+            exit_code, payload = _handle_aggregate(args)
+            if isinstance(payload, str):
+                print(payload)
+            else:
+                _emit(payload)
+            return exit_code
         raise AdopValidationError(f"unsupported command: {args.command}", 2)
     except AdopValidationError as exc:
         _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))

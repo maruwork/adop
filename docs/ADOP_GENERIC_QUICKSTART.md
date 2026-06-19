@@ -103,6 +103,9 @@ must track drift against the canonical. ADOP provides `shared/python/adop_sync.p
 # check drift in a project's copy
 python shared/python/adop_sync.py check --target path/to/project/
 
+# seed or update a single project's copy in one shot
+python shared/python/adop_sync.py apply --target path/to/project/
+
 # register a project (stored in sync-registry.json, gitignored)
 python shared/python/adop_sync.py register --target path/to/project/
 

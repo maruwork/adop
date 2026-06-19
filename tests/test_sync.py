@@ -3,15 +3,14 @@
 Since Option B, --target is the project root and runtime files live at
 <target>/shared/python/<name> (preserving the canonical relative path).
 """
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-import pytest
-
 import adop_sync
-
+import pytest
 
 RUNTIME_NAMES = ["adop_types.py", "adop_cli.py"]
 RUNTIME_RELS = [f"shared/python/{n}" for n in RUNTIME_NAMES]
@@ -26,7 +25,8 @@ def canon(tmp_path):
     for name in RUNTIME_NAMES:
         (py / name).write_text(f"# {name} v2", encoding="utf-8")
     manifest = {
-        "name": "adop", "version": "0.1.1",
+        "name": "adop",
+        "version": "0.1.1",
         "canonical_repo": "https://github.com/maruwork/adop",
         "runtime_files": RUNTIME_RELS,
     }
@@ -51,6 +51,7 @@ def _populate(project_root: Path, content_map: dict[str, str]) -> None:
 
 
 # --- check ---
+
 
 def test_check_all_ok(canon, project_root):
     _populate(project_root, {n: f"# {n} v2" for n in RUNTIME_NAMES})
@@ -78,6 +79,7 @@ def test_check_structured_path_in_result(canon, project_root, capsys):
 
 # --- apply ---
 
+
 def test_apply_copies_diff(canon, project_root):
     _populate(project_root, {n: "# old" for n in RUNTIME_NAMES})
     assert adop_sync.cmd_apply(canon, project_root) == 0
@@ -104,6 +106,7 @@ def test_apply_noop_when_ok(canon, project_root):
 
 # --- register + list ---
 
+
 def test_register_adds_target(canon, project_root):
     adop_sync.cmd_register(canon, project_root)
     assert str(project_root.resolve()) in adop_sync._load_registry(canon)
@@ -129,6 +132,7 @@ def test_list_shows_drift(canon, project_root, capsys):
 
 # --- push ---
 
+
 def test_push_updates_registered_target(canon, project_root):
     _populate(project_root, {n: "# old" for n in RUNTIME_NAMES})
     adop_sync.cmd_register(canon, project_root)
@@ -142,6 +146,7 @@ def test_push_empty_registry(canon):
 
 # --- apply safety: MISSING_IN_SOURCE ---
 
+
 def test_apply_aborts_when_source_file_missing(tmp_path, project_root):
     """apply must exit 1 when a manifest file is absent from the source."""
     # Build a canon whose manifest lists a file that does not exist in shared/python/
@@ -152,9 +157,100 @@ def test_apply_aborts_when_source_file_missing(tmp_path, project_root):
     (py / "adop_types.py").write_text("# v2", encoding="utf-8")
     # adop_cli.py is declared in manifest but NOT written to disk
     manifest = {
-        "name": "adop", "version": "0.1.1",
+        "name": "adop",
+        "version": "0.1.1",
         "canonical_repo": "https://github.com/maruwork/adop",
         "runtime_files": ["shared/python/adop_types.py", "shared/python/adop_cli.py"],
     }
     (root / "adop.json").write_text(json.dumps(manifest), encoding="utf-8")
     assert adop_sync.cmd_apply(root, project_root) == 1
+
+
+def test_managed_files_rejects_escaping_path():
+    import adop_sync
+    import pytest
+
+    with pytest.raises(SystemExit):
+        adop_sync._managed_files({"runtime_files": ["../escape.py"], "template_files": []})
+
+
+def test_managed_files_rejects_absolute_path():
+    import adop_sync
+    import pytest
+
+    with pytest.raises(SystemExit):
+        adop_sync._managed_files({"runtime_files": ["/etc/passwd"], "template_files": []})
+
+
+def test_sync_clean_error_on_malformed_manifest(tmp_path):
+    import adop_sync
+    import pytest
+
+    (tmp_path / "adop.json").write_text("{ not json", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        adop_sync._load_manifest(tmp_path)
+
+
+def _seed_canonical(src):
+    """Minimal canonical layout: adop.json + the managed files it lists."""
+    import json
+    from pathlib import Path
+
+    src = Path(src)
+    (src / "shared/python").mkdir(parents=True, exist_ok=True)
+    (src / "shared/templates").mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "name": "adop",
+        "version": "0.0.0",
+        "runtime_files": ["shared/python/adop_cli.py"],
+        "template_files": ["shared/templates/adop-governance-dashboard-template.html"],
+    }
+    (src / "adop.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (src / "shared/python/adop_cli.py").write_text("# runtime\n", encoding="utf-8")
+    (src / "shared/templates/adop-governance-dashboard-template.html").write_text(
+        "<html></html>\n", encoding="utf-8"
+    )
+    return src
+
+
+def _sync_main(monkeypatch, *argv):
+    """adop_sync.main() reads sys.argv (no argv param); drive it via monkeypatch."""
+    import sys
+
+    import adop_sync
+
+    monkeypatch.setattr(sys, "argv", ["adop_sync", *argv])
+    return adop_sync.main()
+
+
+def test_sync_main_check_apply_register_list_push(tmp_path, monkeypatch):
+    src = _seed_canonical(tmp_path / "canon")
+    tgt = tmp_path / "proj"
+    tgt.mkdir()
+    # check: target empty -> drift (exit 1)
+    assert _sync_main(monkeypatch, "check", "--source", str(src), "--target", str(tgt)) == 1
+    # apply: copies managed files
+    assert _sync_main(monkeypatch, "apply", "--source", str(src), "--target", str(tgt)) == 0
+    assert (tgt / "shared/python/adop_cli.py").exists()
+    assert (tgt / "shared/templates/adop-governance-dashboard-template.html").exists()
+    # check: now in sync (exit 0)
+    assert _sync_main(monkeypatch, "check", "--source", str(src), "--target", str(tgt)) == 0
+    # register + list + push round-trip (registry stored under src)
+    assert _sync_main(monkeypatch, "register", "--source", str(src), "--target", str(tgt)) == 0
+    assert (
+        _sync_main(monkeypatch, "register", "--source", str(src), "--target", str(tgt)) == 0
+    )  # idempotent
+    assert _sync_main(monkeypatch, "list", "--source", str(src)) == 0
+    assert _sync_main(monkeypatch, "push", "--source", str(src)) == 0
+
+
+def test_sync_main_no_command_prints_help(monkeypatch):
+    assert _sync_main(monkeypatch) == 0
+
+
+def test_sync_apply_aborts_when_source_missing_file(tmp_path, monkeypatch):
+    src = _seed_canonical(tmp_path / "canon")
+    (src / "shared/python/adop_cli.py").unlink()  # listed but missing in source
+    tgt = tmp_path / "proj"
+    tgt.mkdir()
+    assert _sync_main(monkeypatch, "apply", "--source", str(src), "--target", str(tgt)) == 1

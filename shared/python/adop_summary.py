@@ -7,68 +7,37 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-try:
-    from .adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
-    from .adop_ids import parse_numeric_id
-    from .adop_state_machine import infer_effective_trial_state
-    from .adop_types import (
-        ARCHIVE_NOTE,
-        ARCHIVED,
-        BLOCKED_NOTE,
-        BLOCKED_STATE,
-        CANDIDATE_INTAKE_NOTE,
-        COMPARISON_NOTE,
-        DECOMPOSITION_DECISION,
-        DEPRECATED,
-        DEPRECATION_NOTE,
-        HOLD_NOTE,
-        IN_TRIAL,
-        JUDGMENT_REPORT,
-        COUPLING_NOTE,
-        MIGRATING,
-        MIGRATION_NOTE,
-        PROMOTION_NOTE,
-        PROPOSED,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        STRUCTURAL_GAP,
-        SUMMARY_STATES,
-        TRIAL_PACKET,
-        TRIAL_READY,
-        WATCH,
-        WATCH_NOTE,
-    )
-except ImportError:  # pragma: no cover - script import path
-    from adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
-    from adop_ids import parse_numeric_id
-    from adop_state_machine import infer_effective_trial_state
-    from adop_types import (
-        ARCHIVE_NOTE,
-        ARCHIVED,
-        BLOCKED_NOTE,
-        BLOCKED_STATE,
-        CANDIDATE_INTAKE_NOTE,
-        COMPARISON_NOTE,
-        DECOMPOSITION_DECISION,
-        DEPRECATED,
-        DEPRECATION_NOTE,
-        HOLD_NOTE,
-        IN_TRIAL,
-        JUDGMENT_REPORT,
-        COUPLING_NOTE,
-        MIGRATING,
-        MIGRATION_NOTE,
-        PROMOTION_NOTE,
-        PROPOSED,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        STRUCTURAL_GAP,
-        SUMMARY_STATES,
-        TRIAL_PACKET,
-        TRIAL_READY,
-        WATCH,
-        WATCH_NOTE,
-    )
+from adop_artifacts import load_all_artifacts
+from adop_ids import parse_numeric_id
+from adop_state_machine import infer_effective_trial_state
+from adop_types import (
+    ARCHIVE_NOTE,
+    ARCHIVED,
+    BLOCKED_NOTE,
+    BLOCKED_STATE,
+    CANDIDATE_INTAKE_NOTE,
+    COMPARISON_NOTE,
+    COUPLING_NOTE,
+    DECOMPOSITION_DECISION,
+    DEPRECATED,
+    DEPRECATION_NOTE,
+    HOLD_NOTE,
+    IN_TRIAL,
+    JUDGMENT_REPORT,
+    MIGRATING,
+    MIGRATION_NOTE,
+    PROMOTION_NOTE,
+    PROPOSED,
+    REJECT_NOTE,
+    REMOVAL_COSTS,
+    ROOT_CAUSE_HYPOTHESIS,
+    STRUCTURAL_GAP,
+    SUMMARY_STATES,
+    TRIAL_PACKET,
+    TRIAL_READY,
+    WATCH,
+    WATCH_NOTE,
+)
 
 # Hold / reject are reused by both intake and trial buckets, so they are spelled
 # as literals here rather than imported, matching the existing intake_dispositions set.
@@ -81,6 +50,11 @@ PROMOTE = "promote"
 # renders a misleading always-zero line.
 INTAKE_STATES: tuple[str, ...] = (PROPOSED, TRIAL_READY, HOLD, REJECT)
 TRIAL_STATES: tuple[str, ...] = (IN_TRIAL, PROMOTE, HOLD, REJECT)
+
+# `structural_gap` ("current workflow lacks a bounded evaluation lane") is a
+# comparison-time diagnostic. Once a scene reaches in-trial or any later state
+# the lane exists, so showing the gap there is stale and self-contradictory.
+_PRE_TRIAL_GAP_STATES: frozenset[str] = frozenset({WATCH, PROPOSED, BLOCKED_STATE, TRIAL_READY})
 
 # Extended lifecycle states are tracked by dedicated note types, not by intake
 # disposition or trial verdict. State = the latest note of this type per scene.
@@ -130,18 +104,29 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
 
     def of_type(scene: str, artifact_type: str) -> list[dict[str, Any]]:
         matched = [
-            item for item in items
+            item
+            for item in items
             if item.get("artifact_type") == artifact_type
             and str(item.get("related_scene", "")).strip() == scene
         ]
         matched.sort(key=_id_sort_key)
         return matched
 
-    scenes = sorted({
-        str(item.get("related_scene", "")).strip()
+    scenes = sorted(
+        {
+            str(item.get("related_scene", "")).strip()
+            for item in items
+            if str(item.get("related_scene", "")).strip()
+        }
+    )
+
+    # Resolve judgment verdicts from the already-loaded items instead of
+    # re-reading the whole artifact root once per scene (was O(scenes × files)).
+    judgment_by_id = {
+        str(item.get("artifact_id", "")): item
         for item in items
-        if str(item.get("related_scene", "")).strip()
-    })
+        if item.get("artifact_type") == JUDGMENT_REPORT
+    }
 
     resolved: dict[str, str] = {}
     for scene in scenes:
@@ -153,11 +138,13 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
             resolved[scene] = DEPRECATED
         elif of_type(scene, PROMOTION_NOTE):
             resolved[scene] = "promote"
+        elif of_type(scene, REJECT_NOTE):
+            resolved[scene] = REJECT
         elif _scene_resumed_after_hold(scene, of_type):
             resolved[scene] = TRIAL_READY
         elif of_type(scene, TRIAL_PACKET):
             packet = of_type(scene, TRIAL_PACKET)[-1]
-            judgment = find_judgment_report(root, str(packet.get("artifact_id", "")))
+            judgment = judgment_by_id.get(str(packet.get("artifact_id", "")))
             resolved[scene] = str(judgment.get("verdict", IN_TRIAL)) if judgment else IN_TRIAL
         elif _scene_is_blocked(scene, items, of_type):
             resolved[scene] = BLOCKED_STATE
@@ -170,7 +157,10 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
             resolved[scene] = WATCH
 
     for note in items:
-        if note.get("artifact_type") == WATCH_NOTE and not str(note.get("related_scene", "")).strip():
+        if (
+            note.get("artifact_type") == WATCH_NOTE
+            and not str(note.get("related_scene", "")).strip()
+        ):
             resolved.setdefault(f"(watch) {note.get('candidate_or_tool', '-')}", WATCH)
 
     return resolved
@@ -239,7 +229,11 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
     # Count latest intake per (scene, tool) pair to avoid double-counting when
     # quick-intake is run multiple times for the same candidate.
     latest_intake: dict[tuple[str, str], dict] = {}
-    for intake in find_by_type(root, CANDIDATE_INTAKE_NOTE):
+    intakes = sorted(
+        (i for i in items if i.get("artifact_type") == CANDIDATE_INTAKE_NOTE),
+        key=_id_sort_key,
+    )
+    for intake in intakes:
         if scene and intake.get("related_scene") != scene:
             continue
         intake_scene = str(intake.get("related_scene", ""))
@@ -253,7 +247,10 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         if intake_state in intake_dispositions:
             intake_counts[intake_state].append(str(intake.get("candidate_or_tool", "-")))
 
-    for packet in find_by_type(root, TRIAL_PACKET):
+    summary_judgment_by_id = {
+        str(i.get("artifact_id", "")): i for i in items if i.get("artifact_type") == JUDGMENT_REPORT
+    }
+    for packet in (i for i in items if i.get("artifact_type") == TRIAL_PACKET):
         if scene and packet.get("related_scene") != scene:
             continue
         trial_id = packet.get("artifact_id")
@@ -262,7 +259,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             # rather than emit a phantom "None" row (residual B44).
             continue
         trial_id = str(trial_id)
-        judgment = find_judgment_report(root, trial_id)
+        judgment = summary_judgment_by_id.get(trial_id)
         effective = infer_effective_trial_state(packet, judgment)
         label = str(packet.get("related_scene", trial_id))
         if effective in SUMMARY_STATES:
@@ -283,13 +280,15 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         for note in notes:
             note_scene = str(note.get("related_scene", "")).strip()
             tool = str(note.get("candidate_or_tool", "-"))
-            key = note_scene or f"tool:{tool}"
-            latest_notes[key] = note  # later id wins (append-only history)
+            note_key = note_scene or f"tool:{tool}"
+            latest_notes[note_key] = note  # later id wins (append-only history)
         for note in latest_notes.values():
             note_scene = str(note.get("related_scene", "")).strip()
             if scene and note_scene != scene:
                 continue
-            lifecycle_counts[state_name].append(note_scene or str(note.get("candidate_or_tool", "-")))
+            lifecycle_counts[state_name].append(
+                note_scene or str(note.get("candidate_or_tool", "-"))
+            )
 
     def _render_section(title: str, states: tuple[str, ...], counts: dict[str, list[str]]) -> None:
         lines.append(title)
@@ -317,7 +316,9 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
 
     _render_section("Intake Dispositions", INTAKE_STATES, intake_counts)
     _render_section("Trial States", TRIAL_STATES, trial_counts)
-    _render_section("Lifecycle Notes", tuple(state for state, _ in EXTENDED_STATE_NOTES), lifecycle_counts)
+    _render_section(
+        "Lifecycle Notes", tuple(state for state, _ in EXTENDED_STATE_NOTES), lifecycle_counts
+    )
 
     # Tool entanglement: latest coupling-note per scene/tool snapshot, headline =
     # worst detachment cost. status filter does not apply (coupling is not a state).
@@ -332,7 +333,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         latest_couplings[(note_scene, str(note.get("candidate_or_tool", "")))] = note
     if latest_couplings:
         lines.append("Tool Entanglement")
-        for (note_scene, tool) in sorted(latest_couplings):
+        for note_scene, tool in sorted(latest_couplings):
             entries = latest_couplings[(note_scene, tool)].get("couplings", [])
             worst = max(
                 (str(e.get("removal_cost", REMOVAL_COSTS[0])) for e in entries),
@@ -363,26 +364,20 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         judgment = latest_judgments.get(scene_name, {})
 
         hypothesis = str(
-            judgment.get(ROOT_CAUSE_HYPOTHESIS)
-            or comparison.get(ROOT_CAUSE_HYPOTHESIS)
-            or ""
+            judgment.get(ROOT_CAUSE_HYPOTHESIS) or comparison.get(ROOT_CAUSE_HYPOTHESIS) or ""
         ).strip()
         if hypothesis:
             root_cause_lines.append(f"- {scene_name}: {hypothesis}")
 
         structural_gap = str(comparison.get(STRUCTURAL_GAP, "")).strip()
-        if structural_gap:
+        if structural_gap and scene_states.get(scene_name) in _PRE_TRIAL_GAP_STATES:
             structural_gap_lines.append(f"- {scene_name}: {structural_gap}")
 
         decomposition_decision = str(
-            judgment.get(DECOMPOSITION_DECISION)
-            or comparison.get(DECOMPOSITION_DECISION)
-            or ""
+            judgment.get(DECOMPOSITION_DECISION) or comparison.get(DECOMPOSITION_DECISION) or ""
         ).strip()
         adoption_unit = str(
-            judgment.get("adoption_unit")
-            or comparison.get("adoption_unit")
-            or ""
+            judgment.get("adoption_unit") or comparison.get("adoption_unit") or ""
         ).strip()
         if decomposition_decision or adoption_unit:
             decomposition_lines.append(
@@ -390,16 +385,16 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             )
 
         recommended_fit_lane = str(
-            judgment.get("recommended_fit_lane")
-            or comparison.get("recommended_fit_lane")
-            or ""
+            judgment.get("recommended_fit_lane") or comparison.get("recommended_fit_lane") or ""
         ).strip()
         if recommended_fit_lane:
             fit_lane_lines.append(f"- {scene_name}: {recommended_fit_lane}")
 
         preventive_actions = judgment.get("preventive_action", [])
         if isinstance(preventive_actions, list) and preventive_actions:
-            preventive_action_lines.append(f"- {scene_name}: {'; '.join(str(item) for item in preventive_actions)}")
+            preventive_action_lines.append(
+                f"- {scene_name}: {'; '.join(str(item) for item in preventive_actions)}"
+            )
 
     if root_cause_lines:
         lines.append("Root-Cause Signals")

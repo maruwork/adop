@@ -1,0 +1,17 @@
+{
+  "artifact_id": "hl-001",
+  "artifact_type": "hold-note",
+  "created_at": "2026-06-20",
+  "decision_owner": "lead",
+  "derived_from": [
+    "tr-001"
+  ],
+  "evidence_refs": [],
+  "hold_reason": "bounded trial was useful but still needs narrowing",
+  "recording_mode": "guided",
+  "recording_source": "quick-close-trial",
+  "related_scene": "lint-ci",
+  "reopen_condition": "retry after narrowing the use case or threshold",
+  "schema_version": 1,
+  "status": "closed"
+}

@@ -19,6 +19,7 @@ Commands:
   list      [--source <adop-root>]
             Show registered targets and their current sync status.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,7 +27,7 @@ import hashlib
 import json
 import shutil
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 _REGISTRY_FILE = "sync-registry.json"
 _MANIFEST_FILE = "adop.json"
@@ -40,14 +41,20 @@ def _load_manifest(source: Path) -> dict:
     path = source / _MANIFEST_FILE
     if not path.exists():
         sys.exit(f"error: {path} not found — run from the ADOP canonical root")
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        sys.exit(f"error: {path} is not readable JSON: {exc}")
 
 
 def _load_registry(source: Path) -> list[str]:
     reg = source / _REGISTRY_FILE
     if not reg.exists():
         return []
-    return json.loads(reg.read_text(encoding="utf-8")).get("targets", [])
+    try:
+        return json.loads(reg.read_text(encoding="utf-8")).get("targets", [])
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        sys.exit(f"error: {reg} is not readable JSON: {exc}")
 
 
 def _save_registry(source: Path, targets: list[str]) -> None:
@@ -56,24 +63,48 @@ def _save_registry(source: Path, targets: list[str]) -> None:
     )
 
 
+def _managed_files(manifest: dict) -> list[str]:
+    """Files sync must keep in step: runtime modules plus declared templates.
+
+    Each entry must be a project-relative path with no '..' and no absolute root,
+    so a hostile/clone manifest cannot make apply/push write outside --target.
+    """
+    files = list(manifest.get("runtime_files", [])) + list(manifest.get("template_files", []))
+    for rel in files:
+        norm = str(rel).replace("\\", "/")
+        # Reject leading-slash/drive-relative ("/etc/passwd"), Windows drive
+        # ("C:\\..."), and any "../" traversal. is_absolute() alone is not enough:
+        # on Windows "/etc/passwd" is drive-relative, not absolute.
+        if (
+            norm.startswith("/")
+            or PureWindowsPath(rel).drive
+            or PurePosixPath(norm).is_absolute()
+            or ".." in PurePosixPath(norm).parts
+        ):
+            sys.exit(f"error: manifest path must be project-relative without '..': {rel}")
+    return files
+
+
 def _check_one(source: Path, target: Path, manifest: dict) -> list[dict]:
-    """Check each runtime file; dst preserves the canonical relative path."""
+    """Check each managed file; dst preserves the canonical relative path."""
     results = []
-    for rel in manifest["runtime_files"]:
+    for rel in _managed_files(manifest):
         src = source / rel
-        dst = target / rel   # preserve full relative path (e.g. shared/python/adop_cli.py)
+        dst = target / rel  # preserve full relative path (e.g. shared/python/adop_cli.py)
         if not src.exists():
             results.append({"file": rel, "status": "MISSING_IN_SOURCE"})
         elif not dst.exists():
             results.append({"file": rel, "status": "MISSING", "src": str(src), "dst": str(dst)})
         else:
             ok = _file_hash(src) == _file_hash(dst)
-            results.append({
-                "file": rel,
-                "status": "OK" if ok else "DIFF",
-                "src": str(src),
-                "dst": str(dst),
-            })
+            results.append(
+                {
+                    "file": rel,
+                    "status": "OK" if ok else "DIFF",
+                    "src": str(src),
+                    "dst": str(dst),
+                }
+            )
     return results
 
 
@@ -177,21 +208,32 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", metavar="command")
 
     def _src(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--source", default=".", metavar="DIR",
-                       help="ADOP canonical root containing adop.json (default: .)")
+        p.add_argument(
+            "--source",
+            default=".",
+            metavar="DIR",
+            help="ADOP canonical root containing adop.json (default: .)",
+        )
 
     def _tgt(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--target", required=True, metavar="DIR",
-                       help="Project root (runtime files placed at <target>/shared/python/)")
+        p.add_argument(
+            "--target",
+            required=True,
+            metavar="DIR",
+            help="Project root (runtime files placed at <target>/shared/python/)",
+        )
 
     p = sub.add_parser("check", help="compare hashes, report DIFF")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("apply", help="copy differing/missing files to target")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("register", help="add target to local registry")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("push", help="apply to all registered targets")
     _src(p)

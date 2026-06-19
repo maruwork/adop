@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 # Accept 3-or-more digits: format_id zero-pads to 3 but ids >= 1000 widen to 4+.
 # Keeping a fixed \d{3} here would make parse_numeric_id reject pm-1000 and break
 # next_sequential_id / latest ordering past 999 (residual B12).

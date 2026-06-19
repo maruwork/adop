@@ -37,13 +37,18 @@ Because artifacts are JSON, multiple artifact roots can be aggregated across pro
 - Functions as a personal SSOT for tool adoption history
 - "What is being used in which project right now" is visible in one place
 
+This is implemented by the read-only `aggregate` command:
+
+```
+adop aggregate --root path/to/proj-a/.adop --root path/to/proj-b/.adop
+```
+
+It prints each root's scene lanes, tool, and current lifecycle state (or `--json`).
+
 ---
 
 ## Confirmed Design Decisions
 
 1. **`watch` lives inside ADOP** — Interest records belong in the SSOT too. `watch` is the entry point; transition to `proposed` starts formal evaluation.
 2. **`migrating` is an independent state** — Distinct from `deprecated` (decision made, work not yet started). It is a standalone state representing active migration work in progress.
-
-## Open Design Questions
-
-1. **Re-evaluation route for `reject`** — Keep it as a terminal state, or allow conditional transitions back to `watch` or `proposed`?
+3. **`reject` is terminal for a scene lane** — Re-evaluation does not reopen a rejected lane; it must use a new `related_scene`. A candidate can be rejected before any trial (from `proposed` / `blocked`) or after a pause (from `hold`) via `adop reject`, in addition to a `reject` verdict at trial close.
