@@ -598,6 +598,19 @@ def test_scan_detects_pytest_xdist_short_alias(tmp_path, capsys):
     assert data[0]["confidence"] == "high"
 
 
+def test_scan_detects_pytest_xdist_config_driven_invocation_as_medium(tmp_path, capsys):
+    tox_ini = tmp_path / "tox.ini"
+    tox_ini.write_text("[testenv]\ncommands = pytest tests -q -n auto\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "pytest-xdist", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == "tox.ini"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "medium"
+    assert data[0]["note"] == "config-driven invocation"
+
+
 def test_scan_exclude_skips_selected_paths(tmp_path, capsys):
     kept = tmp_path / "src" / "pyproject.toml"
     kept.parent.mkdir(parents=True, exist_ok=True)
@@ -656,6 +669,33 @@ def test_scan_no_results(tmp_path, capsys):
 def test_scan_ignores_token_collision_in_non_docs_file(tmp_path, capsys):
     manifest = tmp_path / "ops.yaml"
     manifest.write_text("tool: ruffle\nowner: team\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "No references" in out
+
+
+def test_scan_ignores_casual_yaml_tool_mention_in_generic_config(tmp_path, capsys):
+    manifest = tmp_path / "ops.yaml"
+    manifest.write_text("owner: team\nnotes: ruff migration candidate\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "No references" in out
+
+
+def test_scan_ignores_casual_ini_tool_mention_in_generic_config(tmp_path, capsys):
+    manifest = tmp_path / "local.ini"
+    manifest.write_text("[notes]\ncomment=ruff migration candidate\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "No references" in out
+
+
+def test_scan_ignores_casual_json_tool_mention_in_generic_file(tmp_path, capsys):
+    manifest = tmp_path / "ops.json"
+    manifest.write_text('{"owner":"team","notes":"ruff migration candidate"}\n', encoding="utf-8")
     rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
     assert rc == 0
     out = capsys.readouterr().out

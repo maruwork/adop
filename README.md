@@ -128,10 +128,12 @@ adop scan --target . --tool ruff
 
 Reports every file that imports, configures, or references the tool, along with an estimated removal cost.
 Detected entries also carry a machine-readable detection source and confidence so that
-strong config surfaces can be distinguished from low-confidence text references.
+strong structured surfaces can be distinguished from bounded fallback detections.
 High-confidence hits are derived from structured surfaces such as `pyproject.toml`,
 `package.json`, `.pre-commit-config.yaml`, workflow `uses:` / `run:` commands, and
 tool-owned config filenames.
+Casual mentions in ad hoc `yaml`, `ini`, or `json` files are intentionally ignored unless
+they match a supported structured surface or bounded fallback family.
 For larger repos, exclude noisy shelves and write the snapshot directly:
 
 ```bash

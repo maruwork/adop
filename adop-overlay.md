@@ -119,7 +119,7 @@ Promoted tools land at:
 |---|---|
 | Verify the new dev-tool surface on a networked GitHub runner | pending |
 | Decide whether test-only scan-support scenes should remain in the generic supported catalog or be pruned later | pending |
-| Verify whether low-confidence `text-reference` hits are strict enough to keep for this repo, or should be filtered further | pending |
+| Suppress casual generic `yaml` / `ini` / `json` tool mentions unless they match structured or bounded fallback scan families | fixed in generic scan on 2026-06-19 |
 | Treat editor-local settings as first-class coupling surfaces even when the tool id is implicit | fixed in generic scan on 2026-06-18 |
 
 ---

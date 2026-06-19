@@ -229,6 +229,10 @@ _CONFIG_FILE_NAMES: frozenset[str] = frozenset({
     "requirements.txt", "requirements-dev.txt", "requirements-test.txt",
 })
 
+_REQUIREMENT_FILE_NAMES: frozenset[str] = frozenset({
+    "requirements.txt", "requirements-dev.txt", "requirements-test.txt",
+})
+
 # Node ecosystem: package.json declares deps + scripts; lock files are generated artifacts.
 _NODE_DEP_FILES: frozenset[str] = frozenset({
     "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
@@ -740,7 +744,7 @@ def _dependency_string_mentions_tool(raw: Any, aliases: list[str]) -> bool:
 
 
 def _structured_pyproject_match(rel: str, text: str, aliases: list[str]) -> dict[str, Any] | None:
-    if rel.lower() != "pyproject.toml":
+    if Path(rel).name.lower() != "pyproject.toml":
         return None
     try:
         data = tomllib.loads(text)
@@ -1046,27 +1050,26 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                             confidence="medium",
                         )
                     )
+        elif path.name in _REQUIREMENT_FILE_NAMES:
+            if _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases):
+                couplings.append(
+                    _build_detected_coupling(
+                        rel, "config", "clean",
+                        note="dependency declaration",
+                        detection_source="config-mention",
+                        confidence="medium",
+                    )
+                )
         elif path.name in _CONFIG_FILE_NAMES or path.suffix in (".yml", ".yaml", ".toml", ".cfg", ".ini"):
-            if _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(canonical_tool, text_lower):
-                if path.name in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
-                    couplings.append(
-                        _build_detected_coupling(
-                            rel, "config", "clean",
-                            note="dependency declaration",
-                            detection_source="config-mention",
-                            confidence="medium",
-                        )
+            if _looks_like_pytest_xdist_invocation(canonical_tool, text_lower):
+                couplings.append(
+                    _build_detected_coupling(
+                        rel, "config", "edit",
+                        note="config-driven invocation",
+                        detection_source="invocation-pattern",
+                        confidence="medium",
                     )
-                else:
-                    detection_source = "invocation-pattern" if _looks_like_pytest_xdist_invocation(canonical_tool, text_lower) else "config-mention"
-                    confidence = "high" if detection_source == "invocation-pattern" else "medium"
-                    couplings.append(
-                        _build_detected_coupling(
-                            rel, "config", "edit",
-                            detection_source=detection_source,
-                            confidence=confidence,
-                        )
-                    )
+                )
         elif path.suffix in (".sh", ".bash", ".ps1", ".bat", ".cmd") or path.name in ("Makefile", "makefile"):
             if _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(canonical_tool, text_lower):
                 detection_source = "invocation-pattern"
@@ -1078,14 +1081,6 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                         confidence=confidence,
                     )
                 )
-        elif _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases) and path.suffix not in (".pyc", ".pyo", ".lock", ".md", ".rst", ".txt"):
-            couplings.append(
-                _build_detected_coupling(
-                    rel, "reference", "clean",
-                    detection_source="text-reference",
-                    confidence="low",
-                )
-            )
     return couplings
 
 
