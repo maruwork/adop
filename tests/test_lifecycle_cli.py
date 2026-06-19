@@ -90,6 +90,82 @@ def test_close_trial_missing_required_args_returns_json_error(run, root, capsys)
     assert any("--judgment-reason" in err for err in payload["errors"])
 
 
+def test_watch_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("watch", "--artifact-root", root)
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "watch"
+    assert payload["status"] == "error"
+    assert any("--candidate" in err for err in payload["errors"])
+    assert any("--interest-reason" in err for err in payload["errors"])
+
+
+def test_block_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("block", "--artifact-root", root, "--scene", "lint")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "block"
+    assert payload["status"] == "error"
+    assert any("--block-reason" in err for err in payload["errors"])
+    assert any("--owner" in err for err in payload["errors"])
+
+
+def test_unblock_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("unblock", "--artifact-root", root, "--scene", "lint")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "unblock"
+    assert payload["status"] == "error"
+    assert any("--why-unblocked" in err for err in payload["errors"])
+
+
+def test_deprecate_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("deprecate", "--artifact-root", root, "--scene", "lint")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "deprecate"
+    assert payload["status"] == "error"
+    assert any("--retirement-reason" in err for err in payload["errors"])
+    assert any("--timeline" in err for err in payload["errors"])
+
+
+def test_migrate_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("migrate", "--artifact-root", root, "--scene", "lint")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "migrate"
+    assert payload["status"] == "error"
+    assert any("--migration-target" in err for err in payload["errors"])
+    assert any("--migration-plan" in err for err in payload["errors"])
+
+
+def test_archive_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("archive", "--artifact-root", root, "--scene", "lint")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "archive"
+    assert payload["status"] == "error"
+    assert any("--end-date" in err for err in payload["errors"])
+
+
+def test_render_html_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("render-html", "--artifact-root", root)
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "render-html"
+    assert payload["status"] == "error"
+    assert any("--output" in err for err in payload["errors"])
+
+
+def test_show_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("show", "--artifact-root", root)
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "show"
+    assert payload["status"] == "error"
+    assert any("--id" in err for err in payload["errors"])
+
+
 # --- block / unblock -------------------------------------------------------
 
 def test_block_requires_intake(run, root):

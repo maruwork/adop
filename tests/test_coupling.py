@@ -146,6 +146,16 @@ def test_bad_couple_flag_format_returns_validation_error(run, root):
     assert code == 2  # PATH|TYPE|COST required
 
 
+def test_couple_missing_required_args_returns_json_error(run, root, capsys):
+    code = run("couple", "--artifact-root", root)
+    assert code == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "couple"
+    assert payload["status"] == "error"
+    assert any("--scene" in err for err in payload["errors"])
+    assert any("--tool" in err for err in payload["errors"])
+
+
 def test_couple_rejects_non_list_couplings_json(run, root, capsys):
     code = run(
         "couple", "--artifact-root", root, "--use-case", "lint", "--tool", "ruff",
