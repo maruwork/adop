@@ -178,3 +178,61 @@ def test_sync_clean_error_on_malformed_manifest(tmp_path):
     (tmp_path / "adop.json").write_text("{ not json", encoding="utf-8")
     with pytest.raises(SystemExit):
         adop_sync._load_manifest(tmp_path)
+
+
+def _seed_canonical(src):
+    """Minimal canonical layout: adop.json + the managed files it lists."""
+    import json
+    from pathlib import Path
+    src = Path(src)
+    (src / "shared/python").mkdir(parents=True, exist_ok=True)
+    (src / "shared/templates").mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "name": "adop", "version": "0.0.0",
+        "runtime_files": ["shared/python/adop_cli.py"],
+        "template_files": ["shared/templates/adop-governance-dashboard-template.html"],
+    }
+    (src / "adop.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (src / "shared/python/adop_cli.py").write_text("# runtime\n", encoding="utf-8")
+    (src / "shared/templates/adop-governance-dashboard-template.html").write_text("<html></html>\n", encoding="utf-8")
+    return src
+
+
+def _sync_main(monkeypatch, *argv):
+    """adop_sync.main() reads sys.argv (no argv param); drive it via monkeypatch."""
+    import sys
+
+    import adop_sync
+    monkeypatch.setattr(sys, "argv", ["adop_sync", *argv])
+    return adop_sync.main()
+
+
+def test_sync_main_check_apply_register_list_push(tmp_path, monkeypatch):
+    src = _seed_canonical(tmp_path / "canon")
+    tgt = tmp_path / "proj"
+    tgt.mkdir()
+    # check: target empty -> drift (exit 1)
+    assert _sync_main(monkeypatch, "check", "--source", str(src), "--target", str(tgt)) == 1
+    # apply: copies managed files
+    assert _sync_main(monkeypatch, "apply", "--source", str(src), "--target", str(tgt)) == 0
+    assert (tgt / "shared/python/adop_cli.py").exists()
+    assert (tgt / "shared/templates/adop-governance-dashboard-template.html").exists()
+    # check: now in sync (exit 0)
+    assert _sync_main(monkeypatch, "check", "--source", str(src), "--target", str(tgt)) == 0
+    # register + list + push round-trip (registry stored under src)
+    assert _sync_main(monkeypatch, "register", "--source", str(src), "--target", str(tgt)) == 0
+    assert _sync_main(monkeypatch, "register", "--source", str(src), "--target", str(tgt)) == 0  # idempotent
+    assert _sync_main(monkeypatch, "list", "--source", str(src)) == 0
+    assert _sync_main(monkeypatch, "push", "--source", str(src)) == 0
+
+
+def test_sync_main_no_command_prints_help(monkeypatch):
+    assert _sync_main(monkeypatch) == 0
+
+
+def test_sync_apply_aborts_when_source_missing_file(tmp_path, monkeypatch):
+    src = _seed_canonical(tmp_path / "canon")
+    (src / "shared/python/adop_cli.py").unlink()  # listed but missing in source
+    tgt = tmp_path / "proj"
+    tgt.mkdir()
+    assert _sync_main(monkeypatch, "apply", "--source", str(src), "--target", str(tgt)) == 1

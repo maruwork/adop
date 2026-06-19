@@ -39,6 +39,7 @@ try:
         JUDGMENT_REPORT,
         LANES,
         MIGRATION_NOTE,
+        MIN_READABLE_SCHEMA_VERSION,
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         PLATFORMS,
@@ -91,6 +92,7 @@ except ImportError:  # pragma: no cover - script import path
         JUDGMENT_REPORT,
         LANES,
         MIGRATION_NOTE,
+        MIN_READABLE_SCHEMA_VERSION,
         NON_PROMOTE_VERDICTS,
         OBSERVED_EFFECT,
         PLATFORMS,
@@ -460,8 +462,16 @@ def validate_coupling_note_payload(payload: dict[str, Any]) -> None:
 
 
 def validate_artifact_schema(item: dict[str, Any]) -> None:
-    if item.get("schema_version") != SCHEMA_VERSION:
+    version = item.get("schema_version")
+    if not isinstance(version, int) or isinstance(version, bool) or version < MIN_READABLE_SCHEMA_VERSION:
         raise AdopValidationError("schema_version invalid", 11)
+    if version > SCHEMA_VERSION:
+        # Forward-incompatible: a newer adop wrote this. Say so plainly instead of
+        # the generic "invalid" so the operator upgrades adop rather than deleting
+        # a record that is actually fine.
+        raise AdopValidationError(
+            f"schema_version {version} was written by a newer adop; upgrade adop to read it", 11
+        )
     artifact_type = item.get("artifact_type")
     if artifact_type not in ARTIFACT_TYPES:
         raise AdopValidationError(f"artifact_type invalid: {artifact_type}", 11)

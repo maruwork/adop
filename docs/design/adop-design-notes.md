@@ -37,6 +37,14 @@ Because artifacts are JSON, multiple artifact roots can be aggregated across pro
 - Functions as a personal SSOT for tool adoption history
 - "What is being used in which project right now" is visible in one place
 
+This is implemented by the read-only `aggregate` command:
+
+```
+adop aggregate --root path/to/proj-a/.adop --root path/to/proj-b/.adop
+```
+
+It prints each root's scene lanes, tool, and current lifecycle state (or `--json`).
+
 ---
 
 ## Confirmed Design Decisions

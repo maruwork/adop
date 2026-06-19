@@ -1663,6 +1663,20 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     next_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
 
+    aggregate_cmd = subparsers.add_parser(
+        "aggregate",
+        help="aggregate lifecycle states across multiple artifact roots (read-only)",
+        description=(
+            "Cross-project portfolio view: for each --root, list its scene lanes, "
+            "the tool, and the current lifecycle state. Read-only; writes nothing."
+        ),
+    )
+    aggregate_cmd.add_argument(
+        "--root", dest="roots", action="append", required=True, metavar="DIR",
+        help="artifact root to include; repeatable",
+    )
+    aggregate_cmd.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -2607,6 +2621,57 @@ def _handle_scan(args: argparse.Namespace) -> tuple[int, str]:
     return 0, "\n".join(lines)
 
 
+def _aggregate_scene_tool(items: list[dict[str, Any]], scene: str) -> str:
+    """Best tool name for a scene: comparison's selected_candidate, else latest candidate_or_tool."""
+    scene_items = sorted(
+        (i for i in items if str(i.get("related_scene", "")) == scene),
+        key=_artifact_numeric_sort_key,
+    )
+    for item in reversed(scene_items):
+        tool = item.get("selected_candidate") or item.get("candidate_or_tool")
+        if tool:
+            return str(tool)
+    return "-"
+
+
+def _handle_aggregate(args: argparse.Namespace) -> tuple[int, dict[str, Any] | str]:
+    portfolio: list[dict[str, Any]] = []
+    for raw in args.roots:
+        root = Path(raw)
+        if not root.exists():
+            portfolio.append({"root": str(root), "scene": None, "tool": None, "state": "MISSING_ROOT"})
+            continue
+        items = artifacts.load_all_artifacts(root)
+        for scene, state in sorted(get_scene_states(root).items()):
+            portfolio.append({
+                "root": str(root),
+                "scene": scene,
+                "tool": _aggregate_scene_tool(items, scene),
+                "state": state,
+            })
+    if getattr(args, "json", False):
+        return 0, {
+            "schema_version": SCHEMA_VERSION,
+            "command": "aggregate",
+            "status": "ok",
+            "count": len(portfolio),
+            "portfolio": portfolio,
+        }
+    if not portfolio:
+        return 0, "ADOP Portfolio\n(no scenes across the given roots)"
+    lines = ["ADOP Portfolio (across roots)"]
+    current_root = None
+    for row in portfolio:
+        if row["root"] != current_root:
+            current_root = row["root"]
+            lines.append(f"\n{current_root}/")
+        if row["scene"] is None:
+            lines.append(f"  ! {row['state']}")
+        else:
+            lines.append(f"  {row['scene']}: {row['state']} ({row['tool']})")
+    return 0, "\n".join(lines)
+
+
 def _handle_next(args: argparse.Namespace) -> str:
     root = _root_path(args)
     scene_states = get_scene_states(root)
@@ -2875,6 +2940,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "next":
             print(_handle_next(args))
             return 0
+        if args.command == "aggregate":
+            exit_code, payload = _handle_aggregate(args)
+            if isinstance(payload, str):
+                print(payload)
+            else:
+                _emit(payload)
+            return exit_code
         raise AdopValidationError(f"unsupported command: {args.command}", 2)
     except AdopValidationError as exc:
         _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))

@@ -46,6 +46,8 @@ $ adop next
 
 Artifacts are plain JSON files in `.adop/`. They are append-only — nothing is deleted or overwritten. `adop lint` validates the full record.
 
+**Correcting a mistake:** because the store is append-only, you do not edit or delete a wrong artifact — you append a newer one that supersedes it. The latest artifact of each type per scene wins (e.g. record a fresh `coupling` snapshot, or move the lane forward with the next lifecycle command). The erroneous record stays visible as history, which is the point.
+
 ## Setup
 
 **Requires Python 3.11, 3.12, or 3.13.**

@@ -5,7 +5,12 @@ from __future__ import annotations
 
 from typing import Final
 
+# SCHEMA_VERSION is the version new artifacts are WRITTEN at. Older artifacts
+# stay readable down to MIN_READABLE_SCHEMA_VERSION: schema changes are
+# additive-only (new optional fields), so a record written by an older adop
+# remains valid after an upgrade — the append-only store outlives the schema.
 SCHEMA_VERSION: Final[int] = 1
+MIN_READABLE_SCHEMA_VERSION: Final[int] = 1
 
 ARTIFACT_TYPES: Final[tuple[str, ...]] = (
     "candidate-intake-note",  # [0]

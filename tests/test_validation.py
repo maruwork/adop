@@ -213,3 +213,35 @@ def test_task_scoped_write_trial_requires_isolated_sandbox(run, root):
     ]
     assert run(*common, "--sandbox-type", "review sandbox") == 13
     assert run(*common, "--sandbox-type", "isolated write sandbox") == 0
+
+
+# --- schema version tolerance (durability across adop versions) -------------
+
+def _schema_item(version):
+    return {
+        "schema_version": version, "artifact_type": "watch-note",
+        "artifact_id": "wt-001", "created_at": "2026-01-01",
+    }
+
+
+def test_current_schema_version_is_valid():
+    from adop_types import SCHEMA_VERSION
+    from adop_validation import validate_artifact_schema
+    validate_artifact_schema(_schema_item(SCHEMA_VERSION))  # must not raise
+
+
+def test_future_schema_version_says_newer_not_invalid():
+    import pytest
+    from adop_types import SCHEMA_VERSION
+    from adop_validation import AdopValidationError, validate_artifact_schema
+    with pytest.raises(AdopValidationError) as exc:
+        validate_artifact_schema(_schema_item(SCHEMA_VERSION + 1))
+    assert "newer adop" in str(exc.value)
+
+
+def test_bad_schema_version_is_invalid():
+    import pytest
+    from adop_validation import AdopValidationError, validate_artifact_schema
+    for bad in (0, -1, "1", 1.0, True, None):
+        with pytest.raises(AdopValidationError):
+            validate_artifact_schema(_schema_item(bad))
