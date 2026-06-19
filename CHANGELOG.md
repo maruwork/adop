@@ -4,7 +4,35 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
-_Nothing yet._
+### Added
+
+- `adop reject`: reject a candidate from `proposed` / `blocked` / `hold` without running a trial (terminal for the scene)
+- `adop aggregate`: read-only cross-project portfolio (scene / tool / state) across multiple `--root` artifact roots
+- Schema-version tolerance: `MIN_READABLE_SCHEMA_VERSION` keeps older artifacts valid after an upgrade; a too-new `schema_version` reports "written by a newer adop; upgrade adop" instead of a generic invalid
+- HTML dashboard: a "Back to top" button
+- `examples/`: a minimal, self-contained worked example (`examples/walkthrough/.adop/`)
+- Secret-commit guard: `.gitignore` patterns plus pre-commit `detect-private-key`, `check-added-large-files`, and a local `forbid-secret-files` hook
+- Coverage gate: `pytest-cov` dev dependency and a `fail_under` threshold (~84% measured)
+
+### Fixed
+
+- Distribution: `adop.json` now lists `adop_html.py` and the HTML template, so a manifest-synced runtime can start and render (previously crashed with `ModuleNotFoundError`)
+- Dashboard now surfaces the trial-packet allow/deny envelope, block reason, intake "why now", watch interest, reject reason, and deprecated/migrating/archived/hold reasoning (were blank or showed the stale promote judgment)
+- Write-trial guard: `task-scoped` and `phase-scoped` trials now also require an isolated write sandbox
+- Windows: artifact-write lock maps `PermissionError` like `FileExistsError` so concurrent id minting retries instead of crashing; stale locks are reclaimed
+- Performance: `summary` / state resolution read judgments from a single in-memory load instead of re-reading the artifact root per trial
+- `adop init`: creates a nested `--overlay` parent directory instead of crashing with `FileNotFoundError`
+- `adop summary`: no longer prints a comparison-time structural gap once a scene has advanced to `in-trial` or later
+- CI: repaired `ci.yml` (a Windows PowerShell here-string broke the workflow YAML, startup-failing every run since 0.1.1); de-flaked the concurrent id-mint test on loaded runners
+
+### Changed
+
+- Clean tool-only repository: removed the self-dogfooding `.adop/` records and the tool-surface demo files; moved `SECURITY` / `CONTRIBUTING` / `CODE_OF_CONDUCT` / `SUPPORT` into `.github/`
+- Lint: ignore `E501` (long help/template strings) while keeping `line-length` for `ruff format`; dropped the dead relative-import branch so `mypy` passes
+
+### Tests
+
+- Suite grew from 105 to 199 tests
 
 ## 0.1.1 - 2026-06-17
 
