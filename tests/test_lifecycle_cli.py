@@ -50,6 +50,26 @@ def test_watch_with_scene_records_related_scene(run, root, latest):
     assert note["related_scene"] == "lint-pipeline"
 
 
+def test_intake_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("intake", "--artifact-root", root, "--candidate", "ruff")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "intake"
+    assert payload["status"] == "error"
+    assert any("--candidate-shape" in err for err in payload["errors"])
+    assert any("--data-flow-json" in err for err in payload["errors"])
+
+
+def test_compare_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("compare", "--artifact-root", root, "--scene", "lint", "--candidate", "ruff")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "compare"
+    assert payload["status"] == "error"
+    assert any("--selected" in err for err in payload["errors"])
+    assert any("--candidate-shape" in err for err in payload["errors"])
+
+
 # --- block / unblock -------------------------------------------------------
 
 def test_block_requires_intake(run, root):
@@ -281,6 +301,68 @@ def test_lint_passes_on_open_trial(run, root):
     assert run("lint", "--artifact-root", root) == 0
 
 
+def test_quick_compare_rejects_selected_candidate_outside_list(run, root):
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", "ruff", "--source", "doc",
+        "--use-case", "compare-selection", "--why-now", "evaluate",
+    ) == 0
+    assert run(
+        "quick-compare", "--artifact-root", root, "--use-case", "compare-selection",
+        "--candidate", "ruff", "--candidate", "flake8", "--selected", "mypy",
+    ) == 2
+
+
+def test_quick_trial_rejects_unsupported_mode(run, root):
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", "ruff", "--source", "doc",
+        "--use-case", "trial-mode", "--why-now", "evaluate",
+    ) == 0
+    assert run(
+        "quick-compare", "--artifact-root", root, "--use-case", "trial-mode",
+        "--candidate", "ruff", "--candidate", "flake8", "--selected", "ruff",
+    ) == 0
+    assert run(
+        "quick-trial", "--artifact-root", root, "--use-case", "trial-mode",
+        "--mode", "unsupported-mode", "--executor", "ci",
+        "--decision-owner", "lead", "--landing-target", "ci/trial-mode",
+    ) == 2
+
+
+def test_quick_trial_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("quick-trial", "--artifact-root", root, "--use-case", "trial-parse")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "quick-trial"
+    assert payload["status"] == "error"
+    assert any("--mode" in err for err in payload["errors"])
+    assert any("--executor" in err for err in payload["errors"])
+
+
+def test_quick_trial_rejects_scene_that_is_not_trial_ready(run, root, latest):
+    assert run(
+        "quick-intake", "--artifact-root", root,
+        "--candidate", "ruff", "--source", "doc",
+        "--use-case", "trial-gate", "--why-now", "evaluate",
+    ) == 0
+    assert run(
+        "quick-compare", "--artifact-root", root, "--use-case", "trial-gate",
+        "--candidate", "ruff", "--candidate", "flake8", "--selected", "ruff",
+    ) == 0
+    comparison = latest(root, "comparison-note", scene="trial-gate")
+    assert comparison is not None
+    path = Path(str(comparison["_adop_path"]))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["recommended_fit_lane"] = "assistance"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    assert run(
+        "quick-trial", "--artifact-root", root, "--use-case", "trial-gate",
+        "--mode", "read-only-comparison", "--executor", "ci",
+        "--decision-owner", "lead", "--landing-target", "ci/trial-gate",
+    ) == 7
+
+
 def test_quick_trial_persists_owner_and_landing_target(run, root, latest):
     trial_id = _run_to_open_trial(run, root, scene="landing-proof", tool="ruff")
     packet = latest(root, TRIAL_PACKET, scene="landing-proof")
@@ -317,6 +399,37 @@ def test_quick_promote_requires_explicit_judgment_fields(run, root):
         "--trial-id", trial_id, "--verdict", "promote",
         "--observed-effect", "works",
     ) == 2
+
+
+def test_quick_close_trial_rejects_unsupported_verdict(run, root):
+    trial_id = _run_to_open_trial(run, root, scene="ci-bad-verdict", tool="ruff")
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id, "--verdict", "ship-it",
+        "--observed-effect", "works",
+    ) == 2
+
+
+def test_quick_close_trial_missing_required_args_returns_json_error(run, root, capsys):
+    trial_id = _run_to_open_trial(run, root, scene="ci-close-parse", tool="ruff")
+    capsys.readouterr()
+    rc = run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", trial_id, "--verdict", "hold",
+    )
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "quick-close-trial"
+    assert payload["status"] == "error"
+    assert any("--observed-effect" in err for err in payload["errors"])
+
+
+def test_quick_close_trial_missing_trial_packet_returns_5(run, root):
+    assert run(
+        "quick-close-trial", "--artifact-root", root,
+        "--trial-id", "tr-999", "--verdict", "hold",
+        "--observed-effect", "not found",
+    ) == 5
 
 
 def test_promote_requires_known_tool_attributes(run, root):

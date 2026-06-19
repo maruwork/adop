@@ -237,7 +237,11 @@ _NODE_DEP_FILES: frozenset[str] = frozenset({
 _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     "actionlint": (
         {
-            "patterns": (".actionlint.yaml", ".actionlint.yml", ".github/actionlint.yaml", ".github/actionlint.yml"),
+            "patterns": (
+                ".actionlint.yaml", ".actionlint.yml",
+                ".github/actionlint.yaml", ".github/actionlint.yml",
+                "tool-surfaces/.github/actionlint.yaml", "tool-surfaces/.github/actionlint.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -255,6 +259,7 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
         {
             "patterns": (
                 "eslint.config.js", "eslint.config.cjs", "eslint.config.mjs",
+                "tool-surfaces/eslint.config.js", "tool-surfaces/eslint.config.cjs", "tool-surfaces/eslint.config.mjs",
                 ".eslintrc", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc.yml", ".eslintrc.js",
                 ".eslintignore",
             ),
@@ -263,14 +268,14 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
             "note": "tool-owned config surface",
         },
         {
-            "patterns": (".vscode/extensions.json",),
+            "patterns": (".vscode/extensions.json", "tool-surfaces/.vscode/extensions.json"),
             "contains_any": ("dbaeumer.vscode-eslint",),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "workspace extension recommendation",
         },
         {
-            "patterns": (".vscode/settings.json",),
+            "patterns": (".vscode/settings.json", "tool-surfaces/.vscode/settings.json"),
             "contains_any": ("\"eslint.validate\"", "\"source.fixall.eslint\"", "\"eslint."),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -279,7 +284,7 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "hadolint": (
         {
-            "patterns": (".hadolint.yaml", ".hadolint.yml"),
+            "patterns": (".hadolint.yaml", ".hadolint.yml", "tool-surfaces/.hadolint.yaml", "tool-surfaces/.hadolint.yml"),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -294,7 +299,11 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "markdownlint-cli2": (
         {
-            "patterns": (".markdownlint-cli2.jsonc", ".markdownlint-cli2.json", ".markdownlint-cli2.yaml", ".markdownlint-cli2.yml"),
+            "patterns": (
+                ".markdownlint-cli2.jsonc", ".markdownlint-cli2.json", ".markdownlint-cli2.yaml", ".markdownlint-cli2.yml",
+                "tool-surfaces/.markdownlint-cli2.jsonc", "tool-surfaces/.markdownlint-cli2.json",
+                "tool-surfaces/.markdownlint-cli2.yaml", "tool-surfaces/.markdownlint-cli2.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "tool-owned config surface",
@@ -313,6 +322,8 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
             "patterns": (
                 ".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.yml",
                 ".prettierignore", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs",
+                "tool-surfaces/.prettierrc", "tool-surfaces/.prettierrc.json", "tool-surfaces/.prettierrc.yaml", "tool-surfaces/.prettierrc.yml",
+                "tool-surfaces/.prettierignore", "tool-surfaces/prettier.config.js", "tool-surfaces/prettier.config.cjs", "tool-surfaces/prettier.config.mjs",
             ),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -321,7 +332,10 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "renovate": (
         {
-            "patterns": ("renovate.json", "renovate.json5", ".github/renovate.json", ".github/renovate.json5"),
+            "patterns": (
+                "renovate.json", "renovate.json5", ".github/renovate.json", ".github/renovate.json5",
+                "tool-surfaces/renovate.json", "tool-surfaces/renovate.json5",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "dependency bot config surface",
@@ -337,7 +351,11 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "trivy": (
         {
-            "patterns": (".trivyignore", "trivy.yaml", "trivy.yml", ".trivy/config.yaml", ".trivy/config.yml"),
+            "patterns": (
+                ".trivyignore", "trivy.yaml", "trivy.yml", ".trivy/config.yaml", ".trivy/config.yml",
+                "tool-surfaces/.trivyignore", "tool-surfaces/trivy.yaml", "tool-surfaces/trivy.yml",
+                "tool-surfaces/.trivy/config.yaml", "tool-surfaces/.trivy/config.yml",
+            ),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "scanner config surface",
@@ -345,14 +363,14 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
     "vscode-eslint": (
         {
-            "patterns": (".vscode/extensions.json",),
+            "patterns": (".vscode/extensions.json", "tool-surfaces/.vscode/extensions.json"),
             "contains_any": ("dbaeumer.vscode-eslint",),
             "coupling_type": "config",
             "removal_cost": "edit",
             "note": "workspace extension recommendation",
         },
         {
-            "patterns": (".vscode/settings.json",),
+            "patterns": (".vscode/settings.json", "tool-surfaces/.vscode/settings.json"),
             "contains_any": ("\"eslint.validate\"", "\"source.fixall.eslint\"", "\"eslint."),
             "coupling_type": "config",
             "removal_cost": "edit",
@@ -360,6 +378,27 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
         },
     ),
 }
+
+# Canonical supported scan-tool universe. This stays broader than
+# `_TOOL_SURFACE_RULES` because some tools are intentionally supported through
+# structured parsing rather than filename-only rules.
+_SCAN_TOOL_SUPPORT: dict[str, dict[str, str]] = {
+    "actionlint": {"category": "workflow linter", "support_level": "explicit-surface-rule"},
+    "dependabot": {"category": "dependency bot", "support_level": "explicit-surface-rule"},
+    "eslint": {"category": "js linter", "support_level": "explicit-surface-rule"},
+    "hadolint": {"category": "docker linter", "support_level": "explicit-surface-rule"},
+    "markdownlint-cli2": {"category": "markdown linter", "support_level": "explicit-surface-rule"},
+    "pre-commit": {"category": "hook runner", "support_level": "explicit-surface-rule"},
+    "prettier": {"category": "formatter", "support_level": "explicit-surface-rule"},
+    "pytest-xdist": {"category": "test helper", "support_level": "structured-parser-only"},
+    "renovate": {"category": "dependency bot", "support_level": "explicit-surface-rule"},
+    "ruff": {"category": "python linter / formatter candidate", "support_level": "structured-parser-only"},
+    "shellcheck": {"category": "shell linter", "support_level": "explicit-surface-rule"},
+    "trivy": {"category": "security scanner", "support_level": "explicit-surface-rule"},
+    "vscode-eslint": {"category": "editor extension surface", "support_level": "explicit-surface-rule"},
+}
+
+_CANONICAL_TOOL_IDS: frozenset[str] = frozenset(_SCAN_TOOL_SUPPORT)
 
 _SCAN_SKIP_DIRS: frozenset[str] = frozenset({
     ".git", ".hg", "__pycache__", ".pytest_cache", ".mypy_cache",
@@ -412,6 +451,13 @@ _EVALUATION_ONLY_MARKERS: tuple[str, ...] = (
     "--use-case",
     "candidate_or_tool",
 )
+
+
+class _AdopArgumentParser(argparse.ArgumentParser):
+    """Raise ADOP validation errors instead of raw argparse exits."""
+
+    def error(self, message: str) -> None:
+        raise AdopValidationError(message, 2)
 
 
 def _emit(payload: dict[str, Any]) -> None:
@@ -531,6 +577,24 @@ def _normalize_platform_value(raw: str) -> str:
     return _PLATFORM_ALIASES.get(key, text)
 
 
+def _canonical_tool_id(tool: str) -> str:
+    base = str(tool or "").lower().strip()
+    if not base:
+        return base
+    if base == "xdist":
+        return "pytest-xdist"
+    candidates = (
+        base,
+        base.replace("_", "-"),
+        base.replace(".", "-"),
+        base.replace("_", "-").replace(".", "-"),
+    )
+    for candidate in candidates:
+        if candidate in _CANONICAL_TOOL_IDS:
+            return candidate
+    return base
+
+
 def _normalize_scan_pattern(raw: str) -> str:
     return str(raw or "").replace("\\", "/").strip().lstrip("./").strip("/")
 
@@ -577,7 +641,7 @@ def _iter_scan_files(target: Path, excludes: list[str]) -> list[tuple[Path, str]
 
 
 def _tool_search_aliases(tool: str) -> list[str]:
-    base = tool.lower().strip()
+    base = _canonical_tool_id(tool)
     aliases = {
         base,
         base.replace("-", "_"),
@@ -630,7 +694,7 @@ def _build_detected_coupling(
 
 
 def _surface_rule_match(tool: str, rel: str, text_lower: str) -> dict[str, Any] | None:
-    rules = _TOOL_SURFACE_RULES.get(tool.lower().strip(), ())
+    rules = _TOOL_SURFACE_RULES.get(_canonical_tool_id(tool), ())
     rel_lower = rel.lower()
     for rule in rules:
         patterns = tuple(str(pattern).lower() for pattern in rule.get("patterns", ()))
@@ -653,7 +717,7 @@ def _surface_rule_match(tool: str, rel: str, text_lower: str) -> dict[str, Any] 
 
 
 def _text_mentions_tool_in_context(tool: str, rel: str, text_lower: str, aliases: list[str]) -> bool:
-    tool_key = tool.lower().strip()
+    tool_key = _canonical_tool_id(tool)
     rel_lower = rel.lower()
     if tool_key == "renovate":
         return bool(
@@ -719,7 +783,8 @@ def _structured_pyproject_match(rel: str, text: str, aliases: list[str]) -> dict
 
 
 def _structured_package_json_match(rel: str, text: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
-    if rel.lower() != "package.json":
+    rel_lower = rel.lower()
+    if rel_lower != "package.json" and not rel_lower.endswith("/package.json"):
         return None
     try:
         data = json.loads(text)
@@ -792,23 +857,23 @@ def _structured_precommit_match(rel: str, text_lower: str, aliases: list[str]) -
 
 
 def _package_scripts_matching_tool(target: Path, aliases: list[str], tool: str) -> set[str]:
-    package_path = target / "package.json"
-    if not package_path.exists():
-        return set()
-    try:
-        data = json.loads(package_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return set()
-    scripts = data.get("scripts")
-    if not isinstance(scripts, dict):
-        return set()
     matched: set[str] = set()
-    for name, value in scripts.items():
-        if not isinstance(name, str) or not isinstance(value, str):
+    for path, rel in _iter_scan_files(target, []):
+        if path.name != "package.json":
             continue
-        value_lower = value.lower()
-        if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(tool, "package.json", value_lower, aliases):
-            matched.add(name.lower())
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        scripts = data.get("scripts")
+        if not isinstance(scripts, dict):
+            continue
+        for name, value in scripts.items():
+            if not isinstance(name, str) or not isinstance(value, str):
+                continue
+            value_lower = value.lower()
+            if _looks_like_pytest_xdist_invocation(tool, value_lower) or _text_mentions_tool_in_context(tool, rel, value_lower, aliases):
+                matched.add(name.lower())
     return matched
 
 
@@ -839,7 +904,10 @@ def _workflow_command_lines(text_lower: str) -> list[str]:
 
 
 def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases: list[str], tool: str) -> dict[str, Any] | None:
-    if not rel.lower().startswith(".github/workflows/"):
+    if not (
+        rel.lower().startswith(".github/workflows/")
+        or rel.lower().startswith("tool-surfaces/.github/workflows/")
+    ):
         return None
 
     action_patterns: dict[str, tuple[str, ...]] = {
@@ -860,7 +928,13 @@ def _structured_workflow_match(target: Path, rel: str, text_lower: str, aliases:
                     confidence="high",
                 )
     for line in _workflow_command_lines(text_lower):
-        if any(re.search(rf"\bnpm\s+run\s+{re.escape(script)}\b", line) for script in matching_scripts):
+        if any(
+            re.search(
+                rf"\bnpm(?:\s+--[a-z0-9-]+(?:[ =][^\s]+)?)*\s+run\s+{re.escape(script)}\b",
+                line,
+            )
+            for script in matching_scripts
+        ):
             return _build_detected_coupling(
                 rel, "invocation", "edit",
                 note="workflow run command",
@@ -900,7 +974,7 @@ def _structured_config_match(target: Path, path: Path, rel: str, text: str, text
 
 
 def _looks_like_pytest_xdist_invocation(tool: str, text_lower: str) -> bool:
-    if tool.lower() != "pytest-xdist":
+    if _canonical_tool_id(tool) != "pytest-xdist":
         return False
     return bool(
         re.search(r"python\s+-m\s+pytest\b[^\n\r]*\s-n(?:\s|=)", text_lower)
@@ -922,8 +996,9 @@ def _format_detection_suffix(entry: dict[str, Any]) -> str:
 
 
 def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[dict[str, Any]]:
-    tool_mod = re.sub(r"[-.]", "_", tool).lower()
-    aliases = _tool_search_aliases(tool)
+    canonical_tool = _canonical_tool_id(tool)
+    tool_mod = re.sub(r"[-.]", "_", canonical_tool).lower()
+    aliases = _tool_search_aliases(canonical_tool)
     couplings: list[dict[str, Any]] = []
 
     for path, rel in _iter_scan_files(target, excludes):
@@ -933,12 +1008,12 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
             continue
         text_lower = text.lower()
 
-        surface_match = _surface_rule_match(tool, rel, text_lower)
+        surface_match = _surface_rule_match(canonical_tool, rel, text_lower)
         if surface_match:
             couplings.append(surface_match)
             continue
 
-        structured_match = _structured_config_match(target, path, rel, text, text_lower, aliases, tool)
+        structured_match = _structured_config_match(target, path, rel, text, text_lower, aliases, canonical_tool)
         if structured_match:
             couplings.append(structured_match)
             continue
@@ -953,7 +1028,7 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                     )
                 )
         elif path.name in _NODE_DEP_FILES:
-            if _text_mentions_tool_in_context(tool, rel, text_lower, aliases):
+            if _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases):
                 if path.name in ("package-lock.json", "pnpm-lock.yaml", "yarn.lock"):
                     couplings.append(
                         _build_detected_coupling(
@@ -972,7 +1047,7 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                         )
                     )
         elif path.name in _CONFIG_FILE_NAMES or path.suffix in (".yml", ".yaml", ".toml", ".cfg", ".ini"):
-            if _text_mentions_tool_in_context(tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(tool, text_lower):
+            if _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(canonical_tool, text_lower):
                 if path.name in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
                     couplings.append(
                         _build_detected_coupling(
@@ -983,7 +1058,7 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                         )
                     )
                 else:
-                    detection_source = "invocation-pattern" if _looks_like_pytest_xdist_invocation(tool, text_lower) else "config-mention"
+                    detection_source = "invocation-pattern" if _looks_like_pytest_xdist_invocation(canonical_tool, text_lower) else "config-mention"
                     confidence = "high" if detection_source == "invocation-pattern" else "medium"
                     couplings.append(
                         _build_detected_coupling(
@@ -993,7 +1068,7 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                         )
                     )
         elif path.suffix in (".sh", ".bash", ".ps1", ".bat", ".cmd") or path.name in ("Makefile", "makefile"):
-            if _text_mentions_tool_in_context(tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(tool, text_lower):
+            if _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases) or _looks_like_pytest_xdist_invocation(canonical_tool, text_lower):
                 detection_source = "invocation-pattern"
                 confidence = "high"
                 couplings.append(
@@ -1003,7 +1078,7 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
                         confidence=confidence,
                     )
                 )
-        elif _text_mentions_tool_in_context(tool, rel, text_lower, aliases) and path.suffix not in (".pyc", ".pyo", ".lock", ".md", ".rst", ".txt"):
+        elif _text_mentions_tool_in_context(canonical_tool, rel, text_lower, aliases) and path.suffix not in (".pyc", ".pyo", ".lock", ".md", ".rst", ".txt"):
             couplings.append(
                 _build_detected_coupling(
                     rel, "reference", "clean",
@@ -1166,7 +1241,7 @@ def _build_filter_assessment(args: argparse.Namespace) -> dict[str, dict[str, st
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _AdopArgumentParser(
         description="ADOP JSON-native CLI",
         epilog=(
             "First time in a project:\n"
@@ -1626,9 +1701,9 @@ def _handle_compare(args: argparse.Namespace) -> dict[str, Any]:
     root = _prepare_artifact_root(args)
     _ensure_scene_not_rejected(root, args.scene, command="compare")
     if len(args.candidates) < 2 or len(args.candidates) > 3:
-        raise AdopValidationError("candidate must appear 2-3 times")
+        raise AdopValidationError("candidate must appear 2-3 times", 2)
     if args.selected not in args.candidates:
-        raise AdopValidationError("selected candidate must be in candidate list")
+        raise AdopValidationError("selected candidate must be in candidate list", 2)
     parent = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
     if not parent:
         raise AdopValidationError("candidate-intake-note for scene not found", 5)
@@ -2656,8 +2731,16 @@ def _handle_show(args: argparse.Namespace) -> tuple[int, dict[str, Any] | str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv_list = list(argv) if argv is not None else sys.argv[1:]
     parser = _build_parser()
-    args = parser.parse_args(argv)
+    command_name = "cli"
+    if argv_list and not str(argv_list[0]).startswith("-"):
+        command_name = str(argv_list[0])
+    try:
+        args = parser.parse_args(argv_list)
+    except AdopValidationError as exc:
+        _emit(artifacts.json_response(command_name, "error", [], [str(exc)]))
+        return exc.exit_code
     try:
         if args.command == "intake":
             _emit(_handle_intake(args))
@@ -2761,10 +2844,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         raise AdopValidationError(f"unsupported command: {args.command}", 2)
     except AdopValidationError as exc:
-        _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))
+        _emit(artifacts.json_response(getattr(args, "command", command_name), "error", [], [str(exc)]))
         return exc.exit_code
     except artifacts.AdopArtifactError as exc:
-        _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))
+        _emit(artifacts.json_response(getattr(args, "command", command_name), "error", [], [str(exc)]))
         return 11
 
 

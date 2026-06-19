@@ -6,12 +6,15 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 PYTHON_DIR = Path(__file__).resolve().parent.parent / "shared" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 import adop_cli
 from adop_cli import main
+from adop_validation import validate_coupling_note_payload
 
 
 def run(*argv: str) -> int:
@@ -35,6 +38,17 @@ def test_init_creates_overlay_file(tmp_path):
     assert Path(overlay).exists()
     text = Path(overlay).read_text(encoding="utf-8")
     assert "ADOP" in text
+
+
+def test_init_accepts_custom_artifact_root_and_overlay_paths(tmp_path):
+    root = str(tmp_path / "records" / "adop-store")
+    overlay_dir = tmp_path / "notes"
+    overlay_dir.mkdir()
+    overlay = str(overlay_dir / "adop-local.md")
+    rc = run("init", "--artifact-root", root, "--overlay", overlay)
+    assert rc == 0
+    assert Path(root).is_dir()
+    assert Path(overlay).exists()
 
 
 def test_init_overlay_matches_scene_lane_contract(tmp_path):
@@ -111,6 +125,26 @@ def test_scene_alias_is_accepted_on_guided_commands(tmp_path, capsys):
 
 
 # ── default artifact root ────────────────────────────────────────────────────
+
+def test_supported_scan_tool_catalog_matches_documented_tool_universe():
+    assert adop_cli._CANONICAL_TOOL_IDS == frozenset({
+        "actionlint",
+        "dependabot",
+        "eslint",
+        "hadolint",
+        "markdownlint-cli2",
+        "pre-commit",
+        "prettier",
+        "pytest-xdist",
+        "renovate",
+        "ruff",
+        "shellcheck",
+        "trivy",
+        "vscode-eslint",
+    })
+    assert adop_cli._SCAN_TOOL_SUPPORT["ruff"]["support_level"] == "structured-parser-only"
+    assert adop_cli._SCAN_TOOL_SUPPORT["pytest-xdist"]["support_level"] == "structured-parser-only"
+
 
 def test_default_artifact_root_missing_shows_hint(tmp_path, capsys, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -231,6 +265,17 @@ def test_scan_detects_prettier_surface_filename_without_tool_name(tmp_path, caps
     assert "high confidence via surface-rule" in out
 
 
+def test_scan_detects_markdownlint_surface_filename_without_tool_name(tmp_path, capsys):
+    (tmp_path / ".markdownlint-cli2.jsonc").write_text('{"globs":["README.md"]}\n', encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "markdownlint-cli2", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".markdownlint-cli2.jsonc"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
+
+
 def test_scan_matches_pre_commit_underscore_invocation(tmp_path, capsys):
     workflow = tmp_path / ".github" / "workflows" / "ci.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +284,18 @@ def test_scan_matches_pre_commit_underscore_invocation(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert ".github/workflows/ci.yml" in out
+
+
+def test_scan_matches_pre_commit_alias_on_surface_rule(tmp_path, capsys):
+    config = tmp_path / ".pre-commit-config.yaml"
+    config.write_text("repos:\n  - repo: local\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "pre_commit", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".pre-commit-config.yaml"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
 
 
 def test_scan_detects_workflow_action_usage_as_high_confidence(tmp_path, capsys):
@@ -273,6 +330,44 @@ def test_scan_detects_workflow_npm_script_indirection_as_high_confidence(tmp_pat
     assert workflow_entry["confidence"] == "high"
 
 
+def test_scan_detects_prefixed_workflow_npm_script_indirection(tmp_path, capsys):
+    package = tmp_path / "tool-surfaces" / "package.json"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_text(
+        '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+        encoding="utf-8",
+    )
+    workflow = tmp_path / "tool-surfaces" / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - run: npm run lint:js\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    workflow_entry = next(entry for entry in data if entry["path"] == "tool-surfaces/.github/workflows/ci.yml")
+    assert workflow_entry["coupling_type"] == "invocation"
+    assert workflow_entry["detection_source"] == "invocation-pattern"
+    assert workflow_entry["confidence"] == "high"
+
+
+def test_scan_detects_workflow_npm_prefix_script_indirection(tmp_path, capsys):
+    package = tmp_path / "tool-surfaces" / "package.json"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_text(
+        '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+        encoding="utf-8",
+    )
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - run: npm --prefix tool-surfaces run lint:js\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    workflow_entry = next(entry for entry in data if entry["path"] == ".github/workflows/ci.yml")
+    assert workflow_entry["coupling_type"] == "invocation"
+    assert workflow_entry["detection_source"] == "invocation-pattern"
+    assert workflow_entry["confidence"] == "high"
+
+
 def test_scan_ignores_check_renovate_hook_name(tmp_path, capsys):
     config = tmp_path / ".pre-commit-config.yaml"
     config.write_text(
@@ -283,6 +378,34 @@ def test_scan_ignores_check_renovate_hook_name(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "No references" in out
+
+
+def test_scan_detects_renovate_config_as_high_confidence(tmp_path, capsys):
+    config = tmp_path / "renovate.json"
+    config.write_text('{"extends":["config:best-practices"]}\n', encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "renovate", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == "renovate.json"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_dependabot_config_as_high_confidence(tmp_path, capsys):
+    config = tmp_path / ".github" / "dependabot.yml"
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(
+        "version: 2\nupdates:\n  - package-ecosystem: pip\n    directory: /\n    schedule:\n      interval: weekly\n",
+        encoding="utf-8",
+    )
+    rc = run("scan", "--target", str(tmp_path), "--tool", "dependabot", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".github/dependabot.yml"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
 
 
 def test_scan_ignores_evaluation_only_candidate_mentions(tmp_path, capsys):
@@ -310,6 +433,22 @@ def test_scan_detects_vscode_eslint_settings_without_tool_id(tmp_path, capsys):
     assert rc == 0
     data = json.loads(capsys.readouterr().out)
     assert data[0]["path"] == ".vscode/settings.json"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_prefixed_vscode_settings(tmp_path, capsys):
+    settings = tmp_path / "tool-surfaces" / ".vscode" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text(
+        '{\n  "eslint.validate": ["javascript"]\n}\n',
+        encoding="utf-8",
+    )
+    rc = run("scan", "--target", str(tmp_path), "--tool", "vscode-eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == "tool-surfaces/.vscode/settings.json"
     assert data[0]["coupling_type"] == "config"
     assert data[0]["detection_source"] == "surface-rule"
     assert data[0]["confidence"] == "high"
@@ -357,6 +496,22 @@ def test_scan_detects_package_json_script_as_invocation(tmp_path, capsys):
     assert data[0]["confidence"] == "high"
 
 
+def test_scan_detects_prefixed_package_json_script_as_invocation(tmp_path, capsys):
+    package = tmp_path / "tool-surfaces" / "package.json"
+    package.parent.mkdir(parents=True, exist_ok=True)
+    package.write_text(
+        '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+        encoding="utf-8",
+    )
+    rc = run("scan", "--target", str(tmp_path), "--tool", "eslint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == "tool-surfaces/package.json"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
+
+
 def test_scan_detects_makefile_command_as_invocation(tmp_path, capsys):
     makefile = tmp_path / "Makefile"
     makefile.write_text(
@@ -397,6 +552,32 @@ def test_scan_detects_pytest_xdist_invocation_pattern(tmp_path, capsys):
     assert data[0]["path"] == ".github/workflows/ci.yml"
     assert data[0]["coupling_type"] == "invocation"
     assert data[0]["detection_source"] == "invocation-pattern"
+
+
+def test_scan_detects_pytest_xdist_alias_with_underscore(tmp_path, capsys):
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - run: python -m pytest tests -q -n auto\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "pytest_xdist", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".github/workflows/ci.yml"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_pytest_xdist_short_alias(tmp_path, capsys):
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - run: pytest tests -q -n auto\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "xdist", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".github/workflows/ci.yml"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
 
 
 def test_scan_exclude_skips_selected_paths(tmp_path, capsys):
@@ -454,6 +635,15 @@ def test_scan_no_results(tmp_path, capsys):
     assert "No references" in out
 
 
+def test_scan_ignores_token_collision_in_non_docs_file(tmp_path, capsys):
+    manifest = tmp_path / "ops.yaml"
+    manifest.write_text("tool: ruffle\nowner: team\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "No references" in out
+
+
 def test_scan_json_output(tmp_path, capsys):
     (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
     rc = run("scan", "--target", str(tmp_path), "--tool", "ruff", "--json")
@@ -478,6 +668,19 @@ def test_scan_detects_hadolint_inline_directive_in_dockerfile(tmp_path, capsys):
     assert data[0]["confidence"] == "high"
 
 
+def test_scan_detects_hadolint_workflow_action_usage_as_high_confidence(tmp_path, capsys):
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - uses: hadolint/hadolint-action@v3.1.0\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "hadolint", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".github/workflows/ci.yml"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
+
+
 def test_scan_detects_shellcheck_inline_directive_in_script(tmp_path, capsys):
     script = tmp_path / "repo-smoke.sh"
     script.write_text("#!/usr/bin/env bash\n# shellcheck shell=bash\n", encoding="utf-8")
@@ -488,6 +691,171 @@ def test_scan_detects_shellcheck_inline_directive_in_script(tmp_path, capsys):
     assert data[0]["coupling_type"] == "config"
     assert data[0]["detection_source"] == "config-mention"
     assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_shellcheck_workflow_action_usage_as_high_confidence(tmp_path, capsys):
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - uses: reviewdog/action-shellcheck@v1\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "shellcheck", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".github/workflows/ci.yml"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_trivy_surface_filename_without_tool_name(tmp_path, capsys):
+    config = tmp_path / ".trivyignore"
+    config.write_text("# advisory accepted during bounded test\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "trivy", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".trivyignore"
+    assert data[0]["coupling_type"] == "config"
+    assert data[0]["detection_source"] == "surface-rule"
+    assert data[0]["confidence"] == "high"
+
+
+def test_scan_detects_trivy_workflow_action_usage_as_high_confidence(tmp_path, capsys):
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("steps:\n  - uses: aquasecurity/trivy-action@0.31.0\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "trivy", "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["path"] == ".github/workflows/ci.yml"
+    assert data[0]["coupling_type"] == "invocation"
+    assert data[0]["detection_source"] == "invocation-pattern"
+    assert data[0]["confidence"] == "high"
+
+
+@pytest.mark.parametrize(
+    ("tool", "rel_path", "contents", "expected"),
+    [
+        (
+            "ruff",
+            "app.py",
+            "import ruff\nfrom ruff import check\n",
+            {"coupling_type": "import", "removal_cost": "edit", "detection_source": "python-import", "confidence": "high"},
+        ),
+        (
+            "ruff",
+            "pyproject.toml",
+            "[tool.ruff]\nline-length = 88\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "config-mention", "confidence": "high"},
+        ),
+        (
+            "ruff",
+            "requirements.txt",
+            "ruff>=0.1\npytest\n",
+            {"coupling_type": "config", "removal_cost": "clean", "detection_source": "config-mention", "confidence": "medium"},
+        ),
+        (
+            "prettier",
+            ".prettierrc.json",
+            "{ \"semi\": true }\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "surface-rule", "confidence": "high"},
+        ),
+        (
+            "pre-commit",
+            ".pre-commit-config.yaml",
+            "repos:\n  - repo: local\n    hooks:\n      - id: ruff-check\n        entry: python -m ruff check\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "surface-rule", "confidence": "high"},
+        ),
+        (
+            "ruff",
+            ".pre-commit-config.yaml",
+            "repos:\n  - repo: local\n    hooks:\n      - id: ruff-check\n        entry: python -m ruff check\n",
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "config-mention", "confidence": "high"},
+        ),
+        (
+            "pytest-xdist",
+            ".github/workflows/ci.yml",
+            "steps:\n  - run: python -m pytest tests -q -n auto\n",
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "invocation-pattern", "confidence": "high"},
+        ),
+        (
+            "actionlint",
+            ".github/workflows/ci.yml",
+            "steps:\n  - uses: rhysd/actionlint@v1\n",
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "invocation-pattern", "confidence": "high"},
+        ),
+        (
+            "dependabot",
+            ".github/dependabot.yml",
+            "version: 2\nupdates:\n  - package-ecosystem: pip\n    directory: /\n    schedule:\n      interval: weekly\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "surface-rule", "confidence": "high"},
+        ),
+        (
+            "vscode-eslint",
+            ".vscode/settings.json",
+            "{\n  \"eslint.validate\": [\"javascript\"]\n}\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "surface-rule", "confidence": "high"},
+        ),
+        (
+            "eslint",
+            "package.json",
+            '{\n  "devDependencies": {\n    "eslint": "^9.0.0"\n  }\n}\n',
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "config-mention", "confidence": "high"},
+        ),
+        (
+            "eslint",
+            "package.json",
+            '{\n  "scripts": {\n    "lint": "eslint ."\n  }\n}\n',
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "invocation-pattern", "confidence": "high"},
+        ),
+        (
+            "eslint",
+            ".github/workflows/ci.yml",
+            "steps:\n  - run: npm run lint:js\n",
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "invocation-pattern", "confidence": "high"},
+        ),
+        (
+            "hadolint",
+            "Dockerfile",
+            "# hadolint global ignore=DL3008\nFROM alpine:3.20\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "surface-rule", "confidence": "high"},
+        ),
+        (
+            "shellcheck",
+            "repo-smoke.sh",
+            "#!/usr/bin/env bash\n# shellcheck shell=bash\n",
+            {"coupling_type": "config", "removal_cost": "edit", "detection_source": "config-mention", "confidence": "high"},
+        ),
+        (
+            "trivy",
+            ".github/workflows/ci.yml",
+            "steps:\n  - uses: aquasecurity/trivy-action@0.31.0\n",
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "invocation-pattern", "confidence": "high"},
+        ),
+        (
+            "ruff",
+            "Makefile",
+            "lint:\n\truff check .\n",
+            {"coupling_type": "invocation", "removal_cost": "edit", "detection_source": "invocation-pattern", "confidence": "high"},
+        ),
+    ],
+)
+def test_scan_exact_output_tuple_contracts(tmp_path, capsys, tool, rel_path, contents, expected):
+    path = tmp_path / Path(rel_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if tool == "eslint" and rel_path == ".github/workflows/ci.yml":
+        package = tmp_path / "package.json"
+        package.write_text(
+            '{\n  "scripts": {\n    "lint:js": "eslint eslint.config.js"\n  }\n}\n',
+            encoding="utf-8",
+        )
+    path.write_text(contents, encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", tool, "--json")
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    entry = next(item for item in data if item["path"] == rel_path.replace("\\", "/"))
+    assert entry["coupling_type"] == expected["coupling_type"]
+    assert entry["removal_cost"] == expected["removal_cost"]
+    assert entry["detection_source"] == expected["detection_source"]
+    assert entry["confidence"] == expected["confidence"]
 
 
 def test_scan_record_writes_canonical_coupling_note(tmp_path, capsys):
@@ -508,6 +876,41 @@ def test_scan_record_writes_canonical_coupling_note(tmp_path, capsys):
     assert "pyproject.toml" in report
 
 
+def test_scan_record_written_note_conforms_to_coupling_schema(tmp_path, capsys):
+    root = tmp_path / ".adop"
+    root.mkdir()
+    (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
+    rc = run(
+        "scan", "--artifact-root", str(root),
+        "--target", str(tmp_path), "--tool", "ruff",
+        "--scene", "lint", "--record",
+    )
+    assert rc == 0
+    capsys.readouterr()
+    note_path = next(root.rglob("adop_coupling-note_*.json"))
+    payload = json.loads(note_path.read_text(encoding="utf-8"))
+    assert payload["related_scene"] == "lint"
+    assert payload["candidate_or_tool"] == "ruff"
+    coupling = payload["couplings"][0]
+    assert coupling["path"] == "pyproject.toml"
+    assert coupling["coupling_type"] == "config"
+    assert coupling["removal_cost"] == "edit"
+    assert coupling["detection_source"] == "config-mention"
+    assert coupling["confidence"] == "high"
+    validate_coupling_note_payload(payload)
+
+
+def test_scan_without_record_stays_advisory_and_writes_no_coupling_note(tmp_path, capsys):
+    root = tmp_path / ".adop"
+    root.mkdir()
+    (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
+    rc = run("scan", "--artifact-root", str(root), "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Scan output is advisory only." in out
+    assert not list(root.rglob("adop_coupling-note_*.json"))
+
+
 def test_scan_record_requires_scene(tmp_path):
     root = str(tmp_path / ".adop")
     Path(root).mkdir()
@@ -519,6 +922,42 @@ def test_scan_record_requires_scene(tmp_path):
 def test_scan_invalid_target(tmp_path):
     rc = run("scan", "--target", str(tmp_path / "nonexistent"), "--tool", "ruff")
     assert rc == 2
+
+
+@pytest.mark.parametrize(
+    "skip_dir",
+    [".adop", ".git", ".hg", "node_modules", ".venv", "venv", "env", ".pytest_cache", ".mypy_cache", "__pycache__", "dist"],
+)
+def test_scan_skips_internal_default_skip_dirs(tmp_path, capsys, skip_dir):
+    kept = tmp_path / "src" / "pyproject.toml"
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    kept.write_text("[tool.ruff]\n", encoding="utf-8")
+    skipped = tmp_path / skip_dir / "pyproject.toml"
+    skipped.parent.mkdir(parents=True, exist_ok=True)
+    skipped.write_text("[tool.ruff]\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "src/pyproject.toml" in out
+    assert f"{skip_dir}/pyproject.toml" not in out
+
+
+@pytest.mark.parametrize(
+    ("rel_dir", "filename"),
+    [("pkg.egg-info", "PKG-INFO"), ("pkg.dist-info", "METADATA")],
+)
+def test_scan_skips_generated_package_metadata_dirs(tmp_path, capsys, rel_dir, filename):
+    kept = tmp_path / "src" / "pyproject.toml"
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    kept.write_text("[tool.ruff]\n", encoding="utf-8")
+    skipped = tmp_path / rel_dir / filename
+    skipped.parent.mkdir(parents=True, exist_ok=True)
+    skipped.write_text("ruff mentioned in package metadata\n", encoding="utf-8")
+    rc = run("scan", "--target", str(tmp_path), "--tool", "ruff")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "src/pyproject.toml" in out
+    assert f"{rel_dir}/{filename}" not in out
 
 
 # ── next ──────────────────────────────────────────────────────────────────────

@@ -213,9 +213,9 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         intake_scene = str(intake.get("related_scene", ""))
         if intake_scene in scenes_past_intake:
             continue
-        key = (intake_scene, str(intake.get("candidate_or_tool", "")))
+        intake_key = (intake_scene, str(intake.get("candidate_or_tool", "")))
         # find_by_type returns items in id order; later id wins (append-only).
-        latest_intake[key] = intake
+        latest_intake[intake_key] = intake
     for intake in latest_intake.values():
         intake_state = str(intake.get("current_disposition", PROPOSED))
         if intake_state in intake_dispositions:
