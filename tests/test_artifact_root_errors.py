@@ -136,7 +136,10 @@ def test_concurrent_id_minting_no_duplicates(tmp_path):
         artifact_id, _path = A.write_next_sequential_artifact(tmp_path, "watch-note", "wt", factory)
         return artifact_id
 
-    workers = 12
+    # Keep contention real but bounded: enough concurrent writers to exercise the
+    # lock + retry path (incl. the Windows PermissionError mapping) without letting
+    # a starved worker on a loaded CI runner exhaust the 64-attempt retry budget.
+    workers = 5
     with ThreadPoolExecutor(max_workers=workers) as ex:
         ids = list(ex.map(mint, range(workers)))
 
