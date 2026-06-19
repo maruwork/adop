@@ -13,8 +13,13 @@ import adop_types as t
 def test_artifact_types_count_and_new_members():
     assert len(t.ARTIFACT_TYPES) == 14
     for name in (
-        "watch-note", "blocked-note", "deprecation-note", "migration-note",
-        "archive-note", "coupling-note", "hold-note",
+        "watch-note",
+        "blocked-note",
+        "deprecation-note",
+        "migration-note",
+        "archive-note",
+        "coupling-note",
+        "hold-note",
     ):
         assert name in t.ARTIFACT_TYPES
 
@@ -48,8 +53,17 @@ def test_named_artifact_constants_match_tuple():
 
 def test_summary_states_order():
     assert t.SUMMARY_STATES == (
-        "watch", "proposed", "blocked", "trial-ready", "in-trial",
-        "promote", "hold", "reject", "deprecated", "migrating", "archived",
+        "watch",
+        "proposed",
+        "blocked",
+        "trial-ready",
+        "in-trial",
+        "promote",
+        "hold",
+        "reject",
+        "deprecated",
+        "migrating",
+        "archived",
     )
 
 

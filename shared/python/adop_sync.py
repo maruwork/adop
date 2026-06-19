@@ -19,6 +19,7 @@ Commands:
   list      [--source <adop-root>]
             Show registered targets and their current sync status.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -89,19 +90,21 @@ def _check_one(source: Path, target: Path, manifest: dict) -> list[dict]:
     results = []
     for rel in _managed_files(manifest):
         src = source / rel
-        dst = target / rel   # preserve full relative path (e.g. shared/python/adop_cli.py)
+        dst = target / rel  # preserve full relative path (e.g. shared/python/adop_cli.py)
         if not src.exists():
             results.append({"file": rel, "status": "MISSING_IN_SOURCE"})
         elif not dst.exists():
             results.append({"file": rel, "status": "MISSING", "src": str(src), "dst": str(dst)})
         else:
             ok = _file_hash(src) == _file_hash(dst)
-            results.append({
-                "file": rel,
-                "status": "OK" if ok else "DIFF",
-                "src": str(src),
-                "dst": str(dst),
-            })
+            results.append(
+                {
+                    "file": rel,
+                    "status": "OK" if ok else "DIFF",
+                    "src": str(src),
+                    "dst": str(dst),
+                }
+            )
     return results
 
 
@@ -205,21 +208,32 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", metavar="command")
 
     def _src(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--source", default=".", metavar="DIR",
-                       help="ADOP canonical root containing adop.json (default: .)")
+        p.add_argument(
+            "--source",
+            default=".",
+            metavar="DIR",
+            help="ADOP canonical root containing adop.json (default: .)",
+        )
 
     def _tgt(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--target", required=True, metavar="DIR",
-                       help="Project root (runtime files placed at <target>/shared/python/)")
+        p.add_argument(
+            "--target",
+            required=True,
+            metavar="DIR",
+            help="Project root (runtime files placed at <target>/shared/python/)",
+        )
 
     p = sub.add_parser("check", help="compare hashes, report DIFF")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("apply", help="copy differing/missing files to target")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("register", help="add target to local registry")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("push", help="apply to all registered targets")
     _src(p)

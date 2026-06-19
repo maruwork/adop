@@ -10,8 +10,8 @@ PYTHON_DIR = Path(__file__).resolve().parent.parent / "shared" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-import adop_cli
-from adop_cli import main
+import adop_cli  # noqa: E402
+from adop_cli import main  # noqa: E402
 
 
 def run(*argv: str) -> int:
@@ -19,6 +19,7 @@ def run(*argv: str) -> int:
 
 
 # ── init ─────────────────────────────────────────────────────────────────────
+
 
 def test_init_creates_artifact_root(tmp_path):
     root = str(tmp_path / ".adop")
@@ -90,27 +91,64 @@ def test_init_output_mentions_next_steps(tmp_path, capsys):
 
 def test_scene_alias_is_accepted_on_guided_commands(tmp_path, capsys):
     root = str(tmp_path / ".adop")
-    assert run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", "ruff", "--source", "doc",
-        "--scene", "lint", "--why-now", "evaluate",
-    ) == 0
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "ruff",
+            "--source",
+            "doc",
+            "--scene",
+            "lint",
+            "--why-now",
+            "evaluate",
+        )
+        == 0
+    )
     rc = run("next", "--artifact-root", root)
     assert rc == 0
     out = capsys.readouterr().out
     assert "--scene lint" in out
-    assert run(
-        "quick-compare", "--artifact-root", root,
-        "--scene", "lint", "--candidate", "ruff", "--candidate", "flake8", "--selected", "ruff",
-    ) == 0
-    assert run(
-        "quick-trial", "--artifact-root", root,
-        "--scene", "lint", "--mode", "read-only-comparison", "--executor", "ci",
-        "--decision-owner", "lead", "--landing-target", "ci/lint",
-    ) == 0
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--scene",
+            "lint",
+            "--candidate",
+            "ruff",
+            "--candidate",
+            "flake8",
+            "--selected",
+            "ruff",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--scene",
+            "lint",
+            "--mode",
+            "read-only-comparison",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "lead",
+            "--landing-target",
+            "ci/lint",
+        )
+        == 0
+    )
 
 
 # ── default artifact root ────────────────────────────────────────────────────
+
 
 def test_default_artifact_root_missing_shows_hint(tmp_path, capsys, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -130,6 +168,7 @@ def test_default_artifact_root_used_when_exists(tmp_path, monkeypatch):
 
 # ── status ────────────────────────────────────────────────────────────────────
 
+
 def test_status_empty(tmp_path, capsys):
     root = str(tmp_path / ".adop")
     Path(root).mkdir()
@@ -141,11 +180,22 @@ def test_status_empty(tmp_path, capsys):
 
 def test_status_with_records(tmp_path, capsys):
     root = str(tmp_path / ".adop")
-    assert run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", "ruff", "--source", "doc",
-        "--use-case", "lint", "--why-now", "evaluate",
-    ) == 0
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "ruff",
+            "--source",
+            "doc",
+            "--use-case",
+            "lint",
+            "--why-now",
+            "evaluate",
+        )
+        == 0
+    )
     rc = run("status", "--artifact-root", root)
     assert rc == 0
     out = capsys.readouterr().out
@@ -156,9 +206,17 @@ def test_status_with_records(tmp_path, capsys):
 def test_status_shows_next_steps(tmp_path, capsys):
     root = str(tmp_path / ".adop")
     run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", "ruff", "--source", "doc",
-        "--use-case", "lint", "--why-now", "evaluate",
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "ruff",
+        "--source",
+        "doc",
+        "--use-case",
+        "lint",
+        "--why-now",
+        "evaluate",
     )
     run("status", "--artifact-root", root)
     out = capsys.readouterr().out
@@ -166,6 +224,7 @@ def test_status_shows_next_steps(tmp_path, capsys):
 
 
 # ── scan ──────────────────────────────────────────────────────────────────────
+
 
 def test_scan_detects_python_import(tmp_path, capsys):
     src = tmp_path / "app.py"
@@ -288,8 +347,8 @@ def test_scan_ignores_check_renovate_hook_name(tmp_path, capsys):
 def test_scan_ignores_evaluation_only_candidate_mentions(tmp_path, capsys):
     manifest = tmp_path / "audit.manifest.yml"
     manifest.write_text(
-        'commands:\n'
-        '  - id: quick-intake\n'
+        "commands:\n"
+        "  - id: quick-intake\n"
         '    run: python shared/python/adop_cli.py quick-intake --candidate ruff --source doc --use-case lint-pipeline --why-now "audit manifest smoke"\n',
         encoding="utf-8",
     )
@@ -407,8 +466,13 @@ def test_scan_exclude_skips_selected_paths(tmp_path, capsys):
     skipped.parent.mkdir(parents=True, exist_ok=True)
     skipped.write_text("[tool.ruff]\n", encoding="utf-8")
     rc = run(
-        "scan", "--target", str(tmp_path), "--tool", "ruff",
-        "--exclude", "workspace",
+        "scan",
+        "--target",
+        str(tmp_path),
+        "--tool",
+        "ruff",
+        "--exclude",
+        "workspace",
     )
     assert rc == 0
     out = capsys.readouterr().out
@@ -495,9 +559,16 @@ def test_scan_record_writes_canonical_coupling_note(tmp_path, capsys):
     Path(root).mkdir()
     (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
     rc = run(
-        "scan", "--artifact-root", root,
-        "--target", str(tmp_path), "--tool", "ruff",
-        "--scene", "lint", "--record",
+        "scan",
+        "--artifact-root",
+        root,
+        "--target",
+        str(tmp_path),
+        "--tool",
+        "ruff",
+        "--scene",
+        "lint",
+        "--record",
     )
     assert rc == 0
     out = capsys.readouterr().out
@@ -512,7 +583,9 @@ def test_scan_record_requires_scene(tmp_path):
     root = str(tmp_path / ".adop")
     Path(root).mkdir()
     (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
-    rc = run("scan", "--artifact-root", root, "--target", str(tmp_path), "--tool", "ruff", "--record")
+    rc = run(
+        "scan", "--artifact-root", root, "--target", str(tmp_path), "--tool", "ruff", "--record"
+    )
     assert rc == 2
 
 
@@ -522,6 +595,7 @@ def test_scan_invalid_target(tmp_path):
 
 
 # ── next ──────────────────────────────────────────────────────────────────────
+
 
 def test_next_no_records(tmp_path, capsys):
     root = str(tmp_path / ".adop")
@@ -535,9 +609,17 @@ def test_next_no_records(tmp_path, capsys):
 def test_next_proposed(tmp_path, capsys):
     root = str(tmp_path / ".adop")
     run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", "ruff", "--source", "doc",
-        "--use-case", "lint", "--why-now", "evaluate",
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "ruff",
+        "--source",
+        "doc",
+        "--use-case",
+        "lint",
+        "--why-now",
+        "evaluate",
     )
     rc = run("next", "--artifact-root", root)
     assert rc == 0
@@ -548,18 +630,45 @@ def test_next_proposed(tmp_path, capsys):
 def test_next_in_trial(tmp_path, capsys):
     root = str(tmp_path / ".adop")
     run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", "ruff", "--source", "doc",
-        "--use-case", "lint", "--why-now", "evaluate",
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "ruff",
+        "--source",
+        "doc",
+        "--use-case",
+        "lint",
+        "--why-now",
+        "evaluate",
     )
     run(
-        "quick-compare", "--artifact-root", root, "--use-case", "lint",
-        "--candidate", "ruff", "--candidate", "flake8", "--selected", "ruff",
+        "quick-compare",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--candidate",
+        "ruff",
+        "--candidate",
+        "flake8",
+        "--selected",
+        "ruff",
     )
     run(
-        "quick-trial", "--artifact-root", root, "--use-case", "lint",
-        "--mode", "read-only-comparison", "--executor", "ci",
-        "--decision-owner", "lead", "--landing-target", "ci/lint",
+        "quick-trial",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--mode",
+        "read-only-comparison",
+        "--executor",
+        "ci",
+        "--decision-owner",
+        "lead",
+        "--landing-target",
+        "ci/lint",
     )
     rc = run("next", "--artifact-root", root)
     assert rc == 0
@@ -570,27 +679,69 @@ def test_next_in_trial(tmp_path, capsys):
 def test_next_after_hold_resume_returns_quick_trial(tmp_path, capsys):
     root = str(tmp_path / ".adop")
     run(
-        "quick-intake", "--artifact-root", root,
-        "--candidate", "ruff", "--source", "doc",
-        "--use-case", "lint", "--why-now", "evaluate",
+        "quick-intake",
+        "--artifact-root",
+        root,
+        "--candidate",
+        "ruff",
+        "--source",
+        "doc",
+        "--use-case",
+        "lint",
+        "--why-now",
+        "evaluate",
     )
     run(
-        "quick-compare", "--artifact-root", root, "--use-case", "lint",
-        "--candidate", "ruff", "--candidate", "flake8", "--selected", "ruff",
+        "quick-compare",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--candidate",
+        "ruff",
+        "--candidate",
+        "flake8",
+        "--selected",
+        "ruff",
     )
     run(
-        "quick-trial", "--artifact-root", root, "--use-case", "lint",
-        "--mode", "read-only-comparison", "--executor", "ci",
-        "--decision-owner", "lead", "--landing-target", "ci/lint",
+        "quick-trial",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--mode",
+        "read-only-comparison",
+        "--executor",
+        "ci",
+        "--decision-owner",
+        "lead",
+        "--landing-target",
+        "ci/lint",
     )
     run(
-        "quick-close-trial", "--artifact-root", root,
-        "--trial-id", "tr-001", "--verdict", "hold",
-        "--observed-effect", "needs narrowing",
+        "quick-close-trial",
+        "--artifact-root",
+        root,
+        "--trial-id",
+        "tr-001",
+        "--verdict",
+        "hold",
+        "--observed-effect",
+        "needs narrowing",
     )
     run(
-        "quick-compare", "--artifact-root", root, "--use-case", "lint",
-        "--candidate", "ruff", "--candidate", "flake8", "--selected", "ruff",
+        "quick-compare",
+        "--artifact-root",
+        root,
+        "--use-case",
+        "lint",
+        "--candidate",
+        "ruff",
+        "--candidate",
+        "flake8",
+        "--selected",
+        "ruff",
     )
     rc = run("next", "--artifact-root", root)
     assert rc == 0

@@ -42,6 +42,7 @@ def _acquire_lock(lock_path: Path, display_name: str) -> int:
         except (FileExistsError, PermissionError) as exc2:
             raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc2
 
+
 try:
     from .adop_ids import next_sequential_id, parse_numeric_id
     from .adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
@@ -133,7 +134,9 @@ def artifact_path(root: Path, artifact_type: str, artifact_id: str) -> Path:
     return ensure_artifact_root(root) / artifact_filename(artifact_type, artifact_id)
 
 
-def write_artifact(root: Path, artifact_type: str, artifact_id: str, payload: dict[str, Any]) -> Path:
+def write_artifact(
+    root: Path, artifact_type: str, artifact_id: str, payload: dict[str, Any]
+) -> Path:
     path = artifact_path(root, artifact_type, artifact_id)
     body = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     lock_path = path.with_name(f".{path.name}.lock")
@@ -282,7 +285,7 @@ def _filename_type(path: Path) -> str | None:
     stem = path.stem
     if not stem.startswith("adop_"):
         return None
-    middle = stem[len("adop_"):]
+    middle = stem[len("adop_") :]
     if "_" not in middle:
         return None
     return middle.rsplit("_", 1)[0]
@@ -309,7 +312,10 @@ def load_all_artifacts(root: Path) -> list[dict[str, Any]]:
         body_type = payload.get("artifact_type")
         name_type = _filename_type(path)
         if body_type is None:
-            print(f"[adop] artifact missing artifact_type, classified by filename: {path}", file=sys.stderr)
+            print(
+                f"[adop] artifact missing artifact_type, classified by filename: {path}",
+                file=sys.stderr,
+            )
         elif name_type is not None and body_type != name_type:
             print(
                 f"[adop] artifact_type mismatch (filename={name_type}, body={body_type}): {path}",
@@ -343,7 +349,9 @@ def _id_sort_key(item: dict[str, Any]) -> tuple[int, int, str]:
     return (0, number, raw)
 
 
-def latest_by_type(root: Path, artifact_type: str, *, scene: str | None = None) -> dict[str, Any] | None:
+def latest_by_type(
+    root: Path, artifact_type: str, *, scene: str | None = None
+) -> dict[str, Any] | None:
     items = find_by_type(root, artifact_type)
     if scene is not None:
         items = [item for item in items if item.get("related_scene") == scene]
@@ -356,7 +364,9 @@ def latest_by_type(root: Path, artifact_type: str, *, scene: str | None = None) 
 def _find_unique_by_id(root: Path, artifact_type: str, artifact_id: str) -> dict[str, Any] | None:
     if not artifact_id:
         return None
-    matches = [item for item in find_by_type(root, artifact_type) if item.get("artifact_id") == artifact_id]
+    matches = [
+        item for item in find_by_type(root, artifact_type) if item.get("artifact_id") == artifact_id
+    ]
     if len(matches) > 1:
         raise AdopArtifactError(f"multiple {artifact_type} artifacts share id {artifact_id}")
     return matches[0] if matches else None
@@ -370,7 +380,9 @@ def find_judgment_report(root: Path, trial_id: str) -> dict[str, Any] | None:
     return _find_unique_by_id(root, JUDGMENT_REPORT, trial_id)
 
 
-def json_response(command: str, status: str, artifact_refs: list[str], errors: list[str]) -> dict[str, Any]:
+def json_response(
+    command: str, status: str, artifact_refs: list[str], errors: list[str]
+) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "command": command,

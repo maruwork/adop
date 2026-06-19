@@ -14,19 +14,19 @@ MIN_READABLE_SCHEMA_VERSION: Final[int] = 1
 
 ARTIFACT_TYPES: Final[tuple[str, ...]] = (
     "candidate-intake-note",  # [0]
-    "comparison-note",        # [1]
-    "trial-packet",           # [2]
-    "trial-result",           # [3]
-    "reject-note",            # [4]
-    "promotion-note",         # [5]
-    "judgment-report",        # [6]
-    "watch-note",             # [7]
-    "blocked-note",           # [8]
-    "deprecation-note",       # [9]
-    "migration-note",         # [10]
-    "archive-note",           # [11]
-    "coupling-note",          # [12] — orthogonal metadata, NOT a lifecycle state
-    "hold-note",              # [13] — trial closed with hold verdict (distinct from reject-note)
+    "comparison-note",  # [1]
+    "trial-packet",  # [2]
+    "trial-result",  # [3]
+    "reject-note",  # [4]
+    "promotion-note",  # [5]
+    "judgment-report",  # [6]
+    "watch-note",  # [7]
+    "blocked-note",  # [8]
+    "deprecation-note",  # [9]
+    "migration-note",  # [10]
+    "archive-note",  # [11]
+    "coupling-note",  # [12] — orthogonal metadata, NOT a lifecycle state
+    "hold-note",  # [13] — trial closed with hold verdict (distinct from reject-note)
 )
 
 ARTIFACT_ID_PREFIX: Final[dict[str, str]] = {
@@ -49,20 +49,20 @@ ARTIFACT_ID_PREFIX: Final[dict[str, str]] = {
 # Tool-to-file coupling vocabulary (declared entanglement; see coupling-note).
 # COUPLING_TYPES = HOW the tool is entangled with a file.
 COUPLING_TYPES: Final[tuple[str, ...]] = (
-    "config",        # tool configuration lives in the file
-    "import",        # source imports the tool as a dependency
-    "invocation",    # file calls/runs the tool (CI step, script, hook)
-    "generated",     # file is generated/owned by the tool
-    "data-write",    # tool writes runtime data into the file
-    "reference",     # file hardcodes a path/name reference to the tool
+    "config",  # tool configuration lives in the file
+    "import",  # source imports the tool as a dependency
+    "invocation",  # file calls/runs the tool (CI step, script, hook)
+    "generated",  # file is generated/owned by the tool
+    "data-write",  # tool writes runtime data into the file
+    "reference",  # file hardcodes a path/name reference to the tool
 )
 # REMOVAL_COSTS = the "癒着度": how hard it is to detach the tool from the file.
 COUPLING_DETECTION_SOURCES: Final[tuple[str, ...]] = (
-    "surface-rule",       # matched a known tool-owned file surface
-    "python-import",      # matched a Python import / from import
-    "config-mention",     # matched a config or dependency declaration mention
-    "invocation-pattern", # matched a command / workflow invocation pattern
-    "text-reference",     # matched a plain text reference only
+    "surface-rule",  # matched a known tool-owned file surface
+    "python-import",  # matched a Python import / from import
+    "config-mention",  # matched a config or dependency declaration mention
+    "invocation-pattern",  # matched a command / workflow invocation pattern
+    "text-reference",  # matched a plain text reference only
 )
 COUPLING_CONFIDENCE_LEVELS: Final[tuple[str, ...]] = (
     "high",
@@ -70,9 +70,9 @@ COUPLING_CONFIDENCE_LEVELS: Final[tuple[str, ...]] = (
     "low",
 )
 REMOVAL_COSTS: Final[tuple[str, ...]] = (
-    "clean",         # remove/disable with no edits to other content
-    "edit",          # requires targeted edits to the file
-    "entangled",     # pervasive; removal is risky or large
+    "clean",  # remove/disable with no edits to other content
+    "edit",  # requires targeted edits to the file
+    "entangled",  # pervasive; removal is risky or large
 )
 PLATFORMS: Final[tuple[str, ...]] = (
     "windows",
@@ -109,7 +109,12 @@ RECORDING_SOURCES: Final[tuple[str, ...]] = (
 FILTER_NAMES: Final[tuple[str, ...]] = ("scene_fit", "authority_safe", "controlability")
 FILTER_STATUSES: Final[tuple[str, ...]] = ("pass", "conditional", "fail")
 CANDIDATE_SHAPES: Final[tuple[str, ...]] = ("atomic", "composite", "unknown")
-DECOMPOSITION_DECISIONS: Final[tuple[str, ...]] = ("as-is", "split-required", "reference-only", "reject")
+DECOMPOSITION_DECISIONS: Final[tuple[str, ...]] = (
+    "as-is",
+    "split-required",
+    "reference-only",
+    "reject",
+)
 FIT_LANES: Final[tuple[str, ...]] = ("reference-only", "compare", "trial-ready", "reject")
 TRIAL_TYPES: Final[tuple[str, ...]] = (
     "read-only",
@@ -135,20 +140,22 @@ VERDICTS: Final[tuple[str, ...]] = ("promote", "hold", "reject")
 FALLBACKS: Final[tuple[str, ...]] = ("fail-close", "warn", "hold", "reject")
 RECURRING_CONTROL_DECISIONS: Final[tuple[str, ...]] = ("yes", "no", "later")
 SUMMARY_STATES: Final[tuple[str, ...]] = (
-    "watch",       # [0]
-    "proposed",    # [1]
-    "blocked",     # [2]
-    "trial-ready", # [3]
-    "in-trial",    # [4]
-    "promote",     # [5]
-    "hold",        # [6]
-    "reject",      # [7]
+    "watch",  # [0]
+    "proposed",  # [1]
+    "blocked",  # [2]
+    "trial-ready",  # [3]
+    "in-trial",  # [4]
+    "promote",  # [5]
+    "hold",  # [6]
+    "reject",  # [7]
     "deprecated",  # [8]
-    "migrating",   # [9]
-    "archived",    # [10]
+    "migrating",  # [9]
+    "archived",  # [10]
 )
 
-WRITE_TRIAL_TYPES: Final[frozenset[str]] = frozenset({"isolated-write", "task-scoped", "phase-scoped"})
+WRITE_TRIAL_TYPES: Final[frozenset[str]] = frozenset(
+    {"isolated-write", "task-scoped", "phase-scoped"}
+)
 NON_PROMOTE_VERDICTS: Final[frozenset[str]] = frozenset({"hold", "reject"})
 
 # Named artifact type constants — index-bound to ARTIFACT_TYPES (keep in sync with tuple order)
@@ -185,15 +192,15 @@ LANDING_TARGET: Final[str] = "landing_target"
 OBSERVED_EFFECT: Final[str] = "observed_effect"
 
 # Named state constants — Wave C (in-trial / trial-ready SSOT unification)
-TRIAL_READY: Final[str] = FIT_LANES[2]    # "trial-ready" — tuple is SSOT
+TRIAL_READY: Final[str] = FIT_LANES[2]  # "trial-ready" — tuple is SSOT
 IN_TRIAL: Final[str] = SUMMARY_STATES[4]  # "in-trial" — tuple is SSOT
 
 # Named state constants for extended lifecycle states
-WATCH: Final[str] = SUMMARY_STATES[0]      # "watch"
+WATCH: Final[str] = SUMMARY_STATES[0]  # "watch"
 BLOCKED_STATE: Final[str] = SUMMARY_STATES[2]  # "blocked"
 DEPRECATED: Final[str] = SUMMARY_STATES[8]  # "deprecated"
-MIGRATING: Final[str] = SUMMARY_STATES[9]   # "migrating"
-ARCHIVED: Final[str] = SUMMARY_STATES[10]   # "archived"
+MIGRATING: Final[str] = SUMMARY_STATES[9]  # "migrating"
+ARCHIVED: Final[str] = SUMMARY_STATES[10]  # "archived"
 
 
 def empty_filter_assessment() -> dict[str, dict[str, str | None]]:

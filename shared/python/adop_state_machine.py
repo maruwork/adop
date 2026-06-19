@@ -22,7 +22,9 @@ def comparison_ready_for_trial(comparison: dict[str, Any]) -> bool:
     return True
 
 
-def infer_effective_trial_state(packet: dict[str, Any], judgment_report: dict[str, Any] | None) -> str:
+def infer_effective_trial_state(
+    packet: dict[str, Any], judgment_report: dict[str, Any] | None
+) -> str:
     if judgment_report:
         return str(judgment_report.get("verdict", IN_TRIAL))
     return IN_TRIAL

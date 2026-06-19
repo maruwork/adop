@@ -1,4 +1,5 @@
 """Cross-project aggregation: a read-only portfolio view across artifact roots."""
+
 from __future__ import annotations
 
 import io
@@ -19,10 +20,40 @@ def _run_capture(*argv: str) -> tuple[int, str]:
 def test_aggregate_spans_multiple_roots(tmp_path):
     a = str(tmp_path / "proj-a")
     b = str(tmp_path / "proj-b")
-    assert main(["quick-intake", "--artifact-root", a, "--candidate", "ruff", "--source", "doc",
-                 "--use-case", "lint", "--why-now", "x"]) == 0
-    assert main(["watch", "--artifact-root", b, "--candidate", "vale",
-                 "--interest-reason", "r", "--use-case", "docs"]) == 0
+    assert (
+        main(
+            [
+                "quick-intake",
+                "--artifact-root",
+                a,
+                "--candidate",
+                "ruff",
+                "--source",
+                "doc",
+                "--use-case",
+                "lint",
+                "--why-now",
+                "x",
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "watch",
+                "--artifact-root",
+                b,
+                "--candidate",
+                "vale",
+                "--interest-reason",
+                "r",
+                "--use-case",
+                "docs",
+            ]
+        )
+        == 0
+    )
     rc, out = _run_capture("aggregate", "--root", a, "--root", b, "--json")
     assert rc == 0
     payload = json.loads(out)
@@ -43,8 +74,24 @@ def test_aggregate_missing_root_is_flagged(tmp_path):
 
 def test_aggregate_text_output_groups_by_root(tmp_path):
     a = str(tmp_path / "p")
-    assert main(["quick-intake", "--artifact-root", a, "--candidate", "ruff", "--source", "doc",
-                 "--use-case", "lint", "--why-now", "x"]) == 0
+    assert (
+        main(
+            [
+                "quick-intake",
+                "--artifact-root",
+                a,
+                "--candidate",
+                "ruff",
+                "--source",
+                "doc",
+                "--use-case",
+                "lint",
+                "--why-now",
+                "x",
+            ]
+        )
+        == 0
+    )
     rc, out = _run_capture("aggregate", "--root", a)
     assert rc == 0
     assert "ADOP Portfolio" in out

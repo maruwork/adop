@@ -128,7 +128,9 @@ def require_non_empty(value: str | None, field_name: str) -> None:
         raise AdopValidationError(f"{field_name} is required", 2)
 
 
-def validate_choice(value: str, field_name: str, allowed: tuple[str, ...], *, exit_code: int = 3) -> None:
+def validate_choice(
+    value: str, field_name: str, allowed: tuple[str, ...], *, exit_code: int = 3
+) -> None:
     if value not in allowed:
         raise AdopValidationError(f"{field_name} must be one of {allowed}", exit_code)
 
@@ -144,7 +146,9 @@ def validate_filter_assessment(filter_assessment: dict[str, Any]) -> None:
         section = filter_assessment[key]
         if not isinstance(section, dict):
             raise AdopValidationError(f"filter_assessment.{key} must be object")
-        validate_choice(str(section.get("status", "")), f"filter_assessment.{key}.status", FILTER_STATUSES)
+        validate_choice(
+            str(section.get("status", "")), f"filter_assessment.{key}.status", FILTER_STATUSES
+        )
         require_non_empty(section.get("reason"), f"filter_assessment.{key}.reason")
 
 
@@ -163,15 +167,27 @@ def validate_target_project_profile(profile: dict[str, Any]) -> None:
         raise AdopValidationError("target_project_profile must be object", 2)
     require_non_empty(profile.get("main_language"), "target_project_profile.main_language")
     _require_string_list(profile.get("runtime"), "target_project_profile.runtime")
-    _require_string_list(profile.get("artifact_surfaces"), "target_project_profile.artifact_surfaces")
-    require_non_empty(profile.get("authority_boundary"), "target_project_profile.authority_boundary")
+    _require_string_list(
+        profile.get("artifact_surfaces"), "target_project_profile.artifact_surfaces"
+    )
+    require_non_empty(
+        profile.get("authority_boundary"), "target_project_profile.authority_boundary"
+    )
     require_non_empty(profile.get("operator_phase"), "target_project_profile.operator_phase")
-    _require_string_list(profile.get("allowed_input_surfaces"), "target_project_profile.allowed_input_surfaces")
-    require_non_empty(profile.get("allowed_mutation_boundary"), "target_project_profile.allowed_mutation_boundary")
-    _require_string_list(profile.get("verification_methods"), "target_project_profile.verification_methods")
+    _require_string_list(
+        profile.get("allowed_input_surfaces"), "target_project_profile.allowed_input_surfaces"
+    )
+    require_non_empty(
+        profile.get("allowed_mutation_boundary"), "target_project_profile.allowed_mutation_boundary"
+    )
+    _require_string_list(
+        profile.get("verification_methods"), "target_project_profile.verification_methods"
+    )
 
 
-def validate_compatibility_diagnosis(items: Any, *, require_adoption_unit: str | None = None) -> list[dict[str, Any]]:
+def validate_compatibility_diagnosis(
+    items: Any, *, require_adoption_unit: str | None = None
+) -> list[dict[str, Any]]:
     if not isinstance(items, list) or not items:
         raise AdopValidationError("compatibility_diagnosis must contain at least one item", 2)
     validated: list[dict[str, Any]] = []
@@ -194,7 +210,9 @@ def validate_compatibility_diagnosis(items: Any, *, require_adoption_unit: str |
             FIT_LANES,
         )
         validated.append(item)
-    if require_adoption_unit and not any(str(item.get("adoption_unit")) == require_adoption_unit for item in validated):
+    if require_adoption_unit and not any(
+        str(item.get("adoption_unit")) == require_adoption_unit for item in validated
+    ):
         raise AdopValidationError("compatibility_diagnosis must include adoption_unit entry", 2)
     return validated
 
@@ -279,7 +297,12 @@ def validate_comparison_payload(payload: dict[str, Any]) -> None:
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
     )
-    for field in (ROOT_CAUSE_HYPOTHESIS, STRUCTURAL_GAP, "non_tool_alternative", "selection_reason"):
+    for field in (
+        ROOT_CAUSE_HYPOTHESIS,
+        STRUCTURAL_GAP,
+        "non_tool_alternative",
+        "selection_reason",
+    ):
         require_non_empty(payload.get(field), field)
     require_non_empty(payload.get("adoption_unit"), "adoption_unit")
     validate_target_project_profile(payload.get("target_project_profile", {}))
@@ -291,7 +314,11 @@ def validate_comparison_payload(payload: dict[str, Any]) -> None:
     if recommended_fit_lane:
         validate_choice(recommended_fit_lane, "recommended_fit_lane", FIT_LANES)
         matched = next(
-            (item for item in diagnoses if str(item.get("adoption_unit")) == str(payload.get("adoption_unit", ""))),
+            (
+                item
+                for item in diagnoses
+                if str(item.get("adoption_unit")) == str(payload.get("adoption_unit", ""))
+            ),
             None,
         )
         if matched and str(matched.get("recommended_fit_lane")) != recommended_fit_lane:
@@ -332,7 +359,10 @@ def validate_trial_packet_payload(payload: dict[str, Any]) -> None:
         "landing_target",
     ):
         require_non_empty(payload.get(field), field)
-    if payload["trial_type"] in WRITE_TRIAL_TYPES and "isolated write sandbox" not in payload["sandbox_type"]:
+    if (
+        payload["trial_type"] in WRITE_TRIAL_TYPES
+        and "isolated write sandbox" not in payload["sandbox_type"]
+    ):
         raise AdopValidationError("write trial requires isolated write sandbox", 13)
     for field in (
         "candidate_shape",
@@ -368,9 +398,17 @@ def validate_close_payload(payload: dict[str, Any]) -> None:
     why = payload.get("why_this_problem_recurred", "")
     require_non_empty(why, "why_this_problem_recurred")
     preventive = payload.get("preventive_action", [])
-    if not isinstance(preventive, list) or not preventive or not all(str(item).strip() for item in preventive):
+    if (
+        not isinstance(preventive, list)
+        or not preventive
+        or not all(str(item).strip() for item in preventive)
+    ):
         raise AdopValidationError("preventive_action must contain at least one non-empty item", 2)
-    validate_choice(payload.get("recurring_control_decision", ""), "recurring_control_decision", RECURRING_CONTROL_DECISIONS)
+    validate_choice(
+        payload.get("recurring_control_decision", ""),
+        "recurring_control_decision",
+        RECURRING_CONTROL_DECISIONS,
+    )
     validate_choice(payload.get("candidate_shape", ""), "candidate_shape", CANDIDATE_SHAPES)
     validate_choice(
         payload.get(DECOMPOSITION_DECISION, ""),
@@ -439,7 +477,9 @@ def validate_coupling_entries(value: Any, field_name: str = "couplings") -> None
         if not isinstance(entry, dict):
             raise AdopValidationError(f"{where} must be an object", 2)
         require_non_empty(entry.get("path"), f"{where}.path")
-        validate_choice(str(entry.get("coupling_type", "")), f"{where}.coupling_type", COUPLING_TYPES)
+        validate_choice(
+            str(entry.get("coupling_type", "")), f"{where}.coupling_type", COUPLING_TYPES
+        )
         validate_choice(str(entry.get("removal_cost", "")), f"{where}.removal_cost", REMOVAL_COSTS)
         if "detection_source" in entry:
             validate_choice(
@@ -463,7 +503,11 @@ def validate_coupling_note_payload(payload: dict[str, Any]) -> None:
 
 def validate_artifact_schema(item: dict[str, Any]) -> None:
     version = item.get("schema_version")
-    if not isinstance(version, int) or isinstance(version, bool) or version < MIN_READABLE_SCHEMA_VERSION:
+    if (
+        not isinstance(version, int)
+        or isinstance(version, bool)
+        or version < MIN_READABLE_SCHEMA_VERSION
+    ):
         raise AdopValidationError("schema_version invalid", 11)
     if version > SCHEMA_VERSION:
         # Forward-incompatible: a newer adop wrote this. Say so plainly instead of
@@ -600,9 +644,13 @@ def lint_artifact_root(root: Path) -> list[str]:
                 issues.append(f"promotion-note {item.get('artifact_id')} missing derived_from")
             if not item.get("landing_target"):
                 issues.append(f"promotion-note {item.get('artifact_id')} missing landing_target")
-            intake = latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=str(item.get("related_scene", "")))
+            intake = latest_by_type(
+                root, CANDIDATE_INTAKE_NOTE, scene=str(item.get("related_scene", ""))
+            )
             if not intake:
-                issues.append(f"promotion-note {item.get('artifact_id')} missing candidate-intake-note history")
+                issues.append(
+                    f"promotion-note {item.get('artifact_id')} missing candidate-intake-note history"
+                )
             else:
                 unknowns = unknown_tool_attribute_fields(intake)
                 if unknowns:
@@ -637,18 +685,19 @@ def lint_artifact_root(root: Path) -> list[str]:
 
         for parent_id in item.get("derived_from", []):
             expected_ok = any(
-                f"{parent_type}::{parent_id}" in by_id
-                for parent_type in ARTIFACT_TYPES
+                f"{parent_type}::{parent_id}" in by_id for parent_type in ARTIFACT_TYPES
             )
             if not expected_ok:
                 issues.append(f"derived_from missing target: {parent_id}")
 
-    seen_trial_ids = {str(i["artifact_id"]) for i in items if i.get("artifact_type") == TRIAL_PACKET}
+    seen_trial_ids = {
+        str(i["artifact_id"]) for i in items if i.get("artifact_type") == TRIAL_PACKET
+    }
     # Trials that have been closed: a trial-result exists that derives from the packet.
     closed_trial_ids: set[str] = set()
     for item in items:
         if item.get("artifact_type") == TRIAL_RESULT:
-            for parent_id in (item.get("derived_from") or []):
+            for parent_id in item.get("derived_from") or []:
                 closed_trial_ids.add(str(parent_id))
 
     for item in items:

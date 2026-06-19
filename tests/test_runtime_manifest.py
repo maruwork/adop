@@ -1,4 +1,5 @@
 """Phase 1 (C1): the manifest + sync must carry the renderer and its template."""
+
 from __future__ import annotations
 
 import json
@@ -16,7 +17,9 @@ def test_renderer_is_in_runtime_files():
 
 
 def test_template_is_declared():
-    assert "shared/templates/adop-governance-dashboard-template.html" in MANIFEST.get("template_files", [])
+    assert "shared/templates/adop-governance-dashboard-template.html" in MANIFEST.get(
+        "template_files", []
+    )
 
 
 def test_manifest_synced_runtime_starts_and_renders(tmp_path: Path):
@@ -26,12 +29,23 @@ def test_manifest_synced_runtime_starts_and_renders(tmp_path: Path):
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO / rel, dst)
     cli = target / "shared/python/adop_cli.py"
-    version = subprocess.run([sys.executable, str(cli), "--version"], capture_output=True, text=True)
+    version = subprocess.run(
+        [sys.executable, str(cli), "--version"], capture_output=True, text=True
+    )
     assert version.returncode == 0, version.stderr
     out = target / "out.html"
     rendered = subprocess.run(
-        [sys.executable, str(cli), "render-html", "--artifact-root", str(target / ".adop"), "--output", str(out)],
-        capture_output=True, text=True,
+        [
+            sys.executable,
+            str(cli),
+            "render-html",
+            "--artifact-root",
+            str(target / ".adop"),
+            "--output",
+            str(out),
+        ],
+        capture_output=True,
+        text=True,
     )
     # render-html tolerates an empty/absent root by creating an empty board.
     assert rendered.returncode == 0, rendered.stderr

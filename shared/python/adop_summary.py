@@ -132,18 +132,21 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
 
     def of_type(scene: str, artifact_type: str) -> list[dict[str, Any]]:
         matched = [
-            item for item in items
+            item
+            for item in items
             if item.get("artifact_type") == artifact_type
             and str(item.get("related_scene", "")).strip() == scene
         ]
         matched.sort(key=_id_sort_key)
         return matched
 
-    scenes = sorted({
-        str(item.get("related_scene", "")).strip()
-        for item in items
-        if str(item.get("related_scene", "")).strip()
-    })
+    scenes = sorted(
+        {
+            str(item.get("related_scene", "")).strip()
+            for item in items
+            if str(item.get("related_scene", "")).strip()
+        }
+    )
 
     # Resolve judgment verdicts from the already-loaded items instead of
     # re-reading the whole artifact root once per scene (was O(scenes × files)).
@@ -182,7 +185,10 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
             resolved[scene] = WATCH
 
     for note in items:
-        if note.get("artifact_type") == WATCH_NOTE and not str(note.get("related_scene", "")).strip():
+        if (
+            note.get("artifact_type") == WATCH_NOTE
+            and not str(note.get("related_scene", "")).strip()
+        ):
             resolved.setdefault(f"(watch) {note.get('candidate_or_tool', '-')}", WATCH)
 
     return resolved
@@ -270,9 +276,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             intake_counts[intake_state].append(str(intake.get("candidate_or_tool", "-")))
 
     summary_judgment_by_id = {
-        str(i.get("artifact_id", "")): i
-        for i in items
-        if i.get("artifact_type") == JUDGMENT_REPORT
+        str(i.get("artifact_id", "")): i for i in items if i.get("artifact_type") == JUDGMENT_REPORT
     }
     for packet in (i for i in items if i.get("artifact_type") == TRIAL_PACKET):
         if scene and packet.get("related_scene") != scene:
@@ -310,7 +314,9 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             note_scene = str(note.get("related_scene", "")).strip()
             if scene and note_scene != scene:
                 continue
-            lifecycle_counts[state_name].append(note_scene or str(note.get("candidate_or_tool", "-")))
+            lifecycle_counts[state_name].append(
+                note_scene or str(note.get("candidate_or_tool", "-"))
+            )
 
     def _render_section(title: str, states: tuple[str, ...], counts: dict[str, list[str]]) -> None:
         lines.append(title)
@@ -338,7 +344,9 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
 
     _render_section("Intake Dispositions", INTAKE_STATES, intake_counts)
     _render_section("Trial States", TRIAL_STATES, trial_counts)
-    _render_section("Lifecycle Notes", tuple(state for state, _ in EXTENDED_STATE_NOTES), lifecycle_counts)
+    _render_section(
+        "Lifecycle Notes", tuple(state for state, _ in EXTENDED_STATE_NOTES), lifecycle_counts
+    )
 
     # Tool entanglement: latest coupling-note per scene/tool snapshot, headline =
     # worst detachment cost. status filter does not apply (coupling is not a state).
@@ -353,7 +361,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         latest_couplings[(note_scene, str(note.get("candidate_or_tool", "")))] = note
     if latest_couplings:
         lines.append("Tool Entanglement")
-        for (note_scene, tool) in sorted(latest_couplings):
+        for note_scene, tool in sorted(latest_couplings):
             entries = latest_couplings[(note_scene, tool)].get("couplings", [])
             worst = max(
                 (str(e.get("removal_cost", REMOVAL_COSTS[0])) for e in entries),
@@ -384,9 +392,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         judgment = latest_judgments.get(scene_name, {})
 
         hypothesis = str(
-            judgment.get(ROOT_CAUSE_HYPOTHESIS)
-            or comparison.get(ROOT_CAUSE_HYPOTHESIS)
-            or ""
+            judgment.get(ROOT_CAUSE_HYPOTHESIS) or comparison.get(ROOT_CAUSE_HYPOTHESIS) or ""
         ).strip()
         if hypothesis:
             root_cause_lines.append(f"- {scene_name}: {hypothesis}")
@@ -396,14 +402,10 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             structural_gap_lines.append(f"- {scene_name}: {structural_gap}")
 
         decomposition_decision = str(
-            judgment.get(DECOMPOSITION_DECISION)
-            or comparison.get(DECOMPOSITION_DECISION)
-            or ""
+            judgment.get(DECOMPOSITION_DECISION) or comparison.get(DECOMPOSITION_DECISION) or ""
         ).strip()
         adoption_unit = str(
-            judgment.get("adoption_unit")
-            or comparison.get("adoption_unit")
-            or ""
+            judgment.get("adoption_unit") or comparison.get("adoption_unit") or ""
         ).strip()
         if decomposition_decision or adoption_unit:
             decomposition_lines.append(
@@ -411,16 +413,16 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             )
 
         recommended_fit_lane = str(
-            judgment.get("recommended_fit_lane")
-            or comparison.get("recommended_fit_lane")
-            or ""
+            judgment.get("recommended_fit_lane") or comparison.get("recommended_fit_lane") or ""
         ).strip()
         if recommended_fit_lane:
             fit_lane_lines.append(f"- {scene_name}: {recommended_fit_lane}")
 
         preventive_actions = judgment.get("preventive_action", [])
         if isinstance(preventive_actions, list) and preventive_actions:
-            preventive_action_lines.append(f"- {scene_name}: {'; '.join(str(item) for item in preventive_actions)}")
+            preventive_action_lines.append(
+                f"- {scene_name}: {'; '.join(str(item) for item in preventive_actions)}"
+            )
 
     if root_cause_lines:
         lines.append("Root-Cause Signals")
