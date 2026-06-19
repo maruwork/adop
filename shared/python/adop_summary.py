@@ -51,6 +51,11 @@ PROMOTE = "promote"
 INTAKE_STATES: tuple[str, ...] = (PROPOSED, TRIAL_READY, HOLD, REJECT)
 TRIAL_STATES: tuple[str, ...] = (IN_TRIAL, PROMOTE, HOLD, REJECT)
 
+# `structural_gap` ("current workflow lacks a bounded evaluation lane") is a
+# comparison-time diagnostic. Once a scene reaches in-trial or any later state
+# the lane exists, so showing the gap there is stale and self-contradictory.
+_PRE_TRIAL_GAP_STATES: frozenset[str] = frozenset({WATCH, PROPOSED, BLOCKED_STATE, TRIAL_READY})
+
 # Extended lifecycle states are tracked by dedicated note types, not by intake
 # disposition or trial verdict. State = the latest note of this type per scene.
 EXTENDED_STATE_NOTES: tuple[tuple[str, str], ...] = (
@@ -365,7 +370,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             root_cause_lines.append(f"- {scene_name}: {hypothesis}")
 
         structural_gap = str(comparison.get(STRUCTURAL_GAP, "")).strip()
-        if structural_gap:
+        if structural_gap and scene_states.get(scene_name) in _PRE_TRIAL_GAP_STATES:
             structural_gap_lines.append(f"- {scene_name}: {structural_gap}")
 
         decomposition_decision = str(

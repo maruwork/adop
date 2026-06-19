@@ -486,3 +486,96 @@ def test_summary_loads_artifacts_once(run, root, monkeypatch):
     # The whole summary must come from a single artifact-root load, not one
     # disk reload per trial/scene (was O(scenes x files)).
     assert calls["n"] <= 2, f"artifact root re-loaded {calls['n']} times (per-trial reload)"
+
+
+def test_structural_gap_suppressed_once_in_trial(run, root):
+    # proposed scene shows the gap; in-trial scene must not.
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "a",
+            "--source",
+            "doc",
+            "--use-case",
+            "prop",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "b",
+            "--source",
+            "doc",
+            "--use-case",
+            "live",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "prop",
+            "--candidate",
+            "a",
+            "--candidate",
+            "c",
+            "--selected",
+            "a",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "live",
+            "--candidate",
+            "b",
+            "--candidate",
+            "d",
+            "--selected",
+            "b",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "live",
+            "--mode",
+            "review-assist",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "o",
+            "--landing-target",
+            "x",
+        )
+        == 0
+    )
+    text = _summary(root)
+    gap = [
+        ln for ln in text.splitlines() if ln.startswith("- ") and "bounded evaluation lane" in ln
+    ]
+    scenes_with_gap = {ln.split(":")[0][2:] for ln in gap}
+    assert "prop" in scenes_with_gap  # pre-trial: gap shown
+    assert "live" not in scenes_with_gap  # in-trial: gap suppressed

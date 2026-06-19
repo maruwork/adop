@@ -2649,6 +2649,10 @@ def _handle_init(args: argparse.Namespace) -> str:
     overlay_path = Path(args.overlay)
     created_overlay = not overlay_path.exists()
     if created_overlay:
+        # Create the overlay's parent directory so a nested --overlay path does not
+        # crash with a raw FileNotFoundError from copy/write.
+        if overlay_path.parent != Path(""):
+            overlay_path.parent.mkdir(parents=True, exist_ok=True)
         candidates = (
             Path(__file__).parent.parent / "templates" / "project-local-adop-overlay-template.md",
             Path(sys.prefix)

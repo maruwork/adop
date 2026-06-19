@@ -747,3 +747,10 @@ def test_next_after_hold_resume_returns_quick_trial(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "quick-trial" in out
+
+
+def test_init_creates_nested_overlay_parent(run, tmp_path):
+    overlay = tmp_path / "nested" / "sub" / "adop-local.md"
+    rc = run("init", "--artifact-root", str(tmp_path / ".adop"), "--overlay", str(overlay))
+    assert rc == 0
+    assert overlay.exists()
