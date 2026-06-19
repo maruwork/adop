@@ -83,6 +83,24 @@ def test_init_fallback_overlay_still_matches_contract(tmp_path, monkeypatch):
     assert "## Pending Project Decisions" in text
 
 
+def test_repo_overlay_does_not_reference_removed_example_surfaces():
+    overlay = Path(__file__).resolve().parent.parent / "adop-overlay.md"
+    text = overlay.read_text(encoding="utf-8")
+    forbidden = (
+        "tool-surfaces/package.json",
+        ".github/workflows/tool-surface-examples.yml",
+        "tool-surfaces/scripts/repo-smoke.sh",
+        "tool-surfaces/.trivyignore",
+        "tool-surfaces/renovate.json",
+        "tool-surfaces/Dockerfile.tooling-example",
+        "tool-surfaces/.markdownlint-cli2.jsonc",
+        "tool-surfaces/.vscode/extensions.json",
+        "tool-surfaces/.vscode/settings.json",
+    )
+    for needle in forbidden:
+        assert needle not in text
+
+
 def test_init_idempotent(tmp_path):
     root = str(tmp_path / ".adop")
     overlay = str(tmp_path / "adop-overlay.md")
