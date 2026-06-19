@@ -8,6 +8,7 @@ on:
 
 jobs:
   consumer-black-box:
+    name: Installed command black-box (${{ matrix.os }})
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -17,8 +18,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - name: Install package
-        run: pip install .
+      - name: Install local checkout package
+        run: python -m pip install .
       - name: Verify installed commands
         run: |
           adop --version
@@ -75,6 +76,11 @@ jobs:
           adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
           adop next > next-resumed.txt
           grep -q "quick-trial --scene lint-ci" next-resumed.txt
+          adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          adop quick-close-trial --trial-id tr-002 --verdict promote --observed-effect "consumer recovery closed cleanly" --judgment-reason "trial succeeded for the bounded lint scene" --next-action "promote the lint workflow helper" --recurring-control-decision yes --root-cause-hypothesis "the consumer project needed an explicit reusable lint path" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the project had no prior explicit lint adoption record"
+          adop render-html --artifact-root .adop --output dashboard-promote.html --scene lint-ci
+          grep -q "No required next command" dashboard-promote.html
+          grep -q "Copy retirement command" dashboard-promote.html
           adop quick-intake --candidate snyk --source doc --use-case dep-alerts --why-now "blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
           adop block --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
           adop next > next-blocked.txt
@@ -97,22 +103,22 @@ jobs:
           if ($overlay -notmatch "## Current Judgment Memo") { throw "overlay missing Current Judgment Memo" }
           if ($overlay -notmatch "## Approved Use Scenes") { throw "overlay missing Approved Use Scenes" }
           if ($overlay -notmatch "## Prohibited Use Scenes") { throw "overlay missing Prohibited Use Scenes" }
-          Set-Content -Path pyproject.toml -Value @'
-[project]
-name = "consumer-smoke"
-version = "0.0.1"
-
-[tool.ruff]
-line-length = 88
-'@
-          Set-Content -Path .pre-commit-config.yaml -Value @'
-repos:
-  - repo: local
-    hooks:
-      - id: ruff-check
-        entry: python -m ruff check
-        language: system
-'@
+          Set-Content -Path pyproject.toml -Value @(
+            '[project]',
+            'name = "consumer-smoke"',
+            'version = "0.0.1"',
+            '',
+            '[tool.ruff]',
+            'line-length = 88'
+          )
+          Set-Content -Path .pre-commit-config.yaml -Value @(
+            'repos:',
+            '  - repo: local',
+            '    hooks:',
+            '      - id: ruff-check',
+            '        entry: python -m ruff check',
+            '        language: system'
+          )
           Set-Content -Path data-flow.json -Value '{"destination":"local","data_types":["code"],"opt_in":true}'
           adop render-html --artifact-root .adop --output dashboard-empty.html
           $emptyHtml = Get-Content dashboard-empty.html -Raw
@@ -137,6 +143,12 @@ repos:
           adop quick-compare --use-case lint-ci --candidate ruff --candidate pylint --selected ruff
           $nextResumed = adop next | Out-String
           if ($nextResumed -notmatch "quick-trial --scene lint-ci") { throw "resumed trial guidance missing" }
+          adop quick-trial --use-case lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          adop quick-close-trial --trial-id tr-002 --verdict promote --observed-effect "consumer recovery closed cleanly" --judgment-reason "trial succeeded for the bounded lint scene" --next-action "promote the lint workflow helper" --recurring-control-decision "yes" --root-cause-hypothesis "the consumer project needed an explicit reusable lint path" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the project had no prior explicit lint adoption record"
+          adop render-html --artifact-root .adop --output dashboard-promote.html --scene lint-ci
+          $promoteHtml = Get-Content dashboard-promote.html -Raw
+          if ($promoteHtml -notmatch "No required next command") { throw "promote dashboard guidance missing steady-state copy" }
+          if ($promoteHtml -notmatch "Copy retirement command") { throw "promote dashboard retirement action missing" }
           adop quick-intake --candidate snyk --source doc --use-case dep-alerts --why-now "blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
           adop block --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
           $nextBlocked = adop next | Out-String
@@ -146,7 +158,206 @@ repos:
           if ($nextUnblocked -notmatch "quick-compare --scene dep-alerts") { throw "unblocked recovery guidance missing" }
           adop lint
 
+  distribution-black-box:
+    name: Distribution install black-box (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Build wheel
+        run: python -m pip wheel . -w dist
+      - name: Distribution smoke and sync proof (Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/adop-*.whl | head -n 1)
+          VENV=$(mktemp -d)
+          python -m venv "$VENV"
+          "$VENV/bin/pip" install "$WHEEL"
+          "$VENV/bin/python" -c "import sys; from pathlib import Path; path = Path(sys.prefix) / 'share' / 'adop' / 'templates' / 'project-local-adop-overlay-template.md'; print(path); raise SystemExit(0 if path.exists() else 1)"
+          ADOP="$VENV/bin/adop"
+          ADOP_SYNC="$VENV/bin/adop-sync"
+          PROJECT=$(mktemp -d)
+          SOURCE_ROOT="$GITHUB_WORKSPACE"
+          cd "$PROJECT"
+          mkdir -p notes
+          $ADOP init --artifact-root records/adop-store --overlay notes/adop-local.md
+          test -d records/adop-store
+          test -f notes/adop-local.md
+          grep -q "## Current Judgment Memo" notes/adop-local.md
+          grep -q "## Approved Use Scenes" notes/adop-local.md
+          printf "custom overlay preserved\n" > notes/adop-local.md
+          $ADOP init --artifact-root records/adop-store --overlay notes/adop-local.md
+          grep -q "custom overlay preserved" notes/adop-local.md
+          cat > pyproject.toml <<'EOF'
+          [project]
+          name = "consumer-wheel-smoke"
+          version = "0.0.1"
+
+          [tool.ruff]
+          line-length = 88
+          EOF
+          cat > .pre-commit-config.yaml <<'EOF'
+          repos:
+            - repo: local
+              hooks:
+                - id: ruff-check
+                  entry: python -m ruff check
+                  language: system
+          EOF
+          cat > data-flow.json <<'EOF'
+          {"destination":"local","data_types":["code"],"opt_in":true}
+          EOF
+          $ADOP render-html --artifact-root records/adop-store --output dashboard-empty.html
+          grep -q "Start recording when no decisions exist yet" dashboard-empty.html
+          $ADOP quick-intake --artifact-root records/adop-store --candidate ruff --source doc --scene lint-ci --why-now "wheel smoke" --platform any --license MIT --cost free --version 0.5.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          $ADOP quick-compare --artifact-root records/adop-store --scene lint-ci --candidate ruff --candidate pylint --selected ruff
+          $ADOP quick-trial --artifact-root records/adop-store --scene lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          $ADOP scan --artifact-root records/adop-store --target . --tool ruff --scene lint-ci --record
+          $ADOP couplings --artifact-root records/adop-store > couplings.txt
+          grep -q "ruff @ lint-ci" couplings.txt
+          grep -q ".pre-commit-config.yaml" couplings.txt
+          $ADOP quick-close-trial --artifact-root records/adop-store --trial-id tr-001 --verdict hold --observed-effect "wheel recovery recorded"
+          $ADOP next --artifact-root records/adop-store > next-hold.txt
+          grep -q "quick-compare --scene lint-ci" next-hold.txt
+          $ADOP quick-compare --artifact-root records/adop-store --scene lint-ci --candidate ruff --candidate pylint --selected ruff
+          $ADOP next --artifact-root records/adop-store > next-resumed.txt
+          grep -q "quick-trial --scene lint-ci" next-resumed.txt
+          $ADOP quick-trial --artifact-root records/adop-store --scene lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          $ADOP quick-close-trial --artifact-root records/adop-store --trial-id tr-002 --verdict promote --observed-effect "wheel recovery closed cleanly" --judgment-reason "trial succeeded for the wheel-installed lint scene" --next-action "promote the wheel-installed lint helper" --recurring-control-decision yes --root-cause-hypothesis "the consumer project needed an explicit reusable lint path" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the project had no prior explicit lint adoption record"
+          $ADOP render-html --artifact-root records/adop-store --output dashboard-promote.html --scene lint-ci
+          grep -q "No required next command" dashboard-promote.html
+          $ADOP quick-intake --artifact-root records/adop-store --candidate snyk --source doc --scene dep-alerts --why-now "wheel blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          $ADOP block --artifact-root records/adop-store --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
+          $ADOP next --artifact-root records/adop-store > next-blocked.txt
+          grep -q "adop unblock --scene dep-alerts" next-blocked.txt
+          $ADOP unblock --artifact-root records/adop-store --scene dep-alerts --why-unblocked "owner approved trial"
+          $ADOP next --artifact-root records/adop-store > next-unblocked.txt
+          grep -q "quick-compare --scene dep-alerts" next-unblocked.txt
+          $ADOP lint --artifact-root records/adop-store
+          SYNC_TARGET=$(mktemp -d)
+          set +e
+          $ADOP_SYNC check --source "$SOURCE_ROOT" --target "$SYNC_TARGET" > sync-check-before.txt
+          SYNC_STATUS=$?
+          set -e
+          test $SYNC_STATUS -eq 1
+          grep -q "MISSING" sync-check-before.txt
+          $ADOP_SYNC register --source "$SOURCE_ROOT" --target "$SYNC_TARGET"
+          $ADOP_SYNC list --source "$SOURCE_ROOT" > sync-list-before.txt
+          grep -q "DRIFT" sync-list-before.txt
+          $ADOP_SYNC apply --source "$SOURCE_ROOT" --target "$SYNC_TARGET"
+          test -f "$SYNC_TARGET/shared/python/adop_cli.py"
+          $ADOP_SYNC check --source "$SOURCE_ROOT" --target "$SYNC_TARGET" > sync-check-after.txt
+          grep -q "0 need attention" sync-check-after.txt
+          $ADOP_SYNC list --source "$SOURCE_ROOT" > sync-list-after.txt
+          grep -q "OK" sync-list-after.txt
+          $ADOP_SYNC push --source "$SOURCE_ROOT" > sync-push.txt
+          grep -q "all files up to date" sync-push.txt
+      - name: Distribution smoke and sync proof (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $wheel = Get-ChildItem -Path dist\adop-*.whl | Select-Object -First 1
+          if (-not $wheel) { throw "wheel not built" }
+          $venv = Join-Path $env:RUNNER_TEMP "adop-wheel-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          python -m venv $venv
+          $python = Join-Path $venv "Scripts\python.exe"
+          $pip = Join-Path $venv "Scripts\pip.exe"
+          $adop = Join-Path $venv "Scripts\adop.exe"
+          $adopSync = Join-Path $venv "Scripts\adop-sync.exe"
+          & $pip install $wheel.FullName
+          & $python -c "import sys; from pathlib import Path; path = Path(sys.prefix) / 'share' / 'adop' / 'templates' / 'project-local-adop-overlay-template.md'; print(path); raise SystemExit(0 if path.exists() else 1)"
+          $project = Join-Path $env:RUNNER_TEMP "adop-wheel-consumer-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory -Force -Path $project | Out-Null
+          Set-Location $project
+          New-Item -ItemType Directory -Force -Path notes | Out-Null
+          & $adop init --artifact-root records/adop-store --overlay notes/adop-local.md
+          if (-not (Test-Path records/adop-store)) { throw "custom artifact root not created" }
+          if (-not (Test-Path notes/adop-local.md)) { throw "custom overlay not created" }
+          $overlay = Get-Content notes/adop-local.md -Raw
+          if ($overlay -notmatch "## Current Judgment Memo") { throw "overlay missing Current Judgment Memo" }
+          if ($overlay -notmatch "## Approved Use Scenes") { throw "overlay missing Approved Use Scenes" }
+          Set-Content -Path notes/adop-local.md -Value "custom overlay preserved"
+          & $adop init --artifact-root records/adop-store --overlay notes/adop-local.md
+          if ((Get-Content notes/adop-local.md -Raw) -notmatch "custom overlay preserved") { throw "init overwrote custom overlay" }
+          Set-Content -Path pyproject.toml -Value @(
+            '[project]',
+            'name = "consumer-wheel-smoke"',
+            'version = "0.0.1"',
+            '',
+            '[tool.ruff]',
+            'line-length = 88'
+          )
+          Set-Content -Path .pre-commit-config.yaml -Value @(
+            'repos:',
+            '  - repo: local',
+            '    hooks:',
+            '      - id: ruff-check',
+            '        entry: python -m ruff check',
+            '        language: system'
+          )
+          Set-Content -Path data-flow.json -Value '{"destination":"local","data_types":["code"],"opt_in":true}'
+          & $adop render-html --artifact-root records/adop-store --output dashboard-empty.html
+          $emptyHtml = Get-Content dashboard-empty.html -Raw
+          if ($emptyHtml -notmatch "Start recording when no decisions exist yet") { throw "empty dashboard guidance missing" }
+          & $adop quick-intake --artifact-root records/adop-store --candidate ruff --source doc --scene lint-ci --why-now "wheel smoke" --platform any --license MIT --cost free --version 0.5.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          & $adop quick-compare --artifact-root records/adop-store --scene lint-ci --candidate ruff --candidate pylint --selected ruff
+          & $adop quick-trial --artifact-root records/adop-store --scene lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          & $adop scan --artifact-root records/adop-store --target . --tool ruff --scene lint-ci --record
+          $couplings = & $adop couplings --artifact-root records/adop-store | Out-String
+          if ($couplings -notmatch "ruff @ lint-ci") { throw "coupling summary missing scene" }
+          if ($couplings -notmatch "\.pre-commit-config.yaml") { throw "coupling summary missing pre-commit file" }
+          & $adop quick-close-trial --artifact-root records/adop-store --trial-id tr-001 --verdict hold --observed-effect "wheel recovery recorded"
+          $nextHold = & $adop next --artifact-root records/adop-store | Out-String
+          if ($nextHold -notmatch "quick-compare --scene lint-ci") { throw "hold recovery guidance missing" }
+          & $adop quick-compare --artifact-root records/adop-store --scene lint-ci --candidate ruff --candidate pylint --selected ruff
+          $nextResumed = & $adop next --artifact-root records/adop-store | Out-String
+          if ($nextResumed -notmatch "quick-trial --scene lint-ci") { throw "resumed trial guidance missing" }
+          & $adop quick-trial --artifact-root records/adop-store --scene lint-ci --mode read-only-comparison --executor ci --decision-owner lead --landing-target ci/lint
+          & $adop quick-close-trial --artifact-root records/adop-store --trial-id tr-002 --verdict promote --observed-effect "wheel recovery closed cleanly" --judgment-reason "trial succeeded for the wheel-installed lint scene" --next-action "promote the wheel-installed lint helper" --recurring-control-decision "yes" --root-cause-hypothesis "the consumer project needed an explicit reusable lint path" --preventive-action "document the approved lint usage scene" --why-this-problem-recurred "the project had no prior explicit lint adoption record"
+          & $adop render-html --artifact-root records/adop-store --output dashboard-promote.html --scene lint-ci
+          $promoteHtml = Get-Content dashboard-promote.html -Raw
+          if ($promoteHtml -notmatch "No required next command") { throw "promote dashboard guidance missing steady-state copy" }
+          & $adop quick-intake --artifact-root records/adop-store --candidate snyk --source doc --scene dep-alerts --why-now "wheel blocked recovery smoke" --platform any --license MIT --cost free --version 1.0.0 --category cli --ai-compatibility any --data-flow-json @data-flow.json
+          & $adop block --artifact-root records/adop-store --scene dep-alerts --block-reason "owner review pending" --unblock-condition "owner approved trial" --owner lead
+          $nextBlocked = & $adop next --artifact-root records/adop-store | Out-String
+          if ($nextBlocked -notmatch "adop unblock --scene dep-alerts") { throw "blocked recovery guidance missing" }
+          & $adop unblock --artifact-root records/adop-store --scene dep-alerts --why-unblocked "owner approved trial"
+          $nextUnblocked = & $adop next --artifact-root records/adop-store | Out-String
+          if ($nextUnblocked -notmatch "quick-compare --scene dep-alerts") { throw "unblocked recovery guidance missing" }
+          & $adop lint --artifact-root records/adop-store
+          $syncTarget = Join-Path $env:RUNNER_TEMP "adop-sync-target-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory -Force -Path $syncTarget | Out-Null
+          $syncCheckBeforePath = Join-Path $project "sync-check-before.txt"
+          & $adopSync check --source $env:GITHUB_WORKSPACE --target $syncTarget *> $syncCheckBeforePath
+          if ($LASTEXITCODE -ne 1) { throw "sync check should report drift before apply" }
+          $syncCheckBefore = Get-Content $syncCheckBeforePath -Raw
+          if ($syncCheckBefore -notmatch "MISSING") { throw "sync check did not report missing runtime files" }
+          & $adopSync register --source $env:GITHUB_WORKSPACE --target $syncTarget
+          & $adopSync list --source $env:GITHUB_WORKSPACE | Tee-Object -FilePath sync-list-before.txt | Out-Null
+          $syncListBefore = Get-Content sync-list-before.txt -Raw
+          if ($syncListBefore -notmatch "DRIFT") { throw "sync list did not report drift" }
+          & $adopSync apply --source $env:GITHUB_WORKSPACE --target $syncTarget
+          if (-not (Test-Path (Join-Path $syncTarget "shared/python/adop_cli.py"))) { throw "sync apply did not copy runtime" }
+          & $adopSync check --source $env:GITHUB_WORKSPACE --target $syncTarget | Tee-Object -FilePath sync-check-after.txt | Out-Null
+          $syncCheckAfter = Get-Content sync-check-after.txt -Raw
+          if ($syncCheckAfter -notmatch "0 need attention") { throw "sync check did not go green after apply" }
+          & $adopSync list --source $env:GITHUB_WORKSPACE | Tee-Object -FilePath sync-list-after.txt | Out-Null
+          $syncListAfter = Get-Content sync-list-after.txt -Raw
+          if ($syncListAfter -notmatch "OK") { throw "sync list did not report OK after apply" }
+          & $adopSync push --source $env:GITHUB_WORKSPACE | Tee-Object -FilePath sync-push.txt | Out-Null
+          $syncPush = Get-Content sync-push.txt -Raw
+          if ($syncPush -notmatch "all files up to date") { throw "sync push did not report steady state" }
+
   test:
+    name: Source-tree validation (${{ matrix.os }}, Python ${{ matrix.python-version }})
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -165,7 +376,14 @@ repos:
       - name: Version check
         run: python shared/python/adop_cli.py --version
       - name: Validate dev tool surface
-        run: python -m pre_commit run --all-files --show-diff-on-failure
+        run: |
+          python -m pre_commit run check-json --all-files --show-diff-on-failure
+          python -m pre_commit run check-merge-conflict --all-files --show-diff-on-failure
+          python -m pre_commit run check-toml --all-files --show-diff-on-failure
+          python -m pre_commit run check-yaml --all-files --show-diff-on-failure
+          python -m pre_commit run check-github-workflows --all-files --show-diff-on-failure
+          python -m pre_commit run check-renovate --all-files --show-diff-on-failure
+          python -m pre_commit run mypy --all-files --show-diff-on-failure
       - name: Run tests
         run: python -m pytest tests/ -q -n auto
       - name: Smoke test (quick-intake → compare → trial → close → lint)

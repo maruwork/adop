@@ -5,8 +5,8 @@
   "description": "Cross-ecosystem tool surface examples for ADOP recovery checks",
   "scripts": {
     "lint:js": "eslint eslint.config.js",
-    "format:check": "prettier --check package.json .prettierrc.json .prettierignore eslint.config.js .github/workflows/tool-surface-examples.yml scripts/repo-smoke.sh",
-    "lint:md": "markdownlint-cli2 README.md docs/**/*.md adop-overlay.md"
+    "format:check": "prettier --check package.json .prettierrc.json .prettierignore eslint.config.js ../.github/workflows/tool-surface-examples.yml scripts/repo-smoke.sh",
+    "lint:md": "markdownlint-cli2 ../README.md ../docs/**/*.md ../adop-overlay.md"
   },
   "devDependencies": {
     "eslint": "^9.29.0",
