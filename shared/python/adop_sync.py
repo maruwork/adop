@@ -26,7 +26,7 @@ import hashlib
 import json
 import shutil
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 _REGISTRY_FILE = "sync-registry.json"
 _MANIFEST_FILE = "adop.json"
@@ -40,14 +40,20 @@ def _load_manifest(source: Path) -> dict:
     path = source / _MANIFEST_FILE
     if not path.exists():
         sys.exit(f"error: {path} not found — run from the ADOP canonical root")
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        sys.exit(f"error: {path} is not readable JSON: {exc}")
 
 
 def _load_registry(source: Path) -> list[str]:
     reg = source / _REGISTRY_FILE
     if not reg.exists():
         return []
-    return json.loads(reg.read_text(encoding="utf-8")).get("targets", [])
+    try:
+        return json.loads(reg.read_text(encoding="utf-8")).get("targets", [])
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        sys.exit(f"error: {reg} is not readable JSON: {exc}")
 
 
 def _save_registry(source: Path, targets: list[str]) -> None:
@@ -57,8 +63,25 @@ def _save_registry(source: Path, targets: list[str]) -> None:
 
 
 def _managed_files(manifest: dict) -> list[str]:
-    """Files sync must keep in step: runtime modules plus declared templates."""
-    return list(manifest.get("runtime_files", [])) + list(manifest.get("template_files", []))
+    """Files sync must keep in step: runtime modules plus declared templates.
+
+    Each entry must be a project-relative path with no '..' and no absolute root,
+    so a hostile/clone manifest cannot make apply/push write outside --target.
+    """
+    files = list(manifest.get("runtime_files", [])) + list(manifest.get("template_files", []))
+    for rel in files:
+        norm = str(rel).replace("\\", "/")
+        # Reject leading-slash/drive-relative ("/etc/passwd"), Windows drive
+        # ("C:\\..."), and any "../" traversal. is_absolute() alone is not enough:
+        # on Windows "/etc/passwd" is drive-relative, not absolute.
+        if (
+            norm.startswith("/")
+            or PureWindowsPath(rel).drive
+            or PurePosixPath(norm).is_absolute()
+            or ".." in PurePosixPath(norm).parts
+        ):
+            sys.exit(f"error: manifest path must be project-relative without '..': {rel}")
+    return files
 
 
 def _check_one(source: Path, target: Path, manifest: dict) -> list[dict]:

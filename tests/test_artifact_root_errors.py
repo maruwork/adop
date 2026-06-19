@@ -59,3 +59,37 @@ def test_lint_on_empty_root_exits_10(run, tmp_path, capsys):
     assert code == 10
     out = capsys.readouterr().out
     assert "empty" in out
+
+
+def _watch_payload(artifact_id: str) -> dict:
+    return {
+        "schema_version": 1, "artifact_type": "watch-note", "artifact_id": artifact_id,
+        "status": "active", "created_at": "2026-01-01", "candidate_or_tool": "x",
+        "interest_reason": "y",
+    }
+
+
+def test_stale_lock_is_reclaimed(tmp_path):
+    import os
+    import time as _t
+    import adop_artifacts as A
+    A.ensure_artifact_root(tmp_path)
+    name = A.artifact_filename("watch-note", "wt-001")
+    lock = tmp_path / f".{name}.lock"
+    lock.write_text("")
+    old = _t.time() - 120  # far older than the stale threshold
+    os.utime(lock, (old, old))
+    path = A.write_artifact(tmp_path, "watch-note", "wt-001", _watch_payload("wt-001"))
+    assert path.exists()
+    assert not lock.exists()  # reclaimed and cleaned up
+
+
+def test_fresh_lock_blocks(tmp_path):
+    import pytest
+    import adop_artifacts as A
+    A.ensure_artifact_root(tmp_path)
+    name = A.artifact_filename("watch-note", "wt-002")
+    lock = tmp_path / f".{name}.lock"
+    lock.write_text("")  # fresh lock (current mtime)
+    with pytest.raises(A.AdopArtifactError):
+        A.write_artifact(tmp_path, "watch-note", "wt-002", _watch_payload("wt-002"))

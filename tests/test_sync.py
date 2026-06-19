@@ -158,3 +158,25 @@ def test_apply_aborts_when_source_file_missing(tmp_path, project_root):
     }
     (root / "adop.json").write_text(json.dumps(manifest), encoding="utf-8")
     assert adop_sync.cmd_apply(root, project_root) == 1
+
+
+def test_managed_files_rejects_escaping_path():
+    import pytest
+    import adop_sync
+    with pytest.raises(SystemExit):
+        adop_sync._managed_files({"runtime_files": ["../escape.py"], "template_files": []})
+
+
+def test_managed_files_rejects_absolute_path():
+    import pytest
+    import adop_sync
+    with pytest.raises(SystemExit):
+        adop_sync._managed_files({"runtime_files": ["/etc/passwd"], "template_files": []})
+
+
+def test_sync_clean_error_on_malformed_manifest(tmp_path):
+    import pytest
+    import adop_sync
+    (tmp_path / "adop.json").write_text("{ not json", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        adop_sync._load_manifest(tmp_path)

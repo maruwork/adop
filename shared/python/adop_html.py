@@ -572,7 +572,10 @@ def _decision_text(state: str, scene_items: list[dict[str, Any]], landing_target
     if state == "hold":
         return "The trial closed on hold, and the decision is paused."
     if state == "reject":
-        return "The trial closed with a reject decision."
+        return _pick_first(
+            (_latest(scene_items, "reject-note") or {}).get("reject_reason"),
+            "This decision ended in rejection for this use case.",
+        )
     return "A lifecycle state is recorded."
 
 
@@ -631,15 +634,21 @@ def _rationale(scene_items: list[dict[str, Any]]) -> list[dict[str, str]]:
             ("Recurring control decision", judgment.get("recurring_control_decision")),
         ]
         return [{"label": label, "value": _pick_first(value)} for label, value in rows if _pick_first(value) != "-"]
-    intake = _latest(scene_items, "candidate-intake-note")
+    reject_note = _latest(scene_items, "reject-note")
+    if reject_note:
+        return [{"label": "Reject reason", "value": _pick_first(reject_note.get("reject_reason"))}]
     blocked = _latest(scene_items, "blocked-note")
     if blocked:
         return [{"label": "Block reason", "value": _pick_first(blocked.get("block_reason"))}]
+    intake = _latest(scene_items, "candidate-intake-note")
     if intake:
         return [
             {"label": "Why now", "value": _pick_first(intake.get("intake_reason"))},
             {"label": "Root-cause hypothesis", "value": _pick_first(intake.get("root_cause_hypothesis"))},
         ]
+    watch = _latest(scene_items, "watch-note")
+    if watch:
+        return [{"label": "Interest reason", "value": _pick_first(watch.get("interest_reason"))}]
     return [{"label": "Status", "value": "No reason fields are available yet for this decision."}]
 
 

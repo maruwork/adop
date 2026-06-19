@@ -426,6 +426,11 @@ _TOOL_SURFACE_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
 }
 
+# Skip files larger than this when scanning for couplings: a coupling is a
+# config/import/invocation reference, never a multi-MB blob, so reading huge
+# files in full would only risk OOM (round-2 audit R4).
+_MAX_SCAN_FILE_BYTES: int = 5_000_000
+
 _SCAN_SKIP_DIRS: frozenset[str] = frozenset({
     ".git", ".hg", "__pycache__", ".pytest_cache", ".mypy_cache",
     ".venv", "venv", "env", "node_modules", ".adop", "build", "dist",
@@ -993,6 +998,8 @@ def _scan_target_for_tool(target: Path, tool: str, excludes: list[str]) -> list[
 
     for path, rel in _iter_scan_files(target, excludes):
         try:
+            if path.stat().st_size > _MAX_SCAN_FILE_BYTES:
+                continue
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue

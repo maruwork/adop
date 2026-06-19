@@ -6,10 +6,37 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
 from typing import Callable
+
+# A write completes in well under a second; a lock older than this can only be
+# the orphan of a crashed/killed writer, so it is safe to reclaim instead of
+# blocking the artifact name forever (round-2 audit, orphaned-lock lockout).
+_LOCK_STALE_SECONDS: float = 30.0
+
+
+def _acquire_lock(lock_path: Path, display_name: str) -> int:
+    """Exclusively create the lock file, reclaiming a clearly-stale orphan once."""
+    try:
+        return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        try:
+            age = time.time() - lock_path.stat().st_mtime
+        except OSError:
+            age = 0.0
+        if age <= _LOCK_STALE_SECONDS:
+            raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc
+        try:
+            lock_path.unlink()
+        except OSError:
+            pass
+        try:
+            return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc2:
+            raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc2
 
 try:
     from .adop_ids import next_sequential_id, parse_numeric_id
@@ -110,10 +137,7 @@ def write_artifact(root: Path, artifact_type: str, artifact_id: str, payload: di
     # would later poison load_all_artifacts (residual B36). Write to a temp file
     # in the same directory, fsync, then os.replace (atomic on the same volume).
     tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
-    try:
-        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
-        raise AdopArtifactError(f"artifact write already in progress: {path.name}") from exc
+    fd = _acquire_lock(lock_path, path.name)
     try:
         os.close(fd)
         if path.exists():
@@ -157,10 +181,7 @@ def write_artifact_group(
             path = resolved / artifact_filename(artifact_type, artifact_id)
             lock_path = path.with_name(f".{path.name}.lock")
             tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
-            try:
-                fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            except FileExistsError as exc:
-                raise AdopArtifactError(f"artifact write already in progress: {path.name}") from exc
+            fd = _acquire_lock(lock_path, path.name)
             # Register the lock for cleanup immediately — before any raise below —
             # so a collision cannot leak a stale .lock file.
             locks.append(lock_path)

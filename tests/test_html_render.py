@@ -281,3 +281,35 @@ def test_modal_open_moves_focus_and_traps(run, root):
     open_fn = html.split("function openLaneDetail")[1].split("function closeLaneDetail")[0]
     assert 'document.getElementById("detail-close").focus()' in open_fn
     assert 'trapModalTab' in html
+
+
+def test_watch_lane_shows_interest_reason(run, root):
+    from adop_html import build_dashboard_payload
+
+    assert run("watch", "--artifact-root", root, "--candidate", "vale",
+               "--interest-reason", "EDITORIAL_MARK", "--use-case", "docs-style") == 0
+    lane = next(l for l in build_dashboard_payload(Path(root))["lanes"] if l["scene"] == "docs-style")
+    assert any("EDITORIAL_MARK" in str(r["value"]) for r in lane["rationale"])
+
+
+def test_pre_trial_reject_shows_reason_not_trial(run, root):
+    from adop_html import build_dashboard_payload
+
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "snyk", "--source", "doc",
+               "--use-case", "dep-x", "--why-now", "risk") == 0
+    assert run("reject", "--artifact-root", root, "--use-case", "dep-x",
+               "--reject-reason", "COST_FIT_MARK") == 0
+    lane = next(l for l in build_dashboard_payload(Path(root))["lanes"] if l["scene"] == "dep-x")
+    assert "trial closed" not in lane["decision"].lower()
+    assert "COST_FIT_MARK" in lane["decision"] or any("COST_FIT_MARK" in str(r["value"]) for r in lane["rationale"])
+
+
+def test_scan_skips_oversized_file(run, root, tmp_path):
+    target = tmp_path / "big"
+    target.mkdir()
+    (target / "huge.cfg").write_bytes(b"eslint\n" + b"x" * (6 * 1024 * 1024))
+    (target / "small.cfg").write_text("eslint config here\n")
+    from adop_cli import _scan_target_for_tool
+    couplings = _scan_target_for_tool(target, "eslint", [])
+    paths = {c["path"] for c in couplings}
+    assert "huge.cfg" not in paths   # oversized file skipped
