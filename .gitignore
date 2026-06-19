@@ -36,5 +36,6 @@ workspace/
 htmlcov/
 coverage.xml
 
-# this canonical repo does not track its own adoption records
-.adop/
+# this canonical repo does not track its own root adoption records
+# (root-only: a tracked worked example under examples/**/.adop/ is allowed)
+/.adop/

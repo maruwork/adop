@@ -1,0 +1,29 @@
+{
+  "artifact_id": "tr-001",
+  "artifact_type": "trial-result",
+  "closed_at": "2026-06-20",
+  "code_level_compatibility_summary": "input=bounded comparison input; output=comparison summary; mutation=no write; verification=human review",
+  "created_at": "2026-06-20",
+  "decision_owner": "lead",
+  "derived_from": [
+    "tr-001"
+  ],
+  "evidence_refs": [],
+  "failure_observed": [],
+  "input_surface": "bounded comparison input",
+  "landing_target": "ci/lint",
+  "mutation_boundary": "no write",
+  "observed_effect": "~30% faster on the sample, but approval scope still needs narrowing",
+  "output_contract": "comparison summary",
+  "recording_mode": "guided",
+  "recording_source": "quick-close-trial",
+  "related_scene": "lint-ci",
+  "sandbox_type": "read-only sandbox",
+  "schema_version": 1,
+  "status": "closed",
+  "trial_type": "read-only",
+  "verification_method": "human review",
+  "writeback_performed": [
+    "trial-result and judgment-report"
+  ]
+}

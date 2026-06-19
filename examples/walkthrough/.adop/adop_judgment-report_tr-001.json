@@ -1,0 +1,87 @@
+{
+  "adoption_unit": "ruff",
+  "artifact_id": "tr-001",
+  "artifact_type": "judgment-report",
+  "candidate_or_tool": "ruff",
+  "candidate_shape": "atomic",
+  "closed_at": "2026-06-20",
+  "code_level_compatibility_summary": "input=bounded comparison input; output=comparison summary; mutation=no write; verification=human review",
+  "compatibility_diagnosis": [
+    {
+      "adoption_unit": "ruff",
+      "authority_safe": "safe when reviewed before writeback",
+      "controlability": "bounded trial is possible",
+      "input_fit": "simple operator input is sufficient",
+      "no_impact_feasibility": "artifact root can stay outside target project",
+      "output_fit": "result can be reviewed before writeback",
+      "recommended_fit_lane": "trial-ready",
+      "scene_fit_to_project": "fits one bounded scene lane"
+    }
+  ],
+  "created_at": "2026-06-20",
+  "decision_owner": "lead",
+  "decomposition_decision": "as-is",
+  "derived_from": [
+    "tr-001"
+  ],
+  "judgment_reason": "bounded trial was useful but still needs narrowing",
+  "landing_target": "ci/lint",
+  "next_action": "narrow the use case and rerun",
+  "no_impact_envelope": {
+    "allowed": [
+      "file read",
+      "metadata read",
+      "git read",
+      "artifact write outside target project",
+      "temp clone outside target project"
+    ],
+    "forbidden": [
+      "dependency install inside target project",
+      "branch mutation inside target project",
+      "tracked file write inside target project",
+      "generated artifact write inside target project"
+    ]
+  },
+  "observed_effect_summary": "~30% faster on the sample, but approval scope still needs narrowing",
+  "preventive_action": [
+    "clarify the bounded scene before the next trial"
+  ],
+  "recommended_fit_lane": "trial-ready",
+  "recording_mode": "guided",
+  "recording_source": "quick-close-trial",
+  "recurring_control_decision": "later",
+  "related_artifacts": [
+    "tr-001",
+    "tr-001"
+  ],
+  "related_scene": "lint-ci",
+  "reopen_condition": "retry after narrowing the use case or threshold",
+  "root_cause_hypothesis": "the bounded scene 'lint-ci' needed a more explicit helper path",
+  "schema_version": 1,
+  "status": "closed",
+  "target_project_profile": {
+    "allowed_input_surfaces": [
+      "tool output",
+      "manual notes"
+    ],
+    "allowed_mutation_boundary": "no write",
+    "artifact_surfaces": [
+      "review-note",
+      "trial-artifact"
+    ],
+    "authority_boundary": "human approved writeback only",
+    "main_language": "unknown",
+    "operator_phase": "evaluation",
+    "runtime": [
+      "manual"
+    ],
+    "verification_methods": [
+      "human review"
+    ]
+  },
+  "verdict": "hold",
+  "why_this_problem_recurred": "the use case still depends on ad hoc operator judgment",
+  "writeback_artifact": [
+    "trial-result and judgment-report"
+  ]
+}
