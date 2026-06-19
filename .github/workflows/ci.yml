@@ -98,21 +98,21 @@ jobs:
           if ($overlay -notmatch "## Approved Use Scenes") { throw "overlay missing Approved Use Scenes" }
           if ($overlay -notmatch "## Prohibited Use Scenes") { throw "overlay missing Prohibited Use Scenes" }
           Set-Content -Path pyproject.toml -Value @'
-[project]
-name = "consumer-smoke"
-version = "0.0.1"
+          [project]
+          name = "consumer-smoke"
+          version = "0.0.1"
 
-[tool.ruff]
-line-length = 88
-'@
+          [tool.ruff]
+          line-length = 88
+          '@
           Set-Content -Path .pre-commit-config.yaml -Value @'
-repos:
-  - repo: local
-    hooks:
-      - id: ruff-check
-        entry: python -m ruff check
-        language: system
-'@
+          repos:
+            - repo: local
+              hooks:
+                - id: ruff-check
+                  entry: python -m ruff check
+                  language: system
+          '@
           Set-Content -Path data-flow.json -Value '{"destination":"local","data_types":["code"],"opt_in":true}'
           adop render-html --artifact-root .adop --output dashboard-empty.html
           $emptyHtml = Get-Content dashboard-empty.html -Raw
