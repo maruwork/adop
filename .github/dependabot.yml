@@ -7,10 +7,3 @@ updates:
     labels:
       - "dependabot"
       - "dependencies"
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependabot"
-      - "dependencies"

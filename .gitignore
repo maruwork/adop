@@ -35,3 +35,6 @@ workspace/
 .coverage.*
 htmlcov/
 coverage.xml
+
+# this canonical repo does not track its own adoption records
+.adop/
