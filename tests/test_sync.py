@@ -136,6 +136,15 @@ def test_push_updates_registered_target(canon, project_root):
     assert (project_root / "shared/python/adop_types.py").read_text() == "# adop_types.py v2"
 
 
+def test_push_uses_ascii_target_header(canon, project_root, capsys):
+    _populate(project_root, {n: f"# {n} v2" for n in RUNTIME_NAMES})
+    adop_sync.cmd_register(canon, project_root)
+    assert adop_sync.cmd_push(canon) == 0
+    out = capsys.readouterr().out
+    assert "-> " in out
+    assert "→" not in out
+
+
 def test_push_empty_registry(canon):
     assert adop_sync.cmd_push(canon) == 0
 

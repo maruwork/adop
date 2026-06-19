@@ -54,6 +54,9 @@ pip install git+https://github.com/maruwork/adop.git
 adop --version   # adop 0.1.1
 ```
 
+This packaged install surface is verified separately from source-tree execution:
+CI builds a wheel from this repo and installs that distribution into a fresh environment before running newcomer smoke checks.
+
 **Option B — clone and run**
 
 ```bash
@@ -180,18 +183,26 @@ When preview lanes are injected this way, the page warns that those rows are sam
 - `docs/ADOP_GENERIC_QUICKSTART.md`: fastest path to understand and verify ADOP
 - `SUPPORT.md`: pre-issue checklist and support contact routes
 
+## Workspace Hygiene
+
+`workspace/` is the scratch shelf for local previews, temporary verification runs, and one-off review output.
+Keep human-facing previews under `workspace/html-preview/`.
+Put disposable test or black-box residue under `workspace/tmp/` instead of scattering new top-level folders across the repo root.
+For local repo tests, prefer `python -m pytest tests/ -q --basetemp workspace/tmp/pytest-local` so pytest residue stays inside the temp shelf.
+
 ## Full Reading Order
 
 1. `README.md`
 2. `docs/design/ADOP_SHELF_CLASSIFICATION.md`
-3. `docs/ADOP_GENERIC_QUICKSTART.md`
-4. `docs/checklists/external-tool-adoption-checklist.md`
-5. `shared/templates/external-tool-adoption-note-template.md`
-6. `shared/templates/project-local-adop-overlay-template.md`
-7. `shared/python/adop_types.py`
-8. `shared/python/adop_cli.py`
-9. `docs/design/adop-lifecycle-schema-design.md`
-10. `SUPPORT.md`
+3. `docs/design/ADOP_COMPLETION_CONTRACT.md`
+4. `docs/ADOP_GENERIC_QUICKSTART.md`
+5. `docs/checklists/external-tool-adoption-checklist.md`
+6. `shared/templates/external-tool-adoption-note-template.md`
+7. `shared/templates/project-local-adop-overlay-template.md`
+8. `shared/python/adop_types.py`
+9. `shared/python/adop_cli.py`
+10. `docs/design/adop-lifecycle-schema-design.md`
+11. `SUPPORT.md`
 
 ## Authority Boundary
 

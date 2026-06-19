@@ -5,7 +5,7 @@ Run from the ADOP canonical root (the directory that contains adop.json).
 
 Target layout: --target points to the project root; runtime files are
 copied preserving their canonical relative path (e.g. shared/python/adop_cli.py
-→ <target>/shared/python/adop_cli.py).
+-> <target>/shared/python/adop_cli.py).
 
 Commands:
   check     --source <adop-root> --target <project-root>
@@ -39,7 +39,7 @@ def _file_hash(p: Path) -> str:
 def _load_manifest(source: Path) -> dict:
     path = source / _MANIFEST_FILE
     if not path.exists():
-        sys.exit(f"error: {path} not found — run from the ADOP canonical root")
+        sys.exit(f"error: {path} not found - run from the ADOP canonical root")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -61,7 +61,7 @@ def _check_one(source: Path, target: Path, manifest: dict) -> list[dict]:
     results = []
     for rel in manifest["runtime_files"]:
         src = source / rel
-        dst = target / rel   # preserve full relative path (e.g. shared/python/adop_cli.py)
+        dst = target / rel
         if not src.exists():
             results.append({"file": rel, "status": "MISSING_IN_SOURCE"})
         elif not dst.exists():
@@ -99,7 +99,7 @@ def cmd_apply(source: Path, target: Path) -> int:
     missing_in_source = [r for r in results if r["status"] == "MISSING_IN_SOURCE"]
     if missing_in_source:
         for r in missing_in_source:
-            print(f"  error: {r['file']} is missing in source — apply aborted")
+            print(f"  error: {r['file']} is missing in source - apply aborted")
         return 1
     copied = 0
     for r in results:
@@ -133,7 +133,7 @@ def cmd_push(source: Path) -> int:
         return 0
     for t in targets:
         target = Path(t)
-        print(f"\n→ {target}")
+        print(f"\n-> {target}")
         if not target.exists():
             print("  warning: directory not found, skipping")
             continue
@@ -177,21 +177,32 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", metavar="command")
 
     def _src(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--source", default=".", metavar="DIR",
-                       help="ADOP canonical root containing adop.json (default: .)")
+        p.add_argument(
+            "--source",
+            default=".",
+            metavar="DIR",
+            help="ADOP canonical root containing adop.json (default: .)",
+        )
 
     def _tgt(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--target", required=True, metavar="DIR",
-                       help="Project root (runtime files placed at <target>/shared/python/)")
+        p.add_argument(
+            "--target",
+            required=True,
+            metavar="DIR",
+            help="Project root (runtime files placed at <target>/shared/python/)",
+        )
 
     p = sub.add_parser("check", help="compare hashes, report DIFF")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("apply", help="copy differing/missing files to target")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("register", help="add target to local registry")
-    _src(p); _tgt(p)
+    _src(p)
+    _tgt(p)
 
     p = sub.add_parser("push", help="apply to all registered targets")
     _src(p)

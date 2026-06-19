@@ -32,6 +32,6 @@ Thank you for considering a contribution.
 ## Pull Request Expectations
 
 - explain what changed and why
-- list the checks you ran (`python -m pytest tests/ -q`)
+- list the checks you ran (`python -m pytest tests/ -q --basetemp workspace/tmp/pytest-local`)
 - mention any remaining limitations or follow-up work
 - pull requests are accepted from day one and require maintainer review before merge
