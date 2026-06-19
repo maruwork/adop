@@ -10,8 +10,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from conftest import promote_scene
 from adop_validation import lint_artifact_root
+from conftest import promote_scene
 
 WATCH_NOTE = "watch-note"
 BLOCKED_NOTE = "blocked-note"
@@ -396,8 +396,9 @@ def test_quick_intake_normalizes_casual_platform_aliases(run, root, latest):
 
 
 def test_reject_from_proposed_resolves_reject(run, root):
-    from adop_summary import get_scene_states
     from pathlib import Path
+
+    from adop_summary import get_scene_states
     assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
                "--use-case", "r", "--why-now", "x") == 0
     assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "not worth it") == 0
@@ -405,8 +406,9 @@ def test_reject_from_proposed_resolves_reject(run, root):
 
 
 def test_reject_from_blocked_resolves_reject(run, root):
-    from adop_summary import get_scene_states
     from pathlib import Path
+
+    from adop_summary import get_scene_states
     assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
                "--use-case", "r", "--why-now", "x") == 0
     assert run("block", "--artifact-root", root, "--use-case", "r", "--block-reason", "lic",

@@ -14,9 +14,8 @@ PYTHON_DIR = Path(__file__).resolve().parent.parent / "shared" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-import pytest  # noqa: E402
-
 import adop_artifacts as artifacts  # noqa: E402
+import pytest  # noqa: E402
 from adop_cli import main  # noqa: E402
 
 

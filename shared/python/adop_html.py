@@ -564,13 +564,27 @@ def _decision_text(state: str, scene_items: list[dict[str, Any]], landing_target
     if state == "watch":
         return "On the radar, but no active decision exists yet."
     if state == "deprecated":
-        return "A retirement path is recorded for this decision."
+        return _pick_first(
+            (_latest(scene_items, "deprecation-note") or {}).get("retirement_reason"),
+            "A retirement path is recorded for this decision.",
+        )
     if state == "migrating":
-        return "Replacement work is actively in progress."
+        target = _pick_first((_latest(scene_items, "migration-note") or {}).get("migration_target"))
+        return f"Replacement in progress; migrating to {target}." if target != "-" else "Replacement work is actively in progress."
     if state == "archived":
+        archive = _latest(scene_items, "archive-note") or {}
+        end = _pick_first(archive.get("end_date"))
+        successor = _pick_first(archive.get("successor_tool"))
+        if end != "-" and successor != "-":
+            return f"Closed on {end}; succeeded by {successor}."
+        if end != "-":
+            return f"Closed and archived on {end}."
         return "This decision is closed and archived."
     if state == "hold":
-        return "The trial closed on hold, and the decision is paused."
+        return _pick_first(
+            (_latest(scene_items, "hold-note") or {}).get("hold_reason"),
+            "The trial closed on hold, and the decision is paused.",
+        )
     if state == "reject":
         return _pick_first(
             (_latest(scene_items, "reject-note") or {}).get("reject_reason"),
@@ -623,6 +637,28 @@ def _allowed_forbidden(scene_items: list[dict[str, Any]]) -> tuple[list[str], li
 
 
 def _rationale(scene_items: list[dict[str, Any]]) -> list[dict[str, str]]:
+    # Retirement-tail notes win over the (older) promote judgment-report: once a
+    # lane is deprecated/migrating/archived, the relevant reasoning is the
+    # retirement note, not the promotion that preceded it.
+    archive = _latest(scene_items, "archive-note")
+    if archive:
+        rows = [("End date", archive.get("end_date")), ("Successor tool", archive.get("successor_tool"))]
+        surfaced = [{"label": label, "value": _pick_first(value)} for label, value in rows if _pick_first(value) != "-"]
+        return surfaced or [{"label": "Archived", "value": "This decision is closed and kept as history."}]
+    migration = _latest(scene_items, "migration-note")
+    if migration:
+        return [
+            {"label": "Migration target", "value": _pick_first(migration.get("migration_target"))},
+            {"label": "Migration plan", "value": _pick_first(migration.get("migration_plan"))},
+        ]
+    deprecation = _latest(scene_items, "deprecation-note")
+    if deprecation:
+        rows = [
+            ("Retirement reason", deprecation.get("retirement_reason")),
+            ("Replacement candidates", ", ".join(str(x) for x in deprecation.get("replacement_candidates") or [])),
+            ("Timeline", deprecation.get("timeline")),
+        ]
+        return [{"label": label, "value": _pick_first(value)} for label, value in rows if _pick_first(value) != "-"]
     judgment = _latest(scene_items, "judgment-report")
     if judgment:
         rows = [

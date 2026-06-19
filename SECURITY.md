@@ -14,6 +14,7 @@ ADOP is a local, single-operator CLI. Its inputs are treated as operator-trusted
 - **The artifact-root boundary is opt-in.** It is enforced only when `--target-project-root` is given without `--allow-project-impact`, and it protects against *writing into the target project's tree during a trial*. Read commands (`list`, `show`, `couplings`, `scan`) intentionally read whatever root they are pointed at.
 - **`adop_sync` requires a trusted canonical source.** It copies the files named in that source's `adop.json`. Manifest paths are validated to be project-relative (no `..`, no absolute/drive-relative roots) so a manifest cannot direct writes outside `--target`, but you should still only sync from a canonical repo you trust.
 - **`scan` is bounded.** It skips files larger than 5 MB and does not follow symlinked directories.
+- **Durability is local-filesystem only.** Atomic writes rely on `os.replace` + `fsync` on the same volume. On network/SMB mounts those guarantees are weaker; keep the artifact root on a local filesystem if crash durability matters.
 
 Running ADOP against fully untrusted inputs (e.g. a CI job feeding attacker-controlled `@file` paths or a cloned repo whose `adop.json` you have not reviewed) is outside the supported model.
 

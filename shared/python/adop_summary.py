@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
+    from .adop_artifacts import load_all_artifacts
     from .adop_ids import parse_numeric_id
     from .adop_state_machine import infer_effective_trial_state
     from .adop_types import (
@@ -18,13 +18,13 @@ try:
         BLOCKED_STATE,
         CANDIDATE_INTAKE_NOTE,
         COMPARISON_NOTE,
+        COUPLING_NOTE,
         DECOMPOSITION_DECISION,
         DEPRECATED,
         DEPRECATION_NOTE,
         HOLD_NOTE,
         IN_TRIAL,
         JUDGMENT_REPORT,
-        COUPLING_NOTE,
         MIGRATING,
         MIGRATION_NOTE,
         PROMOTION_NOTE,
@@ -40,7 +40,7 @@ try:
         WATCH_NOTE,
     )
 except ImportError:  # pragma: no cover - script import path
-    from adop_artifacts import find_by_type, find_judgment_report, load_all_artifacts
+    from adop_artifacts import load_all_artifacts
     from adop_ids import parse_numeric_id
     from adop_state_machine import infer_effective_trial_state
     from adop_types import (
@@ -50,13 +50,13 @@ except ImportError:  # pragma: no cover - script import path
         BLOCKED_STATE,
         CANDIDATE_INTAKE_NOTE,
         COMPARISON_NOTE,
+        COUPLING_NOTE,
         DECOMPOSITION_DECISION,
         DEPRECATED,
         DEPRECATION_NOTE,
         HOLD_NOTE,
         IN_TRIAL,
         JUDGMENT_REPORT,
-        COUPLING_NOTE,
         MIGRATING,
         MIGRATION_NOTE,
         PROMOTION_NOTE,
@@ -145,6 +145,14 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
         if str(item.get("related_scene", "")).strip()
     })
 
+    # Resolve judgment verdicts from the already-loaded items instead of
+    # re-reading the whole artifact root once per scene (was O(scenes × files)).
+    judgment_by_id = {
+        str(item.get("artifact_id", "")): item
+        for item in items
+        if item.get("artifact_type") == JUDGMENT_REPORT
+    }
+
     resolved: dict[str, str] = {}
     for scene in scenes:
         if of_type(scene, ARCHIVE_NOTE):
@@ -161,7 +169,7 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
             resolved[scene] = TRIAL_READY
         elif of_type(scene, TRIAL_PACKET):
             packet = of_type(scene, TRIAL_PACKET)[-1]
-            judgment = find_judgment_report(root, str(packet.get("artifact_id", "")))
+            judgment = judgment_by_id.get(str(packet.get("artifact_id", "")))
             resolved[scene] = str(judgment.get("verdict", IN_TRIAL)) if judgment else IN_TRIAL
         elif _scene_is_blocked(scene, items, of_type):
             resolved[scene] = BLOCKED_STATE
@@ -243,7 +251,11 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
     # Count latest intake per (scene, tool) pair to avoid double-counting when
     # quick-intake is run multiple times for the same candidate.
     latest_intake: dict[tuple[str, str], dict] = {}
-    for intake in find_by_type(root, CANDIDATE_INTAKE_NOTE):
+    intakes = sorted(
+        (i for i in items if i.get("artifact_type") == CANDIDATE_INTAKE_NOTE),
+        key=_id_sort_key,
+    )
+    for intake in intakes:
         if scene and intake.get("related_scene") != scene:
             continue
         intake_scene = str(intake.get("related_scene", ""))
@@ -257,7 +269,12 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
         if intake_state in intake_dispositions:
             intake_counts[intake_state].append(str(intake.get("candidate_or_tool", "-")))
 
-    for packet in find_by_type(root, TRIAL_PACKET):
+    summary_judgment_by_id = {
+        str(i.get("artifact_id", "")): i
+        for i in items
+        if i.get("artifact_type") == JUDGMENT_REPORT
+    }
+    for packet in (i for i in items if i.get("artifact_type") == TRIAL_PACKET):
         if scene and packet.get("related_scene") != scene:
             continue
         trial_id = packet.get("artifact_id")
@@ -266,7 +283,7 @@ def build_summary(root: Path, *, scene: str | None = None, status: str | None = 
             # rather than emit a phantom "None" row (residual B44).
             continue
         trial_id = str(trial_id)
-        judgment = find_judgment_report(root, trial_id)
+        judgment = summary_judgment_by_id.get(trial_id)
         effective = infer_effective_trial_state(packet, judgment)
         label = str(packet.get("related_scene", trial_id))
         if effective in SUMMARY_STATES:

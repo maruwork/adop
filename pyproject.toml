@@ -16,6 +16,7 @@ dev = [
     "check-jsonschema>=0.37,<1",
     "mypy>=1.16,<2",
     "pre-commit>=4,<5",
+    "pytest-cov>=5,<7",
     "pytest-xdist>=3.8,<4",
     "ruff>=0.12,<1",
 ]
@@ -58,6 +59,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+# E501 (line-too-long) is ignored: most long lines are help text, lifecycle
+# command templates, and URLs where wrapping hurts readability. `line-length`
+# above is kept so `ruff format` still reflows real code to 100 columns.
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -65,3 +70,12 @@ files = ["shared/python", "tests"]
 ignore_missing_imports = true
 warn_unused_configs = true
 pretty = true
+
+[tool.coverage.run]
+source = ["shared/python"]
+branch = true
+
+[tool.coverage.report]
+# Coverage gate: run `python -m pytest --cov` (pytest-cov is a dev dependency).
+show_missing = true
+fail_under = 90

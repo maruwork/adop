@@ -8,9 +8,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any
-
-from typing import Callable
+from typing import Any, Callable
 
 # A write completes in well under a second; a lock older than this can only be
 # the orphan of a crashed/killed writer, so it is safe to reclaim instead of
@@ -19,10 +17,16 @@ _LOCK_STALE_SECONDS: float = 30.0
 
 
 def _acquire_lock(lock_path: Path, display_name: str) -> int:
-    """Exclusively create the lock file, reclaiming a clearly-stale orphan once."""
+    """Exclusively create the lock file, reclaiming a clearly-stale orphan once.
+
+    A contended lock surfaces as FileExistsError on POSIX but as PermissionError
+    on Windows (the existing/pending-delete lock cannot be opened O_EXCL). Both
+    mean "another writer holds it", so both are mapped to AdopArtifactError, which
+    write_next_sequential_artifact retries on instead of crashing (Windows race).
+    """
     try:
         return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
+    except (FileExistsError, PermissionError) as exc:
         try:
             age = time.time() - lock_path.stat().st_mtime
         except OSError:
@@ -35,7 +39,7 @@ def _acquire_lock(lock_path: Path, display_name: str) -> int:
             pass
         try:
             return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc2:
+        except (FileExistsError, PermissionError) as exc2:
             raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc2
 
 try:
@@ -148,10 +152,18 @@ def write_artifact(root: Path, artifact_type: str, artifact_id: str, payload: di
             os.fsync(handle.fileno())
         os.replace(tmp_path, path)
     finally:
+        # Cleanup must not raise in finally and mask the real result; on Windows
+        # an unlink can transiently fail with PermissionError under contention.
         if tmp_path.exists():
-            tmp_path.unlink()
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
         if lock_path.exists():
-            lock_path.unlink()
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
     return path
 
 

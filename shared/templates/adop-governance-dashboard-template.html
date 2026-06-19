@@ -1677,8 +1677,17 @@
       });
       resetVisibleLimits();
       renderBoards();
+      // The "historical" view lives inside a collapsed <details>; auto-open it so
+      // selecting the Historical filter/metric does not just empty the active board.
+      const historyShell = document.getElementById("history-shell");
+      if (historyShell && uiState.filter === "historical") {
+        historyShell.open = true;
+      }
       if (shouldScroll) {
-        document.getElementById("active-board-body").closest(".card").scrollIntoView({ behavior: "smooth", block: "start" });
+        const anchor = uiState.filter === "historical" ? historyShell : document.getElementById("active-board-body").closest(".card");
+        if (anchor) {
+          anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       }
     }
 

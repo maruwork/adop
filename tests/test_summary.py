@@ -164,9 +164,38 @@ def test_current_state_sceneless_watch_keyed_by_tool(run, root):
 
 
 def test_reject_note_resolves_scene_to_reject(run, root):
-    from adop_summary import get_scene_states
     from pathlib import Path
+
+    from adop_summary import get_scene_states
     assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
                "--use-case", "r", "--why-now", "x") == 0
     assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "no") == 0
     assert get_scene_states(Path(root))["r"] == "reject"
+
+
+def test_summary_loads_artifacts_once(run, root, monkeypatch):
+    import adop_artifacts
+    for i in range(6):
+        sc = f"s{i}"
+        assert run("quick-intake", "--artifact-root", root, "--candidate", "t", "--source", "doc",
+                   "--use-case", sc, "--why-now", "x") == 0
+        assert run("quick-compare", "--artifact-root", root, "--use-case", sc,
+                   "--candidate", "t", "--candidate", "u", "--selected", "t") == 0
+        assert run("quick-trial", "--artifact-root", root, "--use-case", sc, "--mode", "review-assist",
+                   "--executor", "ci", "--decision-owner", "l", "--landing-target", "ci") == 0
+        tid = f"tr-00{i + 1}"
+        assert run("quick-close-trial", "--artifact-root", root, "--trial-id", tid,
+                   "--verdict", "hold", "--observed-effect", "x") == 0
+    calls = {"n": 0}
+    real = adop_artifacts.load_all_artifacts
+
+    def counting(target):
+        calls["n"] += 1
+        return real(target)
+
+    monkeypatch.setattr(adop_artifacts, "load_all_artifacts", counting)
+    monkeypatch.setattr(adop_summary, "load_all_artifacts", counting)
+    adop_summary.build_summary(Path(root))
+    # The whole summary must come from a single artifact-root load, not one
+    # disk reload per trial/scene (was O(scenes x files)).
+    assert calls["n"] <= 2, f"artifact root re-loaded {calls['n']} times (per-trial reload)"

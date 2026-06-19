@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
-import io
 import json
 import os
 import re
@@ -17,7 +16,6 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .common import fix_stdout_encoding
     from . import adop_artifacts as artifacts
     from .adop_html import render_dashboard_html
     from .adop_ids import next_sequential_id, parse_numeric_id
@@ -66,8 +64,8 @@ try:
     from .adop_validation import (
         AdopValidationError,
         lint_artifact_root,
-        unknown_tool_attribute_fields,
         today_iso,
+        unknown_tool_attribute_fields,
         validate_archive_note_payload,
         validate_blocked_note_payload,
         validate_close_payload,
@@ -81,9 +79,8 @@ try:
         validate_trial_packet_payload,
         validate_watch_note_payload,
     )
+    from .common import fix_stdout_encoding
 except ImportError:  # pragma: no cover - script import path
-    from common import fix_stdout_encoding
-
     import adop_artifacts as artifacts
     from adop_html import render_dashboard_html
     from adop_ids import next_sequential_id, parse_numeric_id
@@ -100,18 +97,17 @@ except ImportError:  # pragma: no cover - script import path
         DECOMPOSITION_DECISION,
         DECOMPOSITION_DECISIONS,
         DEPRECATION_NOTE,
-        DISPOSITIONS,
         EVALUATION_GATE,
         EXECUTOR,
         FALLBACKS,
         FILTER_NAMES,
         FILTER_STATUSES,
         FIT_LANES,
+        HOLD_NOTE,
         JUDGMENT_REPORT,
         LANDING_TARGET,
         LANES,
         MIGRATION_NOTE,
-        HOLD_NOTE,
         OBSERVED_EFFECT,
         PLATFORMS,
         PROMOTION_NOTE,
@@ -132,8 +128,8 @@ except ImportError:  # pragma: no cover - script import path
     from adop_validation import (
         AdopValidationError,
         lint_artifact_root,
-        unknown_tool_attribute_fields,
         today_iso,
+        unknown_tool_attribute_fields,
         validate_archive_note_payload,
         validate_blocked_note_payload,
         validate_close_payload,
@@ -147,6 +143,7 @@ except ImportError:  # pragma: no cover - script import path
         validate_trial_packet_payload,
         validate_watch_note_payload,
     )
+    from common import fix_stdout_encoding
 
 fix_stdout_encoding()
 

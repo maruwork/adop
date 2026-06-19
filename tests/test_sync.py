@@ -8,10 +8,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 import adop_sync
-
+import pytest
 
 RUNTIME_NAMES = ["adop_types.py", "adop_cli.py"]
 RUNTIME_RELS = [f"shared/python/{n}" for n in RUNTIME_NAMES]
@@ -161,22 +159,22 @@ def test_apply_aborts_when_source_file_missing(tmp_path, project_root):
 
 
 def test_managed_files_rejects_escaping_path():
-    import pytest
     import adop_sync
+    import pytest
     with pytest.raises(SystemExit):
         adop_sync._managed_files({"runtime_files": ["../escape.py"], "template_files": []})
 
 
 def test_managed_files_rejects_absolute_path():
-    import pytest
     import adop_sync
+    import pytest
     with pytest.raises(SystemExit):
         adop_sync._managed_files({"runtime_files": ["/etc/passwd"], "template_files": []})
 
 
 def test_sync_clean_error_on_malformed_manifest(tmp_path):
-    import pytest
     import adop_sync
+    import pytest
     (tmp_path / "adop.json").write_text("{ not json", encoding="utf-8")
     with pytest.raises(SystemExit):
         adop_sync._load_manifest(tmp_path)

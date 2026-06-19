@@ -7,7 +7,6 @@ single deliberate exception: watch-note allows an absent related_scene.
 from __future__ import annotations
 
 import pytest
-
 from adop_validation import (
     AdopValidationError,
     unknown_tool_attribute_fields,
@@ -18,7 +17,6 @@ from adop_validation import (
     validate_migration_note_payload,
     validate_watch_note_payload,
 )
-
 
 # --- watch-note: related_scene is intentionally optional -------------------
 

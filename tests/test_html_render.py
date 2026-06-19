@@ -313,3 +313,95 @@ def test_scan_skips_oversized_file(run, root, tmp_path):
     couplings = _scan_target_for_tool(target, "eslint", [])
     paths = {c["path"] for c in couplings}
     assert "huge.cfg" not in paths   # oversized file skipped
+
+
+def _visible_blob(root_str, scene):
+    import json as _j
+
+    from adop_html import build_dashboard_payload
+    lane = next(l for l in build_dashboard_payload(Path(root_str))["lanes"] if l["scene"] == scene)
+    return _j.dumps({"decision": lane["decision"], "rationale": lane["rationale"]}), lane
+
+
+def test_deprecated_lane_surfaces_retirement_reason(run, root):
+    promote_scene(run, root, scene="lint", tool="pylint")
+    assert run("deprecate", "--artifact-root", root, "--use-case", "lint",
+               "--retirement-reason", "RETIRE_MARK", "--replacement-candidate", "ruff",
+               "--timeline", "Q3") == 0
+    blob, _ = _visible_blob(root, "lint")
+    assert "RETIRE_MARK" in blob
+
+
+def test_migrating_lane_surfaces_migration(run, root):
+    promote_scene(run, root, scene="lint", tool="pylint")
+    run("deprecate", "--artifact-root", root, "--use-case", "lint",
+        "--retirement-reason", "r", "--replacement-candidate", "ruff", "--timeline", "Q3")
+    assert run("migrate", "--artifact-root", root, "--use-case", "lint",
+               "--migration-target", "MIGTGT_MARK", "--migration-plan", "MIGPLAN_MARK") == 0
+    blob, _ = _visible_blob(root, "lint")
+    assert "MIGTGT_MARK" in blob or "MIGPLAN_MARK" in blob
+
+
+def test_archived_lane_surfaces_end_date(run, root):
+    promote_scene(run, root, scene="lint", tool="pylint")
+    run("deprecate", "--artifact-root", root, "--use-case", "lint",
+        "--retirement-reason", "r", "--replacement-candidate", "ruff", "--timeline", "Q3")
+    assert run("archive", "--artifact-root", root, "--use-case", "lint",
+               "--end-date", "2026-07-01", "--successor-tool", "SUCC_MARK") == 0
+    blob, _ = _visible_blob(root, "lint")
+    assert "2026-07-01" in blob or "SUCC_MARK" in blob
+
+
+def test_hold_lane_decision_mentions_hold(run, root):
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "mypy", "--source", "doc",
+               "--use-case", "h", "--why-now", "x") == 0
+    assert run("quick-compare", "--artifact-root", root, "--use-case", "h",
+               "--candidate", "mypy", "--candidate", "y", "--selected", "mypy") == 0
+    assert run("quick-trial", "--artifact-root", root, "--use-case", "h", "--mode", "review-assist",
+               "--executor", "ci", "--decision-owner", "l", "--landing-target", "ci") == 0
+    assert run("quick-close-trial", "--artifact-root", root, "--trial-id", "tr-001",
+               "--verdict", "hold", "--observed-effect", "HOLDREASON_MARK") == 0
+    _, lane = _visible_blob(root, "h")
+    assert "HOLDREASON_MARK" in lane["decision"] or any("HOLDREASON_MARK" in str(r["value"]) for r in lane["rationale"])
+
+
+def test_sample_board_renders_preview_lanes(run, root):
+    from adop_html import build_dashboard_payload
+    payload = build_dashboard_payload(Path(root), sample_board_count=6)
+    assert payload["sample_rows_included"] > 0
+    assert payload["preview_warning"]
+    assert all(l["decision"] for l in payload["lanes"])
+    assert all(l["rationale"] for l in payload["lanes"])
+
+
+def test_render_html_multistate_embeds_all_lanes(run, root):
+    from adop_html import render_dashboard_html
+    assert run("watch", "--artifact-root", root, "--candidate", "vale",
+               "--interest-reason", "r", "--use-case", "w-scene") == 0
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "ruff", "--source", "doc",
+               "--use-case", "p-scene", "--why-now", "x") == 0
+    html = render_dashboard_html(Path(root))
+    payload = _extract_payload(html)
+    scenes = {l["scene"] for l in payload["lanes"]}
+    assert {"w-scene", "p-scene"} <= scenes
+    for lane in payload["lanes"]:
+        assert lane["decision"]
+        assert lane["rationale"]
+
+
+def test_large_sample_board_clones_seed_lanes(run, root):
+    from adop_html import build_dashboard_payload
+    payload = build_dashboard_payload(Path(root), sample_board_count=40)
+    assert payload["metrics"]["managed_lanes"] == 40
+    assert payload["sample_rows_included"] == 40
+    # cloned sample lanes still carry renderable fields
+    assert all(l["decision"] and l["rationale"] for l in payload["sample_lanes"])
+
+
+def test_historical_filter_opens_history_details(run, root):
+    from adop_html import render_dashboard_html
+    assert run("watch", "--artifact-root", root, "--candidate", "x",
+               "--interest-reason", "r", "--use-case", "s") == 0
+    html = render_dashboard_html(Path(root))
+    assert 'uiState.filter === "historical"' in html
+    assert "historyShell.open = true" in html

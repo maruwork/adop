@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 import adop_summary
+import pytest
 from adop_validation import AdopValidationError, validate_coupling_note_payload
 
 COUPLING_NOTE = "coupling-note"
