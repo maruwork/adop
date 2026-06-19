@@ -17,9 +17,12 @@ Teams that:
 Each evaluation is tracked as a **scene lane** rooted at `related_scene`, with the chosen tool and adoption unit carried by the artifacts inside that lane. Evaluating `ruff` as a linter is therefore a separate lane from evaluating `ruff` as a formatter. Each lane moves through up to 11 states:
 
 ```
-watch → proposed → blocked → trial-ready → in-trial
-  → promote / hold / reject → deprecated → migrating → archived
+watch → proposed → trial-ready → in-trial → promote / hold / reject
 ```
+
+`proposed` may branch to `blocked` (and back); `reject` is reachable before a trial
+(`proposed` / `blocked`) or after a `hold`. The retirement tail after `promote` is
+`deprecated → migrating → archived`.
 
 State is always derived from what is written on disk. There is no daemon, no database, no central server.
 

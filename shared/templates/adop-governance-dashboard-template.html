@@ -1615,6 +1615,26 @@
       renderLane(scene);
       document.getElementById("detail-backdrop").hidden = false;
       document.body.style.overflow = "hidden";
+      document.getElementById("detail-close").focus();
+    }
+
+    function trapModalTab(event) {
+      if (event.key !== "Tab") return;
+      const modal = document.querySelector(".detail-modal");
+      if (!modal) return;
+      const focusable = Array.from(
+        modal.querySelectorAll('a[href], button:not([hidden]), input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter((node) => !node.hidden && node.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     function closeLaneDetail() {
@@ -1668,6 +1688,7 @@
         closeLaneDetail();
       }
     });
+    document.getElementById("detail-backdrop").addEventListener("keydown", trapModalTab);
     document.getElementById("primary-command-copy").addEventListener("click", () => {
       copyCommand(document.getElementById("primary-command-copy").dataset.command || "", "primary-command-feedback");
     });

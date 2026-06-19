@@ -283,8 +283,7 @@ _NEXT_FOR_STATE: dict[str, str] = {
     "proposed":    'adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>',
     "trial-ready": 'adop quick-trial --scene {scene} --mode review-assist --executor <who> --decision-owner <owner> --landing-target <target>',
     "blocked":     'adop unblock --scene {scene} --why-unblocked "<what changed>"',
-    "hold":        'adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>  # resume trial; or: adop deprecate if no longer needed',
-    "reject":      'adop deprecate --scene {scene} --deprecation-reason "rejected at trial" # or: adop archive if fully closed',
+    "hold":        'adop quick-compare --scene {scene} --candidate <tool> --candidate <other> --selected <tool>  # resume trial; or: adop reject if no longer needed',
     "deprecated":  'adop migrate --scene {scene} --migration-target <target> --migration-plan "<plan>"',
     "migrating":   'adop archive --scene {scene} --end-date <YYYY-MM-DD>',
 }
@@ -1532,6 +1531,16 @@ def _build_parser() -> argparse.ArgumentParser:
     _scene_arg(unblock_cmd, required=True, help_text="scene lane to unblock")
     unblock_cmd.add_argument("--why-unblocked", required=True)
 
+    reject_cmd = subparsers.add_parser(
+        "reject",
+        help="reject a candidate before trial, or after a hold, without a trial verdict",
+        description="Create a reject-note for a proposed / blocked / hold scene lane. Terminal for the scene.",
+    )
+    reject_cmd.add_argument("--artifact-root", default=_DEFAULT_ARTIFACT_ROOT, metavar="DIR")
+    _project_boundary_args(reject_cmd)
+    _scene_arg(reject_cmd, required=True, help_text="scene lane to reject")
+    reject_cmd.add_argument("--reject-reason", required=True)
+
     deprecate_cmd = subparsers.add_parser(
         "deprecate",
         help="begin retirement of a promoted tool",
@@ -2101,6 +2110,40 @@ def _handle_unblock(args: argparse.Namespace) -> dict[str, Any]:
     validate_intake_payload(payload)
     path = artifacts.write_artifact(root, CANDIDATE_INTAKE_NOTE, artifact_id, payload)
     return artifacts.json_response("unblock", "ok", [path.name], [])
+
+
+def _handle_reject(args: argparse.Namespace) -> dict[str, Any]:
+    root = _prepare_artifact_root(args)
+    _ensure_scene_not_rejected(root, args.scene, command="reject")
+    if get_scene_states(root).get(args.scene) == "in-trial":
+        raise AdopValidationError(
+            "scene is in an open trial; reject it with 'close-trial --verdict reject' instead", 7
+        )
+    hold = artifacts.latest_by_type(root, HOLD_NOTE, scene=args.scene)
+    blocked = artifacts.latest_by_type(root, BLOCKED_NOTE, scene=args.scene)
+    comparison = artifacts.latest_by_type(root, COMPARISON_NOTE, scene=args.scene)
+    intake = artifacts.latest_by_type(root, CANDIDATE_INTAKE_NOTE, scene=args.scene)
+    parent = hold or blocked or comparison or intake
+    if not parent:
+        raise AdopValidationError("no intake/blocked/hold history for scene to reject", 5)
+    tool = (comparison or {}).get("selected_candidate") or str((intake or {}).get("candidate_or_tool", ""))
+    artifact_id = next_sequential_id(root, "rj")
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "artifact_type": REJECT_NOTE,
+        "artifact_id": artifact_id,
+        "status": "closed",
+        "created_at": today_iso(),
+        "recording_mode": "explicit",
+        "recording_source": "manual-cli",
+        "related_scene": args.scene,
+        "candidate_or_tool": tool,
+        "derived_from": [parent["artifact_id"]],
+        "reject_reason": args.reject_reason,
+        "drawbacks": [],
+    }
+    path = artifacts.write_artifact(root, REJECT_NOTE, artifact_id, payload)
+    return artifacts.json_response("reject", "ok", [path.name], [])
 
 
 def _handle_deprecate(args: argparse.Namespace) -> dict[str, Any]:
@@ -2792,6 +2835,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "unblock":
             _emit(_handle_unblock(args))
+            return 0
+        if args.command == "reject":
+            _emit(_handle_reject(args))
             return 0
         if args.command == "deprecate":
             _emit(_handle_deprecate(args))

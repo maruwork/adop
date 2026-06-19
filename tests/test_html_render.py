@@ -220,3 +220,64 @@ def test_render_html_separates_reader_and_operator_guidance(run, root):
     assert "Open operator action" in text
     assert payload["reader_steps"][0] == "Check the summary counts"
     assert payload["operator_steps"][0] == "Open the decision you need to change"
+
+
+def test_in_trial_lane_shows_packet_envelope(run, root):
+    from adop_html import build_dashboard_payload
+
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "T", "--source", "doc",
+               "--use-case", "t", "--why-now", "x") == 0
+    assert run("quick-compare", "--artifact-root", root, "--use-case", "t",
+               "--candidate", "T", "--candidate", "U", "--selected", "T") == 0
+    assert run("quick-trial", "--artifact-root", root, "--use-case", "t", "--mode", "review-assist",
+               "--executor", "ci", "--decision-owner", "o", "--landing-target", "x") == 0
+    lane = next(l for l in build_dashboard_payload(Path(root))["lanes"] if l["scene"] == "t")
+    assert lane["allowed"] != ["No explicit allow-list recorded yet"]
+    assert "file read" in lane["allowed"]
+    assert any("inside target project" in f for f in lane["forbidden"])
+
+
+def test_blocked_lane_shows_block_reason(run, root):
+    from adop_html import build_dashboard_payload
+
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "B", "--source", "doc",
+               "--use-case", "b", "--why-now", "x") == 0
+    assert run("block", "--artifact-root", root, "--use-case", "b",
+               "--block-reason", "LICENSE_UNDECIDED", "--unblock-condition", "legal ok", "--owner", "o") == 0
+    lane = next(l for l in build_dashboard_payload(Path(root))["lanes"] if l["scene"] == "b")
+    assert "LICENSE_UNDECIDED" in lane["decision"]
+    assert any("LICENSE_UNDECIDED" in str(r["value"]) for r in lane["rationale"])
+
+
+def test_proposed_lane_shows_why_now(run, root):
+    from adop_html import build_dashboard_payload
+
+    assert run("intake", "--artifact-root", root, "--candidate", "P", "--candidate-shape", "atomic",
+               "--source", "doc", "--scene", "p", "--lane", "assistance", "--reason", "WHYNOW_TEXT",
+               "--root-cause-hypothesis", "DIFFERENT_RCH", "--platform", "any", "--license", "MIT",
+               "--cost", "free", "--version", "1.0", "--category", "cli", "--ai-compatibility", "any",
+               "--data-flow-json", '{"destination":"local","data_types":["code"],"opt_in":true}') == 0
+    lane = next(l for l in build_dashboard_payload(Path(root))["lanes"] if l["scene"] == "p")
+    why_now = next(r["value"] for r in lane["rationale"] if r["label"] == "Why now")
+    assert why_now == "WHYNOW_TEXT"
+
+
+def test_no_wrong_deprecation_flag_anywhere():
+    py = Path("shared/python")
+    cli = (py / "adop_cli.py").read_text(encoding="utf-8")
+    html = (py / "adop_html.py").read_text(encoding="utf-8")
+    assert "--deprecation-reason" not in cli
+    assert "--deprecation-reason" not in html
+    assert "--retirement-reason" in html
+    assert "wa-001" not in html
+
+
+def test_modal_open_moves_focus_and_traps(run, root):
+    from adop_html import render_dashboard_html
+
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "A", "--source", "doc",
+               "--use-case", "a", "--why-now", "x") == 0
+    html = render_dashboard_html(Path(root))
+    open_fn = html.split("function openLaneDetail")[1].split("function closeLaneDetail")[0]
+    assert 'document.getElementById("detail-close").focus()' in open_fn
+    assert 'trapModalTab' in html

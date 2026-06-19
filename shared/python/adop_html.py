@@ -333,7 +333,7 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
         "decision": "Observed need; not yet narrowed to a trial decision",
         "landing_target": "docs/editorial",
         "control_model": "No execution authority granted",
-        "last_evidence": "Watch note wa-001",
+        "last_evidence": "Watch note wt-001",
         "kind_meta": "cli / MIT / prose lint",
         "why_it_matters": "ADOP can show interest without pretending a decision exists.",
         "why_this_state": "Only watch-level evidence exists, so the review remains before intake.",
@@ -345,7 +345,7 @@ _SAMPLE_LANES: tuple[dict[str, Any], ...] = (
             {"label": "Interest reason", "value": "editorial consistency is becoming a recurring problem"},
         ],
         "artifacts": [
-            {"type": "watch-note", "id": "wa-001", "purpose": "records early interest only"},
+            {"type": "watch-note", "id": "wt-001", "purpose": "records early interest only"},
         ],
         "raw_artifacts": [],
         "timeline": [],
@@ -556,7 +556,7 @@ def _decision_text(state: str, scene_items: list[dict[str, Any]], landing_target
         return "Trial is running and waiting for a decision."
     if state == "blocked":
         return _pick_first(
-            (_latest(scene_items, "blocked-note") or {}).get("blocking_reason"),
+            (_latest(scene_items, "blocked-note") or {}).get("block_reason"),
             "Blocked until someone makes an explicit unblock decision.",
         )
     if state == "proposed":
@@ -602,17 +602,19 @@ def _control_model(scene_items: list[dict[str, Any]]) -> str:
 
 
 def _allowed_forbidden(scene_items: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
-    judgment = _latest(scene_items, "judgment-report")
-    if judgment:
-        envelope = judgment.get("no_impact_envelope") or {}
+    # Prefer the closed-trial judgment envelope; fall back to the open trial
+    # packet's envelope so in-trial / trial-ready lanes still show real limits.
+    for artifact_type in ("judgment-report", "trial-packet"):
+        source = _latest(scene_items, artifact_type)
+        if not source:
+            continue
+        envelope = source.get("no_impact_envelope") or {}
         allowed = [str(item) for item in envelope.get("allowed") or []]
         forbidden = [str(item) for item in envelope.get("forbidden") or []]
-        return allowed, forbidden
-    state = ""
-    if scene_items:
-        state = str(scene_items[-1].get("status", ""))
+        if allowed or forbidden:
+            return allowed, forbidden
     return (
-        ["No explicit allow-list recorded yet"] if state else ["No explicit allow-list recorded yet"],
+        ["No explicit allow-list recorded yet"],
         ["No explicit deny-list recorded yet"],
     )
 
@@ -632,10 +634,10 @@ def _rationale(scene_items: list[dict[str, Any]]) -> list[dict[str, str]]:
     intake = _latest(scene_items, "candidate-intake-note")
     blocked = _latest(scene_items, "blocked-note")
     if blocked:
-        return [{"label": "Block reason", "value": _pick_first(blocked.get("blocking_reason"), blocked.get("reason"))}]
+        return [{"label": "Block reason", "value": _pick_first(blocked.get("block_reason"))}]
     if intake:
         return [
-            {"label": "Why now", "value": _pick_first(intake.get("reason"))},
+            {"label": "Why now", "value": _pick_first(intake.get("intake_reason"))},
             {"label": "Root-cause hypothesis", "value": _pick_first(intake.get("root_cause_hypothesis"))},
         ]
     return [{"label": "Status", "value": "No reason fields are available yet for this decision."}]
@@ -887,7 +889,7 @@ def _command_surface(scene: str, state: str, scene_items: list[dict[str, Any]]) 
                 "retirement_command_label": "Retirement command",
                 "retirement_command_note": "This command changes the decision from approved into retirement tracking.",
                 "retirement_command_details": _retirement_command_details(),
-                "retirement_command": f'adop deprecate --scene {scene} --deprecation-reason "<reason>"',
+                "retirement_command": f'adop deprecate --scene {scene} --retirement-reason "<reason>" --replacement-candidate "<tool>" --timeline "<when>"',
                 "retirement_command_copyable": True,
             }
         )

@@ -199,3 +199,19 @@ def test_unknown_tool_attribute_fields_detects_all_unknowns():
         "data_flow.destination",
         "data_flow.data_types",
     ]
+
+
+def test_task_scoped_write_trial_requires_isolated_sandbox(run, root):
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "W", "--source", "doc",
+               "--use-case", "w", "--why-now", "x") == 0
+    assert run("quick-compare", "--artifact-root", root, "--use-case", "w",
+               "--candidate", "W", "--candidate", "V", "--selected", "W") == 0
+    common = [
+        "start-trial", "--artifact-root", root, "--scene", "w", "--allow-project-impact",
+        "--trial-type", "task-scoped", "--lane", "operations",
+        "--input-surface", "i", "--output-contract", "o", "--mutation-boundary", "writes",
+        "--verification-method", "v", "--executor", "ci", "--trigger", "t", "--evaluation-gate", "g",
+        "--landing-target", "lt", "--writeback-target", "wb", "--decision-owner", "d", "--fallback", "warn",
+    ]
+    assert run(*common, "--sandbox-type", "review sandbox") == 13
+    assert run(*common, "--sandbox-type", "isolated write sandbox") == 0

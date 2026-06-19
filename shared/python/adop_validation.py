@@ -330,7 +330,7 @@ def validate_trial_packet_payload(payload: dict[str, Any]) -> None:
         "landing_target",
     ):
         require_non_empty(payload.get(field), field)
-    if "write" in payload["trial_type"] and "isolated write sandbox" not in payload["sandbox_type"]:
+    if payload["trial_type"] in WRITE_TRIAL_TYPES and "isolated write sandbox" not in payload["sandbox_type"]:
         raise AdopValidationError("write trial requires isolated write sandbox", 13)
     for field in (
         "candidate_shape",

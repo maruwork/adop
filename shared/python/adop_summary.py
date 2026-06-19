@@ -29,6 +29,7 @@ try:
         MIGRATION_NOTE,
         PROMOTION_NOTE,
         PROPOSED,
+        REJECT_NOTE,
         REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         STRUCTURAL_GAP,
@@ -60,6 +61,7 @@ except ImportError:  # pragma: no cover - script import path
         MIGRATION_NOTE,
         PROMOTION_NOTE,
         PROPOSED,
+        REJECT_NOTE,
         REMOVAL_COSTS,
         ROOT_CAUSE_HYPOTHESIS,
         STRUCTURAL_GAP,
@@ -153,6 +155,8 @@ def _resolve_scene_states(root: Path, items: list[dict[str, Any]]) -> dict[str, 
             resolved[scene] = DEPRECATED
         elif of_type(scene, PROMOTION_NOTE):
             resolved[scene] = "promote"
+        elif of_type(scene, REJECT_NOTE):
+            resolved[scene] = REJECT
         elif _scene_resumed_after_hold(scene, of_type):
             resolved[scene] = TRIAL_READY
         elif of_type(scene, TRIAL_PACKET):

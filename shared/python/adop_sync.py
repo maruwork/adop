@@ -56,10 +56,15 @@ def _save_registry(source: Path, targets: list[str]) -> None:
     )
 
 
+def _managed_files(manifest: dict) -> list[str]:
+    """Files sync must keep in step: runtime modules plus declared templates."""
+    return list(manifest.get("runtime_files", [])) + list(manifest.get("template_files", []))
+
+
 def _check_one(source: Path, target: Path, manifest: dict) -> list[dict]:
-    """Check each runtime file; dst preserves the canonical relative path."""
+    """Check each managed file; dst preserves the canonical relative path."""
     results = []
-    for rel in manifest["runtime_files"]:
+    for rel in _managed_files(manifest):
         src = source / rel
         dst = target / rel   # preserve full relative path (e.g. shared/python/adop_cli.py)
         if not src.exists():

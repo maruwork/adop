@@ -393,3 +393,45 @@ def test_quick_intake_normalizes_casual_platform_aliases(run, root, latest):
     intake = latest(root, CANDIDATE_INTAKE_NOTE, scene="guided-platform")
     assert intake is not None
     assert intake["platform"] == "any"
+
+
+def test_reject_from_proposed_resolves_reject(run, root):
+    from adop_summary import get_scene_states
+    from pathlib import Path
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
+               "--use-case", "r", "--why-now", "x") == 0
+    assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "not worth it") == 0
+    assert get_scene_states(Path(root)).get("r") == "reject"
+
+
+def test_reject_from_blocked_resolves_reject(run, root):
+    from adop_summary import get_scene_states
+    from pathlib import Path
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
+               "--use-case", "r", "--why-now", "x") == 0
+    assert run("block", "--artifact-root", root, "--use-case", "r", "--block-reason", "lic",
+               "--unblock-condition", "u", "--owner", "o") == 0
+    assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "permanent block") == 0
+    assert get_scene_states(Path(root)).get("r") == "reject"
+
+
+def test_reject_is_terminal_blocks_reintake(run, root):
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
+               "--use-case", "r", "--why-now", "x") == 0
+    assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "no") == 0
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
+               "--use-case", "r", "--why-now", "again") == 7
+
+
+def test_reject_requires_history(run, root):
+    assert run("reject", "--artifact-root", root, "--use-case", "empty", "--reject-reason", "no") == 5
+
+
+def test_reject_open_trial_directs_to_close(run, root):
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
+               "--use-case", "r", "--why-now", "x") == 0
+    assert run("quick-compare", "--artifact-root", root, "--use-case", "r",
+               "--candidate", "R", "--candidate", "S", "--selected", "R") == 0
+    assert run("quick-trial", "--artifact-root", root, "--use-case", "r", "--mode", "review-assist",
+               "--executor", "ci", "--decision-owner", "o", "--landing-target", "x") == 0
+    assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "no") == 7

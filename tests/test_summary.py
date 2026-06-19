@@ -161,3 +161,12 @@ def test_current_state_sceneless_watch_keyed_by_tool(run, root):
     run("watch", "--artifact-root", root, "--candidate", "ruff", "--interest-reason", "x")
     current = _section(_summary(root), "Current State by Scene")
     assert "- (watch) ruff: watch" in current
+
+
+def test_reject_note_resolves_scene_to_reject(run, root):
+    from adop_summary import get_scene_states
+    from pathlib import Path
+    assert run("quick-intake", "--artifact-root", root, "--candidate", "R", "--source", "doc",
+               "--use-case", "r", "--why-now", "x") == 0
+    assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "no") == 0
+    assert get_scene_states(Path(root))["r"] == "reject"
