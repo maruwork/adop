@@ -70,6 +70,26 @@ def test_compare_missing_required_args_returns_json_error(run, root, capsys):
     assert any("--candidate-shape" in err for err in payload["errors"])
 
 
+def test_start_trial_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("start-trial", "--artifact-root", root, "--scene", "lint")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "start-trial"
+    assert payload["status"] == "error"
+    assert any("--trial-type" in err for err in payload["errors"])
+    assert any("--fallback" in err for err in payload["errors"])
+
+
+def test_close_trial_missing_required_args_returns_json_error(run, root, capsys):
+    rc = run("close-trial", "--artifact-root", root, "--trial-id", "tr-001")
+    assert rc == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "close-trial"
+    assert payload["status"] == "error"
+    assert any("--verdict" in err for err in payload["errors"])
+    assert any("--judgment-reason" in err for err in payload["errors"])
+
+
 # --- block / unblock -------------------------------------------------------
 
 def test_block_requires_intake(run, root):

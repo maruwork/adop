@@ -146,6 +146,18 @@ def test_bad_couple_flag_format_returns_validation_error(run, root):
     assert code == 2  # PATH|TYPE|COST required
 
 
+def test_couple_rejects_non_list_couplings_json(run, root, capsys):
+    code = run(
+        "couple", "--artifact-root", root, "--use-case", "lint", "--tool", "ruff",
+        "--couplings-json", '{"path":"pyproject.toml","coupling_type":"config","removal_cost":"edit"}',
+    )
+    assert code == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["command"] == "couple"
+    assert payload["status"] == "error"
+    assert any("JSON list" in err for err in payload["errors"])
+
+
 # --- summary integration ---------------------------------------------------
 
 def test_summary_tool_entanglement_section(run, root):
