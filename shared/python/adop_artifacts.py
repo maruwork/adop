@@ -10,6 +10,9 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from adop_ids import next_sequential_id, parse_numeric_id
+from adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
+
 # A write completes in well under a second; a lock older than this can only be
 # the orphan of a crashed/killed writer, so it is safe to reclaim instead of
 # blocking the artifact name forever (round-2 audit, orphaned-lock lockout).
@@ -41,14 +44,6 @@ def _acquire_lock(lock_path: Path, display_name: str) -> int:
             return os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except (FileExistsError, PermissionError) as exc2:
             raise AdopArtifactError(f"artifact write already in progress: {display_name}") from exc2
-
-
-try:
-    from .adop_ids import next_sequential_id, parse_numeric_id
-    from .adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
-except ImportError:  # pragma: no cover - script import path
-    from adop_ids import next_sequential_id, parse_numeric_id
-    from adop_types import JUDGMENT_REPORT, SCHEMA_VERSION, TRIAL_PACKET
 
 
 class AdopArtifactError(ValueError):

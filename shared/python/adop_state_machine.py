@@ -5,10 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
-try:
-    from .adop_types import FILTER_NAMES, IN_TRIAL, TRIAL_READY
-except ImportError:  # pragma: no cover - script import path
-    from adop_types import FILTER_NAMES, IN_TRIAL, TRIAL_READY
+from adop_types import FILTER_NAMES, IN_TRIAL, TRIAL_READY
 
 
 def comparison_ready_for_trial(comparison: dict[str, Any]) -> bool:

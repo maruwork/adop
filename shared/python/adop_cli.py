@@ -15,134 +15,69 @@ from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Any
 
-try:
-    from . import adop_artifacts as artifacts
-    from .adop_html import render_dashboard_html
-    from .adop_ids import next_sequential_id, parse_numeric_id
-    from .adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from .adop_summary import build_summary, get_scene_states
-    from .adop_types import (
-        ARCHIVE_NOTE,
-        BLOCKED_NOTE,
-        CANDIDATE_INTAKE_NOTE,
-        CANDIDATE_SHAPES,
-        COMPARISON_NOTE,
-        COUPLING_NOTE,
-        COUPLING_TYPES,
-        DECOMPOSITION_DECISION,
-        DECOMPOSITION_DECISIONS,
-        DEPRECATION_NOTE,
-        EVALUATION_GATE,
-        EXECUTOR,
-        FALLBACKS,
-        FILTER_NAMES,
-        FILTER_STATUSES,
-        FIT_LANES,
-        HOLD_NOTE,
-        JUDGMENT_REPORT,
-        LANDING_TARGET,
-        LANES,
-        MIGRATION_NOTE,
-        OBSERVED_EFFECT,
-        PLATFORMS,
-        PROMOTION_NOTE,
-        PROPOSED,
-        RECURRING_CONTROL_DECISIONS,
-        REJECT_NOTE,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        SANDBOX_TYPES,
-        SCHEMA_VERSION,
-        STRUCTURAL_GAP,
-        TRIAL_PACKET,
-        TRIAL_RESULT,
-        TRIAL_TYPES,
-        VERDICTS,
-        WATCH_NOTE,
-    )
-    from .adop_validation import (
-        AdopValidationError,
-        lint_artifact_root,
-        today_iso,
-        unknown_tool_attribute_fields,
-        validate_archive_note_payload,
-        validate_blocked_note_payload,
-        validate_close_payload,
-        validate_comparison_payload,
-        validate_coupling_note_payload,
-        validate_deprecation_note_payload,
-        validate_filter_assessment,
-        validate_intake_payload,
-        validate_migration_note_payload,
-        validate_no_impact_trial_mode,
-        validate_trial_packet_payload,
-        validate_watch_note_payload,
-    )
-    from .common import fix_stdout_encoding
-except ImportError:  # pragma: no cover - script import path
-    import adop_artifacts as artifacts
-    from adop_html import render_dashboard_html
-    from adop_ids import next_sequential_id, parse_numeric_id
-    from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
-    from adop_summary import build_summary, get_scene_states
-    from adop_types import (
-        ARCHIVE_NOTE,
-        BLOCKED_NOTE,
-        CANDIDATE_INTAKE_NOTE,
-        CANDIDATE_SHAPES,
-        COMPARISON_NOTE,
-        COUPLING_NOTE,
-        COUPLING_TYPES,
-        DECOMPOSITION_DECISION,
-        DECOMPOSITION_DECISIONS,
-        DEPRECATION_NOTE,
-        EVALUATION_GATE,
-        EXECUTOR,
-        FALLBACKS,
-        FILTER_NAMES,
-        FILTER_STATUSES,
-        FIT_LANES,
-        HOLD_NOTE,
-        JUDGMENT_REPORT,
-        LANDING_TARGET,
-        LANES,
-        MIGRATION_NOTE,
-        OBSERVED_EFFECT,
-        PLATFORMS,
-        PROMOTION_NOTE,
-        PROPOSED,
-        RECURRING_CONTROL_DECISIONS,
-        REJECT_NOTE,
-        REMOVAL_COSTS,
-        ROOT_CAUSE_HYPOTHESIS,
-        SANDBOX_TYPES,
-        SCHEMA_VERSION,
-        STRUCTURAL_GAP,
-        TRIAL_PACKET,
-        TRIAL_RESULT,
-        TRIAL_TYPES,
-        VERDICTS,
-        WATCH_NOTE,
-    )
-    from adop_validation import (
-        AdopValidationError,
-        lint_artifact_root,
-        today_iso,
-        unknown_tool_attribute_fields,
-        validate_archive_note_payload,
-        validate_blocked_note_payload,
-        validate_close_payload,
-        validate_comparison_payload,
-        validate_coupling_note_payload,
-        validate_deprecation_note_payload,
-        validate_filter_assessment,
-        validate_intake_payload,
-        validate_migration_note_payload,
-        validate_no_impact_trial_mode,
-        validate_trial_packet_payload,
-        validate_watch_note_payload,
-    )
-    from common import fix_stdout_encoding
+import adop_artifacts as artifacts
+from adop_html import render_dashboard_html
+from adop_ids import next_sequential_id, parse_numeric_id
+from adop_state_machine import comparison_ready_for_trial, promote_gate_errors
+from adop_summary import build_summary, get_scene_states
+from adop_types import (
+    ARCHIVE_NOTE,
+    BLOCKED_NOTE,
+    CANDIDATE_INTAKE_NOTE,
+    CANDIDATE_SHAPES,
+    COMPARISON_NOTE,
+    COUPLING_NOTE,
+    COUPLING_TYPES,
+    DECOMPOSITION_DECISION,
+    DECOMPOSITION_DECISIONS,
+    DEPRECATION_NOTE,
+    EVALUATION_GATE,
+    EXECUTOR,
+    FALLBACKS,
+    FILTER_NAMES,
+    FILTER_STATUSES,
+    FIT_LANES,
+    HOLD_NOTE,
+    JUDGMENT_REPORT,
+    LANDING_TARGET,
+    LANES,
+    MIGRATION_NOTE,
+    OBSERVED_EFFECT,
+    PLATFORMS,
+    PROMOTION_NOTE,
+    PROPOSED,
+    RECURRING_CONTROL_DECISIONS,
+    REJECT_NOTE,
+    REMOVAL_COSTS,
+    ROOT_CAUSE_HYPOTHESIS,
+    SANDBOX_TYPES,
+    SCHEMA_VERSION,
+    STRUCTURAL_GAP,
+    TRIAL_PACKET,
+    TRIAL_RESULT,
+    TRIAL_TYPES,
+    VERDICTS,
+    WATCH_NOTE,
+)
+from adop_validation import (
+    AdopValidationError,
+    lint_artifact_root,
+    today_iso,
+    unknown_tool_attribute_fields,
+    validate_archive_note_payload,
+    validate_blocked_note_payload,
+    validate_close_payload,
+    validate_comparison_payload,
+    validate_coupling_note_payload,
+    validate_deprecation_note_payload,
+    validate_filter_assessment,
+    validate_intake_payload,
+    validate_migration_note_payload,
+    validate_no_impact_trial_mode,
+    validate_trial_packet_payload,
+    validate_watch_note_payload,
+)
+from common import fix_stdout_encoding
 
 fix_stdout_encoding()
 

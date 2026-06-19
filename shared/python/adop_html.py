@@ -9,14 +9,9 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-try:
-    from .adop_artifacts import AdopArtifactError, load_all_artifacts
-    from .adop_ids import parse_numeric_id
-    from .adop_summary import get_scene_states
-except ImportError:  # pragma: no cover - script import path
-    from adop_artifacts import AdopArtifactError, load_all_artifacts
-    from adop_ids import parse_numeric_id
-    from adop_summary import get_scene_states
+from adop_artifacts import AdopArtifactError, load_all_artifacts
+from adop_ids import parse_numeric_id
+from adop_summary import get_scene_states
 
 _TEMPLATE_NAME = "adop-governance-dashboard-template.html"
 
