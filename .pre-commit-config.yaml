@@ -8,6 +8,8 @@ repos:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+      - id: detect-private-key
+      - id: check-added-large-files
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.37.3
@@ -16,6 +18,11 @@ repos:
 
   - repo: local
     hooks:
+      - id: forbid-secret-files
+        name: block committing secret / env / key files
+        entry: "secret, .env, or key file must never be committed"
+        language: fail
+        files: '(^|/)\.env($|\.)|\.(pem|key|p12|pfx)$|(^|/)(secrets|keys)/|(^|/)id_(rsa|ed25519)$|credentials.*\.json$'
       - id: ruff-check
         name: ruff check
         entry: python -m ruff check

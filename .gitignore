@@ -39,3 +39,17 @@ coverage.xml
 # this canonical repo does not track its own root adoption records
 # (root-only: a tracked worked example under examples/**/.adop/ is allowed)
 /.adop/
+
+# secrets / credentials — never commit
+.env
+.env.*
+*.env
+secrets/
+keys/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*credentials*.json
