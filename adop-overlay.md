@@ -108,14 +108,14 @@ Promoted tools land at:
 | `pyproject.toml` | repo maintainer | dependency declarations plus `ruff` / `mypy` settings |
 | `.pre-commit-config.yaml` | repo maintainer | `pre-commit`, `pre-commit-hooks`, `check-jsonschema`, local `ruff`, local `mypy` hooks |
 | `.github/workflows/ci.yml` | repo maintainer | CI surface for `pre-commit` and `pytest -n auto` |
-| `package.json` / `eslint.config.js` / `.prettierignore` | repo maintainer | Node-side examples for `eslint` and `prettier` |
+| `tool-surfaces/package.json` / `tool-surfaces/eslint.config.js` / `tool-surfaces/.prettierignore` | repo maintainer | Node-side examples for `eslint` and `prettier` |
 | `.github/workflows/tool-surface-examples.yml` | repo maintainer | example workflow for `actionlint`, `shellcheck`, `trivy`, `eslint`, and `prettier` |
-| `scripts/repo-smoke.sh` | repo maintainer | shell script surface used by `shellcheck` |
-| `.trivyignore` | repo maintainer | repo-local security scan exception surface for `trivy` |
-| `renovate.json` | repo maintainer | bot-style config surface for `renovate` |
-| `Dockerfile.tooling-example` | repo maintainer | Dockerfile surface for `hadolint` |
-| `.markdownlint-cli2.jsonc` | repo maintainer | Markdown lint config surface for `markdownlint-cli2` |
-| `.vscode/extensions.json` / `.vscode/settings.json` | repo maintainer | editor integration surface for `vscode-eslint` |
+| `tool-surfaces/scripts/repo-smoke.sh` | repo maintainer | shell script surface used by `shellcheck` |
+| `tool-surfaces/.trivyignore` | repo maintainer | repo-local security scan exception surface for `trivy` |
+| `tool-surfaces/renovate.json` | repo maintainer | bot-style config surface for `renovate` |
+| `tool-surfaces/Dockerfile.tooling-example` | repo maintainer | Dockerfile surface for `hadolint` |
+| `tool-surfaces/.markdownlint-cli2.jsonc` | repo maintainer | Markdown lint config surface for `markdownlint-cli2` |
+| `tool-surfaces/.vscode/extensions.json` / `tool-surfaces/.vscode/settings.json` | repo maintainer | editor integration surface for `vscode-eslint` |
 | `.github/dependabot.yml` | repo maintainer | dependency bot config surface for `dependabot` |
 
 ---
@@ -127,7 +127,7 @@ Promoted tools land at:
 | Verify the new dev-tool surface on a networked GitHub runner | pending |
 | Decide whether Node / bot / security scenes should be promoted or kept as audit-only examples | pending |
 | Verify whether low-confidence `text-reference` hits are strict enough to keep for this repo, or should be filtered further | pending |
-| Treat editor-local settings such as `.vscode/settings.json` as first-class coupling surfaces even when the tool id is implicit | fixed in generic scan on 2026-06-18 |
+| Treat editor-local settings such as `tool-surfaces/.vscode/settings.json` as first-class coupling surfaces even when the tool id is implicit | fixed in generic scan on 2026-06-18 |
 
 ---
 
