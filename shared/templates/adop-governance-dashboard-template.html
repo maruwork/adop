@@ -772,6 +772,45 @@
       background: #f8fafc;
     }
 
+    .to-top {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 30;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--navy);
+      border-radius: 8px;
+      background: var(--navy);
+      color: #f5f7fa;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--card-shadow);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .18s ease, transform .18s ease;
+      pointer-events: none;
+    }
+
+    .to-top.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .to-top:hover,
+    .to-top:focus-visible {
+      background: var(--navy-2);
+      outline: none;
+    }
+
+    @media (max-width: 640px) {
+      .to-top { right: 14px; bottom: 14px; padding: 9px 12px; }
+    }
+
     @media (max-width: 1180px) {
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hero-meta,
@@ -1176,6 +1215,8 @@
       </div>
     </div>
   </div>
+
+  <button class="to-top" id="to-top" type="button" aria-label="Back to top" hidden>↑ Top</button>
 
   <script id="adop-dashboard-payload" type="application/json">__ADOP_DASHBOARD_PAYLOAD__</script>
   <script>
@@ -1758,6 +1799,19 @@
     renderEmptyStateCommands();
     renderBoards();
     renderLane(uiState.selectedScene);
+
+    const toTop = document.getElementById("to-top");
+    if (toTop) {
+      toTop.hidden = false;
+      const syncToTop = () => {
+        toTop.classList.toggle("is-visible", window.scrollY > 400);
+      };
+      window.addEventListener("scroll", syncToTop, { passive: true });
+      toTop.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      syncToTop();
+    }
   </script>
 </body>
 </html>

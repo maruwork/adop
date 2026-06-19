@@ -776,3 +776,28 @@ def test_historical_filter_opens_history_details(run, root):
     html = render_dashboard_html(Path(root))
     assert 'uiState.filter === "historical"' in html
     assert "historyShell.open = true" in html
+
+
+def test_dashboard_has_back_to_top(run, root):
+    from adop_html import render_dashboard_html
+
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "ruff",
+            "--source",
+            "doc",
+            "--use-case",
+            "lint",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    html = render_dashboard_html(Path(root))
+    assert '<button class="to-top"' in html
+    assert 'aria-label="Back to top"' in html
+    assert "window.scrollTo({ top: 0" in html
