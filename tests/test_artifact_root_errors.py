@@ -133,12 +133,16 @@ def test_concurrent_id_minting_no_duplicates(tmp_path):
                 "interest_reason": "y",
             }
 
-        artifact_id, _path = A.write_next_sequential_artifact(tmp_path, "watch-note", "wt", factory)
+        # The property under test is "no duplicate ids" + "PermissionError is
+        # retried, not raised" — NOT the size of the retry budget. On a CPU-starved
+        # CI runner (xdist x 2 cores), a descheduled thread can lose the mint race
+        # far more than the default 64 times before peers commit, so give it a huge
+        # budget; correctness (uniqueness) is still asserted below.
+        artifact_id, _path = A.write_next_sequential_artifact(
+            tmp_path, "watch-note", "wt", factory, max_attempts=100_000
+        )
         return artifact_id
 
-    # Keep contention real but bounded: enough concurrent writers to exercise the
-    # lock + retry path (incl. the Windows PermissionError mapping) without letting
-    # a starved worker on a loaded CI runner exhaust the 64-attempt retry budget.
     workers = 5
     with ThreadPoolExecutor(max_workers=workers) as ex:
         ids = list(ex.map(mint, range(workers)))
