@@ -3179,6 +3179,20 @@ def main(argv: list[str] | None = None) -> int:
     except artifacts.AdopArtifactError as exc:
         _emit(artifacts.json_response(args.command, "error", [], [str(exc)]))
         return 11
+    except KeyError as exc:
+        # A schema-drifted or hand-edited parent artifact can be missing a field a
+        # handler reads directly (e.g. packet["landing_target"]). The store
+        # tolerates older/forward records, so surface this as a JSON-native schema
+        # error instead of leaking a raw KeyError traceback.
+        _emit(
+            artifacts.json_response(
+                args.command, "error", [], [f"artifact missing required field: {exc}"]
+            )
+        )
+        return 11
+    except Exception as exc:  # noqa: BLE001 — JSON-native CLI must never leak a raw traceback
+        _emit(artifacts.json_response(args.command, "error", [], [f"unexpected error: {exc}"]))
+        return 11
 
 
 if __name__ == "__main__":

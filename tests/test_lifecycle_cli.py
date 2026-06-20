@@ -949,3 +949,93 @@ def test_reject_open_trial_directs_to_close(run, root):
         == 0
     )
     assert run("reject", "--artifact-root", root, "--use-case", "r", "--reject-reason", "no") == 7
+
+
+def test_close_trial_on_corrupt_packet_returns_clean_error(run, root):
+    """A parent artifact missing a required field must yield a JSON error, not a traceback."""
+    import json as _json
+    from pathlib import Path
+
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "ruff",
+            "--source",
+            "doc",
+            "--use-case",
+            "s",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "s",
+            "--candidate",
+            "ruff",
+            "--candidate",
+            "p",
+            "--selected",
+            "ruff",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "s",
+            "--mode",
+            "review-assist",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "o",
+            "--landing-target",
+            "l",
+        )
+        == 0
+    )
+    pkt = next(Path(root).glob("adop_trial-packet_*.json"))
+    data = _json.loads(pkt.read_text(encoding="utf-8"))
+    del data["landing_target"]
+    pkt.write_text(_json.dumps(data), encoding="utf-8")
+    # Must not raise a bare KeyError; main() converts it to exit 11.
+    assert (
+        run(
+            "close-trial",
+            "--artifact-root",
+            root,
+            "--trial-id",
+            "tr-001",
+            "--verdict",
+            "hold",
+            "--observed-effect",
+            "x",
+            "--judgment-reason",
+            "j",
+            "--next-action",
+            "n",
+            "--recurring-control-decision",
+            "no",
+            "--root-cause-hypothesis",
+            "h",
+            "--preventive-action",
+            "p",
+            "--why-this-problem-recurred",
+            "w",
+            "--reopen-condition",
+            "later",
+        )
+        == 11
+    )
