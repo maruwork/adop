@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 
 - `adop reject`: reject a candidate from `proposed` / `blocked` / `hold` without running a trial (terminal for the scene)
 - `adop aggregate`: read-only cross-project portfolio (scene / tool / state) across multiple `--root` artifact roots
+- `adop render-html`: render the canonical HTML governance dashboard from an artifact root
 - Schema-version tolerance: `MIN_READABLE_SCHEMA_VERSION` keeps older artifacts valid after an upgrade; a too-new `schema_version` reports "written by a newer adop; upgrade adop" instead of a generic invalid
 - HTML dashboard: a "Back to top" button
 - HTML dashboard: the decision detail now shows the `decision_owner` for lanes that record one (was only in the raw JSON)
@@ -26,6 +27,7 @@ All notable changes to this project are documented in this file.
 - `adop init`: creates a nested `--overlay` parent directory instead of crashing with `FileNotFoundError`
 - `adop summary`: no longer prints a comparison-time structural gap once a scene has advanced to `in-trial` or later
 - CI: repaired `ci.yml` (a Windows PowerShell here-string broke the workflow YAML, startup-failing every run since 0.1.1); de-flaked the concurrent id-mint test on loaded runners
+- CLI no longer leaks a raw `KeyError` / traceback when a parent artifact is missing a field a handler reads (e.g. a hand-edited or schema-drifted trial packet); it returns a JSON error envelope with exit 11
 
 ### Changed
 
@@ -34,7 +36,7 @@ All notable changes to this project are documented in this file.
 
 ### Tests
 
-- Suite grew from 105 to 199 tests
+- Suite grew from 105 to 202 tests
 
 ## 0.1.1 - 2026-06-17
 
