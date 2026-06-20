@@ -18,6 +18,7 @@ All notable changes to this project are documented in this file.
 
 - Distribution: `adop.json` now lists `adop_html.py` and the HTML template, so a manifest-synced runtime can start and render (previously crashed with `ModuleNotFoundError`)
 - Dashboard now surfaces the trial-packet allow/deny envelope, block reason, intake "why now", watch interest, reject reason, and deprecated/migrating/archived/hold reasoning (were blank or showed the stale promote judgment)
+- Dashboard "Latest update" column now shows the genuinely most-recent artifact and its date (previously picked an earlier-stage note by id number — e.g. the intake over a later trial packet — and showed only a cryptic artifact id)
 - Write-trial guard: `task-scoped` and `phase-scoped` trials now also require an isolated write sandbox
 - Windows: artifact-write lock maps `PermissionError` like `FileExistsError` so concurrent id minting retries instead of crashing; stale locks are reclaimed
 - Performance: `summary` / state resolution read judgments from a single in-memory load instead of re-reading the artifact root per trial

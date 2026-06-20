@@ -541,11 +541,44 @@ def _landing_target(scene_items: list[dict[str, Any]]) -> str:
     return "-"
 
 
+# Lifecycle stage rank for "latest update": later stage = more recent action.
+# Used as a same-day tiebreak so the headline never picks an earlier-stage note
+# just because its id number happens to be larger (e.g. ci-002 over tr-001).
+_EVIDENCE_STAGE: dict[str, int] = {
+    "watch-note": 0,
+    "candidate-intake-note": 1,
+    "coupling-note": 1,
+    "blocked-note": 2,
+    "comparison-note": 3,
+    "trial-packet": 4,
+    "trial-result": 5,
+    "judgment-report": 6,
+    "hold-note": 6,
+    "reject-note": 6,
+    "promotion-note": 6,
+    "deprecation-note": 7,
+    "migration-note": 8,
+    "archive-note": 9,
+}
+
+
 def _last_evidence(scene_items: list[dict[str, Any]]) -> str:
     if not scene_items:
         return "-"
-    item = sorted(scene_items, key=_id_sort_key)[-1]
-    return f"{_artifact_label(str(item.get('artifact_type', '-')))} {item.get('artifact_id', '-')}"
+
+    def recency_key(item: dict[str, Any]) -> tuple[str, int, int]:
+        created = str(item.get("created_at", ""))
+        stage = _EVIDENCE_STAGE.get(str(item.get("artifact_type", "")), 0)
+        raw = str(item.get("artifact_id", ""))
+        prefix = raw.split("-", 1)[0] if "-" in raw else ""
+        number = parse_numeric_id(raw, prefix) if prefix else None
+        return (created, stage, number or 0)
+
+    item = max(scene_items, key=recency_key)
+    label = _artifact_label(str(item.get("artifact_type", "-")))
+    created = str(item.get("created_at", "")).strip()
+    # Date first so the "Latest update" column reads as a date and sorts chronologically.
+    return f"{created} · {label}" if created else label
 
 
 def _artifact_label(artifact_type: str) -> str:
