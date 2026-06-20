@@ -801,3 +801,63 @@ def test_dashboard_has_back_to_top(run, root):
     assert '<button class="to-top"' in html
     assert 'aria-label="Back to top"' in html
     assert "window.scrollTo({ top: 0" in html
+
+
+def test_latest_update_is_most_advanced_artifact_with_date(run, root):
+    from adop_html import build_dashboard_payload
+
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "mypy",
+            "--source",
+            "doc",
+            "--use-case",
+            "types",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "types",
+            "--candidate",
+            "mypy",
+            "--candidate",
+            "pyright",
+            "--selected",
+            "mypy",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "types",
+            "--mode",
+            "review-assist",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "lead",
+            "--landing-target",
+            "ci/types",
+        )
+        == 0
+    )
+    lane = next(ln for ln in build_dashboard_payload(Path(root))["lanes"] if ln["scene"] == "types")
+    ev = lane["last_evidence"]
+    assert "Trial plan" in ev  # the most-advanced artifact, not the intake
+    assert "Intake" not in ev
+    assert ev[:4].isdigit() and ev[4] == "-"  # leads with a date (YYYY-...)
