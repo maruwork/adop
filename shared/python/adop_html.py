@@ -562,6 +562,24 @@ _EVIDENCE_STAGE: dict[str, int] = {
 }
 
 
+def _decision_owner(scene_items: list[dict[str, Any]]) -> str:
+    """Who owns this decision — from the most-advanced artifact that records one."""
+    best: str | None = None
+    best_key: tuple[str, int] | None = None
+    for item in scene_items:
+        owner = _pick_first(item.get("decision_owner"))
+        if owner == "-":
+            continue
+        key = (
+            str(item.get("created_at", "")),
+            _EVIDENCE_STAGE.get(str(item.get("artifact_type", "")), 0),
+        )
+        if best_key is None or key >= best_key:
+            best_key = key
+            best = owner
+    return best or "-"
+
+
 def _last_evidence(scene_items: list[dict[str, Any]]) -> str:
     if not scene_items:
         return "-"
@@ -1246,6 +1264,7 @@ def _build_lane(scene: str, scene_items: list[dict[str, Any]], state: str) -> di
         else summary["what_happens_next"],
         "landing_target": landing_target,
         "control_model": _control_model(scene_items),
+        "decision_owner": _decision_owner(scene_items),
         "last_evidence": _last_evidence(scene_items),
         "kind_meta": _lane_meta(scene_items),
         "headline": summary["headline"],

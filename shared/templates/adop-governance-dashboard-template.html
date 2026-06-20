@@ -1506,11 +1506,13 @@
 
       const summaryLines = document.getElementById("summary-lines");
       summaryLines.replaceChildren();
-      [
-        ["Current state", lane.state_meaning],
-        ["Where it may be used", lane.landing_target],
-        ["What the owner needs next", lane.next_step],
-      ].forEach(([label, text]) => {
+      const summaryRows = [["Current state", lane.state_meaning]];
+      if (lane.decision_owner && lane.decision_owner !== "-") {
+        summaryRows.push(["Decision owner", lane.decision_owner]);
+      }
+      summaryRows.push(["Where it may be used", lane.landing_target]);
+      summaryRows.push(["What the owner needs next", lane.next_step]);
+      summaryRows.forEach(([label, text]) => {
         const item = el("div", "summary-line");
         item.appendChild(el("strong", "", label));
         item.appendChild(el("span", "", text));

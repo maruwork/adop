@@ -10,6 +10,7 @@ All notable changes to this project are documented in this file.
 - `adop aggregate`: read-only cross-project portfolio (scene / tool / state) across multiple `--root` artifact roots
 - Schema-version tolerance: `MIN_READABLE_SCHEMA_VERSION` keeps older artifacts valid after an upgrade; a too-new `schema_version` reports "written by a newer adop; upgrade adop" instead of a generic invalid
 - HTML dashboard: a "Back to top" button
+- HTML dashboard: the decision detail now shows the `decision_owner` for lanes that record one (was only in the raw JSON)
 - `examples/`: a minimal, self-contained worked example (`examples/walkthrough/.adop/`)
 - Secret-commit guard: `.gitignore` patterns plus pre-commit `detect-private-key`, `check-added-large-files`, and a local `forbid-secret-files` hook
 - Coverage gate: `pytest-cov` dev dependency and a `fail_under` threshold (~84% measured)

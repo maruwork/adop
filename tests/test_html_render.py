@@ -861,3 +861,62 @@ def test_latest_update_is_most_advanced_artifact_with_date(run, root):
     assert "Trial plan" in ev  # the most-advanced artifact, not the intake
     assert "Intake" not in ev
     assert ev[:4].isdigit() and ev[4] == "-"  # leads with a date (YYYY-...)
+
+
+def test_in_trial_lane_surfaces_decision_owner(run, root):
+    from adop_html import build_dashboard_payload, render_dashboard_html
+
+    assert (
+        run(
+            "quick-intake",
+            "--artifact-root",
+            root,
+            "--candidate",
+            "mypy",
+            "--source",
+            "doc",
+            "--use-case",
+            "tri",
+            "--why-now",
+            "x",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-compare",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "tri",
+            "--candidate",
+            "mypy",
+            "--candidate",
+            "p",
+            "--selected",
+            "mypy",
+        )
+        == 0
+    )
+    assert (
+        run(
+            "quick-trial",
+            "--artifact-root",
+            root,
+            "--use-case",
+            "tri",
+            "--mode",
+            "review-assist",
+            "--executor",
+            "ci",
+            "--decision-owner",
+            "lead-eng",
+            "--landing-target",
+            "ci/x",
+        )
+        == 0
+    )
+    lane = next(ln for ln in build_dashboard_payload(Path(root))["lanes"] if ln["scene"] == "tri")
+    assert lane["decision_owner"] == "lead-eng"
+    html = render_dashboard_html(Path(root))
+    assert "Decision owner" in html and "lead-eng" in html
