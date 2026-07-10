@@ -1,56 +1,53 @@
-# ADOP Base Registry — methodology A-layer
-meta:
+﻿meta:
   subject: adop
-  revision: 1
-
+  revision: 2
 categories:
   G.goal:
     state: filled
-    value: "see README.md; docs/design/ADOP_COMPLETION_CONTRACT.md"
-    evidence: "structured append-only tool evaluation records; completion contract"
+    value: "see README.md; docs/design/adop-lifecycle-schema-design.md"
+    evidence: "structured append-only tool evaluation records"
   G.actor:
     state: filled
-    value: "teams evaluating libraries/linters/services; auditors/future teammates; CLI operator"
-    evidence: "README.md Who Needs This"
+    value: "teams evaluating libraries/linters/services; CLI operator"
+    evidence: "README.md"
   G.io:
     state: filled
-    value: "CLI adop status/next/lint; artifacts under .adop/ JSON; no central server"
-    evidence: "README.md How It Works"
+    value: "CLI adop status/next/lint; artifacts under .adop/ JSON"
+    evidence: "README.md"
   G.behavior:
     state: filled
-    value: "scene lane states watch→…→archived; state derived from disk; append-only"
-    evidence: "README.md state machine"
+    value: "scene lane states; state derived from disk; append-only"
+    evidence: "README.md; docs/design/adop-lifecycle-schema-design.md"
   G.data:
     state: filled
-    value: "append-only JSON in .adop/; related_scene lanes; trial verdicts"
-    evidence: "README.md"
+    value: "append-only JSON in .adop/; see docs/design/adop-design-notes.md"
+    evidence: "docs/design/adop-design-notes.md"
   G.oracle:
     state: filled
-    value: "adop lint = machine validation of record; promote/hold/reject judgment fields = human"
-    evidence: "README.md quick-close-trial judgment fields"
+    value: "adop lint = machine validation; promote/hold/reject judgment = human"
+    evidence: "README.md"
   G.invariant:
     state: filled
-    value: "append-only artifacts; no delete/overwrite; state always derived from what is on disk"
+    value: "append-only artifacts; state derived from disk"
     evidence: "README.md"
   G.compose:
     state: filled
-    value: "lane × tool × adoption-unit separation; trial close requires verdict + observed-effect"
+    value: "lane x tool x adoption-unit separation"
     evidence: "README.md"
   G.env:
     state: filled
-    value: "Python 3.11–3.13; local filesystem .adop/; no daemon"
-    evidence: "README.md Setup"
+    value: "Python 3.11+; local filesystem .adop/"
+    evidence: "README.md"
   G.feedback:
     state: filled
-    value: "none (single-shot CLI / append-only records; no self-training loop)"
+    value: "none (single-shot CLI / append-only records)"
     evidence: "product shape"
   G.ops:
     state: filled
-    value: "adop lint; docs/publication/PUBLIC_VERIFICATION_CONTRACT.md for public min"
-    evidence: "README Current Audit Surfaces"
+    value: "see README.md; docs/ADOP_GENERIC_QUICKSTART.md"
+    evidence: "quickstart"
   G.open:
     state: filled
-    value: "see docs/design/ADOP_COMPLETION_AUDIT_20260619.md for tracked residual audit items"
-    evidence: "completion audit"
-
+    value: "see docs/design/ADOP_SHELF_CLASSIFICATION.md for shelf residual classification"
+    evidence: "shelf classification"
 promoted_slots: {}
