@@ -1,0 +1,9 @@
+meta:
+  subject: adop
+  as_of: "2026-07-10"
+
+claimed_complete: false
+
+statement: "ADOP records decisions; a valid .adop/ lint does not prove the evaluation was wise or complete."
+
+see: "README.md; docs/design/ADOP_COMPLETION_CONTRACT.md; docs/publication/PUBLIC_VERIFICATION_CONTRACT.md"
