@@ -1,0 +1,56 @@
+# ADOP Base Registry — methodology A-layer
+meta:
+  subject: adop
+  revision: 1
+
+categories:
+  G.goal:
+    state: filled
+    value: "see README.md; docs/design/ADOP_COMPLETION_CONTRACT.md"
+    evidence: "structured append-only tool evaluation records; completion contract"
+  G.actor:
+    state: filled
+    value: "teams evaluating libraries/linters/services; auditors/future teammates; CLI operator"
+    evidence: "README.md Who Needs This"
+  G.io:
+    state: filled
+    value: "CLI adop status/next/lint; artifacts under .adop/ JSON; no central server"
+    evidence: "README.md How It Works"
+  G.behavior:
+    state: filled
+    value: "scene lane states watch→…→archived; state derived from disk; append-only"
+    evidence: "README.md state machine"
+  G.data:
+    state: filled
+    value: "append-only JSON in .adop/; related_scene lanes; trial verdicts"
+    evidence: "README.md"
+  G.oracle:
+    state: filled
+    value: "adop lint = machine validation of record; promote/hold/reject judgment fields = human"
+    evidence: "README.md quick-close-trial judgment fields"
+  G.invariant:
+    state: filled
+    value: "append-only artifacts; no delete/overwrite; state always derived from what is on disk"
+    evidence: "README.md"
+  G.compose:
+    state: filled
+    value: "lane × tool × adoption-unit separation; trial close requires verdict + observed-effect"
+    evidence: "README.md"
+  G.env:
+    state: filled
+    value: "Python 3.11–3.13; local filesystem .adop/; no daemon"
+    evidence: "README.md Setup"
+  G.feedback:
+    state: filled
+    value: "none (single-shot CLI / append-only records; no self-training loop)"
+    evidence: "product shape"
+  G.ops:
+    state: filled
+    value: "adop lint; docs/publication/PUBLIC_VERIFICATION_CONTRACT.md for public min"
+    evidence: "README Current Audit Surfaces"
+  G.open:
+    state: filled
+    value: "see docs/design/ADOP_COMPLETION_AUDIT_20260619.md for tracked residual audit items"
+    evidence: "completion audit"
+
+promoted_slots: {}
